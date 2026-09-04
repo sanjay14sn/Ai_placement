@@ -66,8 +66,8 @@ export const RecruiterCalendarPage: React.FC = () => {
         <Card className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <Button size="xs" variant="outline" iconOnly={<ChevronLeft className="w-4 h-4" />} aria-label="Previous Month" />
-              <Button size="xs" variant="outline" iconOnly={<ChevronRight className="w-4 h-4" />} aria-label="Next Month" />
+              <Button size="icon" variant="outline" aria-label="Previous Month"><ChevronLeft className="w-4 h-4" /></Button>
+              <Button size="icon" variant="outline" aria-label="Next Month"><ChevronRight className="w-4 h-4" /></Button>
             </div>
             <h2 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <CalendarIcon className="w-5 h-5 text-brand-600" />

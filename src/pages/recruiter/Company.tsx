@@ -376,7 +376,7 @@ export const RecruiterCompanyPage: React.FC = () => {
 
                 <div className="text-xs text-slate-500 pt-2 flex items-center justify-between">
                   <span>TPO: {college.tpoName}</span>
-                  <Button size="xs" variant="outline">Schedule Drive</Button>
+                  <Button size="sm" variant="outline">Schedule Drive</Button>
                 </div>
               </Card>
             ))}

@@ -39,7 +39,7 @@ export const RegisterPage: React.FC = () => {
 
   // Resend Timer Countdown Effect
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
     if (step === 'otp' && resendTimer > 0) {
       setCanResend(false);
       timer = setInterval(() => {

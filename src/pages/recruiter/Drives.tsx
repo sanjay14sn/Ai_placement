@@ -192,7 +192,7 @@ export const RecruiterDrivesPage: React.FC = () => {
                 </div>
 
                 <Button 
-                  size="xs" 
+                  size="sm" 
                   rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
                   onClick={() => toast.info(`Viewing analytics for ${drive.title}`)}
                 >
