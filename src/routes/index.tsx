@@ -20,6 +20,8 @@ import { SuperAdminUsagePage } from '../pages/super-admin/Usage';
 import { SuperAdminAnalyticsPage } from '../pages/super-admin/Analytics';
 import { SuperAdminAuditLogsPage } from '../pages/super-admin/AuditLogs';
 import { SuperAdminSettingsPage } from '../pages/super-admin/Settings';
+import { SuperAdminProgramsPage } from '../pages/super-admin/Programs';
+import { SuperAdminNewsroomPage } from '../pages/super-admin/Newsroom';
 
 // College
 import { CollegeDashboard } from '../pages/college/Dashboard';
@@ -36,6 +38,7 @@ import { CollegeNotificationsPage } from '../pages/college/Notifications';
 import { CollegeAnalyticsPage } from '../pages/college/Analytics';
 import { CollegeReportsPage } from '../pages/college/Reports';
 import { CollegeSettingsPage } from '../pages/college/Settings';
+import { CollegeProgramsPage } from '../pages/college/Programs';
 import { AIAssistantPage } from '../pages/shared/AIAssistant';
 
 // Student
@@ -51,6 +54,8 @@ import { StudentReadinessPage } from '../pages/student/Readiness';
 import { StudentInterviewPrepPage } from '../pages/student/InterviewPrep';
 import { StudentNotificationsPage } from '../pages/student/Notifications';
 import { StudentSettingsPage } from '../pages/student/Settings';
+import { StudentProgramsPage } from '../pages/student/Programs';
+import { StudentNewsroomPage } from '../pages/student/Newsroom';
 
 // Recruiter
 import { RecruiterDashboard } from '../pages/recruiter/Dashboard';
@@ -63,6 +68,7 @@ import { RecruiterInterviewsPage } from '../pages/recruiter/Interviews';
 import { RecruiterCalendarPage } from '../pages/recruiter/Calendar';
 import { RecruiterAnalyticsPage } from '../pages/recruiter/Analytics';
 import { RecruiterSettingsPage } from '../pages/recruiter/Settings';
+import { RecruiterProgramsPage } from '../pages/recruiter/Programs';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -87,6 +93,8 @@ export const AppRouter: React.FC = () => {
           <Route element={<DashboardLayout allowedRoles={['SUPER_ADMIN']} />}>
             <Route path="/super-admin" element={<Navigate to="/super-admin/overview" replace />} />
             <Route path="/super-admin/overview" element={<SuperAdminOverview />} />
+            <Route path="/super-admin/newsroom" element={<SuperAdminNewsroomPage />} />
+            <Route path="/super-admin/programs" element={<SuperAdminProgramsPage />} />
             <Route path="/super-admin/colleges" element={<SuperAdminCollegesPage />} />
             <Route path="/super-admin/companies" element={<SuperAdminCompaniesPage />} />
             <Route path="/super-admin/users" element={<SuperAdminUsersPage />} />
@@ -102,6 +110,7 @@ export const AppRouter: React.FC = () => {
           <Route element={<DashboardLayout allowedRoles={['COLLEGE_ADMIN', 'TPO']} />}>
             <Route path="/college" element={<Navigate to="/college/dashboard" replace />} />
             <Route path="/college/dashboard" element={<CollegeDashboard />} />
+            <Route path="/college/programs" element={<CollegeProgramsPage />} />
             <Route path="/college/students" element={<StudentsPage />} />
             <Route path="/college/students/:id" element={<StudentDetailPage />} />
             <Route path="/college/departments" element={<CollegeDepartmentsPage />} />
@@ -122,6 +131,8 @@ export const AppRouter: React.FC = () => {
           <Route element={<DashboardLayout allowedRoles={['STUDENT']} />}>
             <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
             <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/newsroom" element={<StudentNewsroomPage />} />
+            <Route path="/student/programs" element={<StudentProgramsPage />} />
             <Route path="/student/profile" element={<StudentProfilePage />} />
             <Route path="/student/resume" element={<StudentResumePage />} />
             <Route path="/student/ats-checker" element={<StudentATSCheckerPage />} />
@@ -140,6 +151,7 @@ export const AppRouter: React.FC = () => {
           <Route element={<DashboardLayout allowedRoles={['RECRUITER']} />}>
             <Route path="/recruiter" element={<Navigate to="/recruiter/dashboard" replace />} />
             <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
+            <Route path="/recruiter/programs" element={<RecruiterProgramsPage />} />
             <Route path="/recruiter/company" element={<RecruiterCompanyPage />} />
             <Route path="/recruiter/jobs" element={<RecruiterJobsPage />} />
             <Route path="/recruiter/candidates" element={<RecruiterCandidatesPage />} />

@@ -51,18 +51,29 @@ export const StudentJobsPage: React.FC = () => {
       subtitle="AI-curated opportunities for you"
       breadcrumbs={[{ label: 'Student' }, { label: 'Jobs' }]}
     >
-      {/* Hero Banner */}
-      <div className="bg-gradient-to-r from-brand-600 to-ai-600 rounded-2xl p-6 mb-6 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+      {/* Hero Banner with Custom Cloudinary AI Background Image */}
+      <div className="relative rounded-2xl p-6 sm:p-8 mb-6 text-white overflow-hidden shadow-2xl border border-ai-500/30 group">
+        {/* Background Image */}
+        <img
+          src="https://res.cloudinary.com/dq6gr5zjc/image/upload/v1788933229/ChatGPT_Image_Sep_9_2026_11_23_31_AM_wtjs2t.png"
+          alt="AI Recommendations Background"
+          className="absolute inset-0 w-full h-full object-cover z-0 group-hover:scale-105 transition-transform duration-700"
+        />
+        {/* Sleek Dual Gradient Overlay for Optimal Readability & Depth */}
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/75 to-slate-950/30 z-0" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-brand-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none z-0" />
+
         <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap className="w-4 h-4" />
+          <div className="flex items-center gap-2 mb-2.5">
+            <Zap className="w-4 h-4 text-amber-400" />
             <AIBadge label="AI Recommendations" className="bg-white/90 text-slate-950 font-extrabold shadow-sm px-3 py-1" />
           </div>
-          <h2 className="text-lg font-bold mb-1">
+          <h2 className="text-xl sm:text-2xl font-extrabold mb-1.5 drop-shadow-md text-white">
             {loading ? 'Finding your best matches...' : `${jobs.length} jobs matched for you`}
           </h2>
-          <p className="text-brand-200 text-sm">Based on your skills, CGPA, preferences, and career goals</p>
+          <p className="text-slate-200 text-sm font-medium drop-shadow-sm max-w-xl">
+            Based on your skills, CGPA, preferences, and career goals
+          </p>
         </div>
       </div>
 

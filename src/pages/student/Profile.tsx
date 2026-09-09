@@ -156,55 +156,80 @@ export const StudentProfilePage: React.FC = () => {
         )
       }
     >
-      {/* Header Profile Hero Card */}
-      <div className="relative bg-gradient-to-br from-brand-600 via-brand-700 to-ai-800 rounded-3xl p-6 sm:p-8 mb-6 text-white overflow-hidden shadow-xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-ai-400/20 rounded-full blur-2xl pointer-events-none" />
+      {/* Ultra Premium Header Profile Hero Card */}
+      <div className="relative rounded-3xl p-6 sm:p-8 mb-6 text-white overflow-hidden shadow-2xl border border-white/20 bg-slate-950 group">
+        {/* Layered Background Image & Ambient Light Gradients */}
+        <img
+          src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1600&auto=format&fit=crop&q=80"
+          alt="Profile Background"
+          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-25"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/90 to-brand-950/85" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/25 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-ai-500/20 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6">
+          {/* Left: Avatar & Personal Info */}
           <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
             <div className="relative">
-              <Avatar name={student.name} size="xl" className="w-24 h-24 ring-4 ring-white/30 shadow-lg text-2xl font-black bg-white/20 text-white" />
-              <button className="absolute bottom-0 right-0 p-1.5 bg-white text-brand-700 rounded-full shadow-md hover:bg-slate-100 transition-colors" title="Change Avatar">
+              {/* Glowing Ambient Ring around Avatar */}
+              <div className="p-1 rounded-full bg-gradient-to-tr from-brand-400 via-emerald-400 to-indigo-500 shadow-[0_0_25px_rgba(79,70,229,0.6)]">
+                <Avatar name={student.name} size="xl" className="w-24 h-24 shadow-inner text-2xl font-black bg-slate-900 text-white" />
+              </div>
+              <button 
+                className="absolute bottom-0 right-0 p-2 bg-gradient-to-r from-brand-500 to-indigo-600 text-white rounded-full shadow-lg hover:scale-110 transition-transform ring-2 ring-white/40 cursor-pointer" 
+                title="Change Avatar"
+              >
                 <Edit3 className="w-3.5 h-3.5" />
               </button>
             </div>
+
             <div>
-              <div className="flex items-center gap-3 justify-center sm:justify-start mb-1">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{student.name}</h1>
-                <Badge variant="green" className="bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 backdrop-blur-md">
-                  {student.isEligible ? 'Eligible for Drives' : 'Not Eligible'}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mb-1.5">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-md">
+                  {student.name}
+                </h1>
+                <Badge variant="green" className="bg-emerald-500/25 text-emerald-200 border border-emerald-400/40 backdrop-blur-md px-3 py-1 text-xs font-semibold shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">
+                  {student.isEligible ? 'Eligible for Drives ✨' : 'Not Eligible'}
                 </Badge>
               </div>
-              <p className="text-xs text-brand-100 font-medium">
-                {student.studentId} · {student.degree} in {student.department} ({student.batch} Batch)
+
+              <p className="text-xs sm:text-sm text-brand-200 font-medium tracking-wide drop-shadow-sm">
+                <span className="font-mono text-white/90 font-bold bg-white/10 px-2 py-0.5 rounded-md mr-1.5 border border-white/10">{student.studentId}</span>
+                · {student.degree} in {student.department} ({student.batch} Batch)
               </p>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-3 text-xs text-brand-200">
-                <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
-                  <Mail className="w-3.5 h-3.5 text-brand-200" /> {student.email}
+
+              {/* Glassmorphic Contact Pills */}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 mt-3 text-xs">
+                <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl transition-all shadow-sm text-slate-100">
+                  <Mail className="w-3.5 h-3.5 text-brand-300" /> {student.email}
                 </span>
-                <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
-                  <Phone className="w-3.5 h-3.5 text-brand-200" /> {student.phone}
+                <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl transition-all shadow-sm text-slate-100">
+                  <Phone className="w-3.5 h-3.5 text-brand-300" /> {student.phone}
                 </span>
-                <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-xl border border-white/10">
-                  <MapPin className="w-3.5 h-3.5 text-brand-200" /> {student.address.city}, {student.address.state}
+                <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl transition-all shadow-sm text-slate-100">
+                  <MapPin className="w-3.5 h-3.5 text-brand-300" /> {student.address.city}, {student.address.state}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 w-full sm:w-auto justify-center sm:justify-start">
+          {/* Right: Glassmorphic Profile Completion Widget */}
+          <div className="flex items-center gap-4 bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-xl p-4.5 rounded-2xl border border-white/25 w-full sm:w-auto justify-center sm:justify-start shadow-[0_10px_30px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.4)]">
             <ProgressRing
               value={student.profileCompletion}
-              size={64}
-              strokeWidth={6}
-              color="#fff"
+              size={68}
+              strokeWidth={7}
+              color="#38bdf8"
               label={`${student.profileCompletion}%`}
-              labelColor="text-white"
+              labelColor="text-white font-extrabold text-sm"
             />
             <div>
-              <p className="text-xs font-bold text-white">Profile Completion</p>
-              <p className="text-[11px] text-brand-200 mt-0.5">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                <p className="text-xs font-extrabold text-white uppercase tracking-wider">Profile Completion</p>
+              </div>
+              <p className="text-[11px] text-sky-200 mt-1 font-medium leading-tight max-w-[160px]">
                 {student.profileCompletion >= 85 ? 'Profile ready for TPO screening' : 'Add missing projects'}
               </p>
             </div>

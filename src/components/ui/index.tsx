@@ -162,6 +162,7 @@ export const Card: React.FC<CardProps> = ({ children, className, hover, onClick,
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  labelClassName?: string;
   error?: string;
   hint?: string;
   leftIcon?: React.ReactNode;
@@ -169,11 +170,11 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, leftIcon, rightIcon, className, ...props }, ref) => {
+  ({ label, labelClassName, error, hint, leftIcon, rightIcon, className, ...props }, ref) => {
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          <label className={cn("block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5", labelClassName)}>
             {label}
           </label>
         )}
@@ -211,16 +212,17 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
+  labelClassName?: string;
   error?: string;
   options: { value: string; label: string }[];
   placeholder?: string;
 }
 
-export const Select: React.FC<SelectProps> = ({ label, error, options, placeholder, className, ...props }) => {
+export const Select: React.FC<SelectProps> = ({ label, labelClassName, error, options, placeholder, className, ...props }) => {
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+        <label className={cn("block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5", labelClassName)}>
           {label}
         </label>
       )}

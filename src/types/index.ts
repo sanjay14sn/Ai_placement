@@ -629,3 +629,105 @@ export interface FilterParams {
   sortOrder?: 'asc' | 'desc';
   [key: string]: unknown;
 }
+
+// ─── Video Programs & Content Hub ─────────────────────────────────────────────
+
+export type TargetAudience = 'ALL' | 'STUDENT' | 'COLLEGE_ADMIN' | 'TPO' | 'RECRUITER';
+
+export interface VideoResource {
+  id: string;
+  title: string;
+  type: 'pdf' | 'ppt' | 'code' | 'link' | 'doc';
+  url: string;
+  size?: string;
+}
+
+export interface ProgramVideo {
+  id: string;
+  title: string;
+  description: string;
+  duration: string;
+  videoUrl: string;
+  thumbnail?: string;
+  order: number;
+  resources?: VideoResource[];
+  isCompleted?: boolean;
+}
+
+export interface Program {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  category: string;
+  targetAudience: TargetAudience[];
+  thumbnailUrl: string;
+  instructorName: string;
+  instructorTitle: string;
+  instructorAvatar?: string;
+  isPublished: boolean;
+  totalDuration: string;
+  videosCount: number;
+  videos: ProgramVideo[];
+  enrolledCount: number;
+  rating: number;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Newsroom & Official Announcements ─────────────────────────────────────────
+
+export type NewsCategory =
+  | 'Campus Announcement'
+  | 'Placement Drive Alert'
+  | 'Policy Update'
+  | 'Industry Trends'
+  | 'Tech News'
+  | 'Press Release';
+
+export type NewsPriority = 'urgent' | 'high' | 'normal';
+
+export interface NewsAttachment {
+  id: string;
+  name: string;
+  url: string;
+  size?: string;
+  type?: 'pdf' | 'doc' | 'image' | 'link';
+}
+
+export interface NewsComment {
+  id: string;
+  articleId: string;
+  userName: string;
+  userRole: Role;
+  userAvatar?: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface NewsArticle {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string;
+  content: string;
+  category: NewsCategory;
+  priority: NewsPriority;
+  targetAudience: TargetAudience[];
+  coverImage: string;
+  authorName: string;
+  authorRole: string;
+  authorAvatar?: string;
+  isPinned: boolean;
+  isPublished: boolean;
+  viewsCount: number;
+  likesCount: number;
+  likedByUsers?: string[];
+  comments: NewsComment[];
+  attachments?: NewsAttachment[];
+  publishedAt: string;
+  updatedAt: string;
+}
+
+

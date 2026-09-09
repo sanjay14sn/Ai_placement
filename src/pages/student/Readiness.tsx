@@ -66,8 +66,15 @@ export const StudentReadinessPage: React.FC = () => {
       }
     >
       {/* Hero Readiness Gauge Banner */}
-      <div className="relative bg-gradient-to-br from-brand-600 via-brand-700 to-ai-800 rounded-3xl p-6 sm:p-8 mb-8 text-white overflow-hidden shadow-xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+      <div className="relative rounded-3xl p-6 sm:p-8 mb-8 text-white overflow-hidden shadow-2xl group border border-brand-800/40">
+        {/* Background Image with Dual Layer Gradient Overlay */}
+        <img
+          src="https://res.cloudinary.com/dq6gr5zjc/image/upload/v1788933606/ed955128-46ab-4673-b0f3-a33ad19613cc_biiq0i.png"
+          alt="Placement Readiness Background"
+          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/90 via-slate-950/75 to-slate-950/40" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-ai-400/20 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6">

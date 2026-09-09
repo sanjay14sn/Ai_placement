@@ -4,7 +4,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { Award, TrendingUp, Target, Zap, Bot, ChevronRight, CheckCircle2, Globe } from 'lucide-react';
+import { Award, TrendingUp, Target, Zap, Bot, ChevronRight, CheckCircle2, Globe, FileText, Mic, Link2, Sparkles } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, AIBadge, ProgressRing, Progress, Badge, Tabs } from '../../components/ui';
 import { aiService } from '../../services';
@@ -39,31 +39,39 @@ export const StudentDashboard: React.FC = () => {
       breadcrumbs={[{ label: 'Student' }, { label: 'Dashboard' }]}
     >
       {/* Placement Readiness Hero */}
-      <div className="bg-gradient-to-br from-brand-600 to-ai-700 rounded-2xl p-6 mb-6 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-xl" />
+      <div className="relative rounded-3xl p-6 sm:p-8 mb-6 text-white overflow-hidden shadow-2xl group border border-brand-800/40">
+        {/* Background Image with Dual Layer Gradient Overlay */}
+        <img
+          src="https://res.cloudinary.com/dq6gr5zjc/image/upload/v1788933606/ed955128-46ab-4673-b0f3-a33ad19613cc_biiq0i.png"
+          alt="Placement Readiness Background"
+          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/75 to-slate-950/40" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-ai-500/20 rounded-full blur-2xl" />
+
         <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6">
           <ProgressRing
-            value={readiness?.overallScore || 83}
+            value={readiness?.overallScore || 91}
             size={100}
             strokeWidth={7}
             color="#fff"
-            label={`${readiness?.overallScore || 83}%`}
+            label={`${readiness?.overallScore || 91}%`}
             sublabel="Ready"
             labelColor="text-white"
           />
-          <div className="text-center sm:text-left">
+          <div className="text-center sm:text-left flex-1">
             <div className="flex items-center gap-2 justify-center sm:justify-start mb-2">
-              <AIBadge label="AI Placement Score" className="bg-white/90 text-slate-950 font-extrabold shadow-sm px-3 py-1" />
+              <AIBadge label="AI Placement Score" className="bg-white/95 text-slate-950 font-extrabold shadow-sm px-3 py-1" />
             </div>
-            <h2 className="text-2xl font-bold mb-1">Placement Readiness: {readiness?.overallScore || 83}%</h2>
+            <h2 className="text-2xl sm:text-3xl font-extrabold mb-1 tracking-tight">Placement Readiness: {readiness?.overallScore || 91}%</h2>
             <p className="text-brand-200 text-sm mb-4">You're in the top 25% of your batch! A few improvements can push you to 95%+.</p>
             <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-              <Button variant="secondary" size="sm" className="bg-white text-brand-700 hover:bg-slate-100" onClick={() => navigate('/student/readiness')}>
+              <Button variant="secondary" size="sm" className="bg-white text-brand-700 hover:bg-slate-100 font-bold shadow-md" onClick={() => navigate('/student/readiness')}>
                 View Full Analysis
               </Button>
-              <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border border-white/30" onClick={() => navigate('/student/ai-assistant')}>
-                <Zap className="w-3.5 h-3.5 mr-1.5" />Ask AI
+              <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md" onClick={() => navigate('/student/ai-assistant')}>
+                <Zap className="w-3.5 h-3.5 mr-1.5 text-amber-300" />Ask AI
               </Button>
             </div>
           </div>
@@ -215,27 +223,82 @@ export const StudentDashboard: React.FC = () => {
 
         {/* Quick Actions */}
         <Card className="p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-5">Quick Actions</h3>
-          <div className="space-y-2">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+              Quick Actions
+            </h3>
+            <AIBadge />
+          </div>
+          <div className="space-y-2.5">
             {[
-              { label: 'Browse AI-Matched Jobs', to: '/student/jobs', emoji: '🎯' },
-              { label: 'Update My Resume', to: '/student/resume', emoji: '📄' },
-              { label: 'Practice Interviews', to: '/student/interview-prep', emoji: '🎤' },
-              { label: 'Talk to AI Assistant', to: '/student/ai-assistant', emoji: '🤖' },
-              { label: 'Connect Job Portals (LinkedIn, Indeed)', to: '/student/settings', emoji: '🔗' },
-            ].map(action => (
-              <button
-                key={action.label}
-                onClick={() => navigate(action.to)}
-                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">{action.emoji}</span>
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{action.label}</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
-              </button>
-            ))}
+              {
+                label: 'Browse AI-Matched Jobs',
+                to: '/student/jobs',
+                icon: Target,
+                gradient: 'from-indigo-500 via-brand-500 to-ai-600',
+                shadow: 'shadow-indigo-500/25',
+                badge: '98% Match'
+              },
+              {
+                label: 'Update My Resume',
+                to: '/student/resume',
+                icon: FileText,
+                gradient: 'from-blue-500 to-cyan-600',
+                shadow: 'shadow-blue-500/25',
+                badge: 'ATS Optimizing'
+              },
+              {
+                label: 'Practice Interviews',
+                to: '/student/interview-prep',
+                icon: Mic,
+                gradient: 'from-purple-500 to-pink-600',
+                shadow: 'shadow-purple-500/25',
+                badge: 'AI Mock'
+              },
+              {
+                label: 'Talk to AI Assistant',
+                to: '/student/ai-assistant',
+                icon: Bot,
+                gradient: 'from-emerald-500 to-teal-600',
+                shadow: 'shadow-emerald-500/25',
+                badge: '24/7 Active'
+              },
+              {
+                label: 'Connect Job Portals',
+                to: '/student/settings',
+                icon: Link2,
+                gradient: 'from-amber-500 to-orange-600',
+                shadow: 'shadow-amber-500/25',
+                badge: '4/6 Linked'
+              },
+            ].map(action => {
+              const IconComponent = action.icon;
+              return (
+                <button
+                  key={action.label}
+                  onClick={() => navigate(action.to)}
+                  className="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 transition-all duration-200 group text-left shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.gradient} text-white flex items-center justify-center shadow-md ${action.shadow} group-hover:scale-110 transition-transform duration-200 ring-2 ring-white/20 dark:ring-slate-900/40 shrink-0`}>
+                      <IconComponent className="w-5 h-5 drop-shadow-sm" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200 block group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                        {action.label}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-full hidden sm:inline-block">
+                      {action.badge}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-brand-600 dark:group-hover:text-brand-400 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </Card>
       </div>
@@ -256,7 +319,7 @@ export const StudentDashboard: React.FC = () => {
 
           <Button
             size="sm"
-            className="bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs whitespace-nowrap"
+            className="!bg-white !text-black hover:!bg-slate-100 font-extrabold text-xs whitespace-nowrap shadow-md"
             onClick={() => navigate('/student/settings')}
           >
             Manage Portals & Passwords

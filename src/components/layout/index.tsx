@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, LogOut, User, Command, Shield, CreditCard,
   Activity, Layers, AlertCircle, UserCheck, TrendingUp, Zap, Target,
   ClipboardList, MessageSquare, Star, Award, BookMarked, Lightbulb,
-  Building, ListChecks, Network
+  Building, ListChecks, Network, Video, Newspaper
 } from 'lucide-react';
 import { useAuthStore, useUIStore, useNotificationStore } from '../../store';
 import { Avatar, Badge } from '../ui';
@@ -42,6 +42,8 @@ const getSidebarNav = (role: Role): NavSection[] => {
         {
           title: 'Management',
           items: [
+            { label: 'Newsroom', icon: <Newspaper className="w-4 h-4" />, to: '/super-admin/newsroom' },
+            { label: 'Video Programs', icon: <Video className="w-4 h-4" />, to: '/super-admin/programs' },
             { label: 'Colleges', icon: <Building2 className="w-4 h-4" />, to: '/super-admin/colleges' },
             { label: 'Companies', icon: <Building className="w-4 h-4" />, to: '/super-admin/companies' },
             { label: 'Users', icon: <Users className="w-4 h-4" />, to: '/super-admin/users' },
@@ -94,6 +96,7 @@ const getSidebarNav = (role: Role): NavSection[] => {
         {
           title: 'Intelligence',
           items: [
+            { label: 'Video Programs', icon: <Video className="w-4 h-4" />, to: '/college/programs' },
             { label: 'Analytics', icon: <BarChart3 className="w-4 h-4" />, to: '/college/analytics' },
             { label: 'Reports', icon: <FileText className="w-4 h-4" />, to: '/college/reports' },
             { label: 'AI Placement Officer', icon: <Bot className="w-4 h-4" />, to: '/college/ai-assistant' },
@@ -112,6 +115,7 @@ const getSidebarNav = (role: Role): NavSection[] => {
         {
           items: [
             { label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" />, to: '/student/dashboard', end: true },
+            { label: 'Newsroom', icon: <Newspaper className="w-4 h-4" />, to: '/student/newsroom', badge: 'Live' },
           ]
         },
         {
@@ -133,6 +137,7 @@ const getSidebarNav = (role: Role): NavSection[] => {
         {
           title: 'AI Career Tools',
           items: [
+            { label: 'Video Programs', icon: <Video className="w-4 h-4" />, to: '/student/programs' },
             { label: 'ATS Score Checker', icon: <FileCheck className="w-4 h-4" />, to: '/student/ats-checker' },
             { label: 'Placement Readiness', icon: <Award className="w-4 h-4" />, to: '/student/readiness' },
             { label: 'Interview Prep', icon: <BookMarked className="w-4 h-4" />, to: '/student/interview-prep' },
@@ -174,6 +179,7 @@ const getSidebarNav = (role: Role): NavSection[] => {
         {
           title: 'Intelligence',
           items: [
+            { label: 'Video Programs', icon: <Video className="w-4 h-4" />, to: '/recruiter/programs' },
             { label: 'Analytics', icon: <BarChart3 className="w-4 h-4" />, to: '/recruiter/analytics' },
             { label: 'AI Recruiter', icon: <Bot className="w-4 h-4" />, to: '/recruiter/ai-assistant' },
           ]
