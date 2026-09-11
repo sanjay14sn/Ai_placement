@@ -27,7 +27,7 @@ const futureDate = (daysFromNow: number): string => {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-export const DEPARTMENTS = ['CSE', 'ISE', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA'];
+export const DEPARTMENTS = ['CSE', 'AI & DS', 'ECE', 'EEE', 'ME', 'Biotech', 'MCA', 'MBA'];
 
 const SKILLS_POOL = [
   'Java', 'Python', 'JavaScript', 'TypeScript', 'React', 'Angular', 'Vue.js',
@@ -64,14 +64,14 @@ const STUDENT_NAMES = [
 ];
 
 const COLLEGE_NAMES = [
-  { name: 'Sona College of Technology', city: 'Salem', state: 'Tamil Nadu', affiliation: 'Anna University' },
+  { name: 'SRM Institute of Science and Technology', city: 'Chennai (KTR)', state: 'Tamil Nadu', affiliation: 'Deemed University' },
   { name: 'RV College of Engineering', city: 'Bengaluru', state: 'Karnataka', affiliation: 'VTU' },
   { name: 'BMS College of Engineering', city: 'Bengaluru', state: 'Karnataka', affiliation: 'VTU' },
   { name: 'PESIT South Campus', city: 'Bengaluru', state: 'Karnataka', affiliation: 'VTU' },
   { name: 'Manipal Institute of Technology', city: 'Manipal', state: 'Karnataka', affiliation: 'MAHE' },
   { name: 'SSN College of Engineering', city: 'Chennai', state: 'Tamil Nadu', affiliation: 'Anna University' },
   { name: 'CEG Anna University', city: 'Chennai', state: 'Tamil Nadu', affiliation: 'Anna University' },
-  { name: 'SRM Institute of Science', city: 'Chennai', state: 'Tamil Nadu', affiliation: 'Deemed' },
+  { name: 'Sona College of Technology', city: 'Salem', state: 'Tamil Nadu', affiliation: 'Anna University' },
   { name: 'VIT Vellore', city: 'Vellore', state: 'Tamil Nadu', affiliation: 'Deemed' },
   { name: 'Pune Institute of Computer Technology', city: 'Pune', state: 'Maharashtra', affiliation: 'SPPU' },
   { name: 'RAIT Mumbai', city: 'Mumbai', state: 'Maharashtra', affiliation: 'Mumbai University' },

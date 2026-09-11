@@ -185,69 +185,78 @@ export const RegisterPage: React.FC = () => {
           />
         </video>
 
-        {/* Subtle Dark Overlay for background contrast */}
-        <div className="absolute inset-0 bg-slate-950/20" />
+        {/* Video is 100% fully visible without dark overlay */}
       </div>
 
-      {/* Top Left Floating Brand Logo with Glossy Glass Finish */}
-      <div className="fixed top-6 left-6 z-50 flex items-center gap-3 bg-slate-900/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/30 border-t-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.4)]">
-        <div className="w-9 h-9 bg-gradient-to-br from-brand-500 via-brand-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-md ring-1 ring-white/40">
-          <Zap className="w-5 h-5 text-white" />
-        </div>
-        <span className="text-xl font-extrabold text-white tracking-tight drop-shadow-sm">
-          PlacementOS
-        </span>
+
+      {/* Top Left Logo Container Box with White Background */}
+      <div className="absolute top-6 left-6 sm:top-8 sm:left-8 z-20 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl border border-white/80 flex items-center gap-3">
+        <Link to="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity">
+          <img 
+            src="/svm.png" 
+            alt="SVM Logo" 
+            className="h-10 sm:h-12 w-auto object-contain"
+          />
+          <div className="border-l border-slate-300 pl-2.5">
+            <span className="font-black text-sm sm:text-base text-slate-900 block leading-tight">
+              SVM PlacementOS
+            </span>
+            <span className="text-[10px] font-extrabold text-[#08546c] uppercase tracking-wider block">
+              Student Portal
+            </span>
+          </div>
+        </Link>
       </div>
 
       {/* RIGHT-ALIGNED FLOATING SQUARE BOX CONTAINER */}
       <div className="relative z-10 w-full max-w-xl lg:max-w-lg lg:mr-8 xl:mr-16 my-auto max-h-[92vh] overflow-y-auto pr-1">
         
-        {/* Stepper Header indicator with Translucent Glossy Finish */}
-        <div className="flex items-center justify-between mb-4 px-4 py-3 bg-slate-900/40 backdrop-blur-md border border-white/30 border-t-white/50 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.3)]">
+        {/* Stepper Header indicator with Clean White Finish */}
+        <div className="flex items-center justify-between mb-4 px-4 py-3.5 bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-xl">
           <div className="flex items-center gap-2.5">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
               step === 'form' 
-                ? 'bg-brand-500 text-white ring-4 ring-brand-500/40 shadow-lg' 
+                ? 'bg-[#08546c] text-white ring-4 ring-[#08546c]/25 shadow-md' 
                 : 'bg-emerald-500 text-white'
             }`}>
               {step === 'otp' ? <Check className="w-3.5 h-3.5" /> : '1'}
             </div>
-            <span className={`text-xs sm:text-sm font-semibold ${step === 'form' ? 'text-white' : 'text-slate-400'}`}>
+            <span className={`text-xs sm:text-sm ${step === 'form' ? 'text-slate-900 font-bold' : 'text-slate-500 font-semibold'}`}>
               Student Details
             </span>
           </div>
 
-          <div className="flex-1 max-w-[60px] sm:max-w-[80px] h-0.5 bg-slate-700/60 mx-3">
-            <div className={`h-full bg-brand-500 transition-all duration-300 ${step === 'otp' ? 'w-full' : 'w-0'}`} />
+          <div className="flex-1 max-w-[60px] sm:max-w-[80px] h-1 bg-slate-200 mx-3 rounded-full overflow-hidden">
+            <div className={`h-full bg-[#08546c] transition-all duration-300 ${step === 'otp' ? 'w-full' : 'w-0'}`} />
           </div>
 
           <div className="flex items-center gap-2.5">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
               step === 'otp' 
-                ? 'bg-brand-500 text-white ring-4 ring-brand-500/40 shadow-lg' 
-                : 'bg-slate-800 text-slate-400 border border-slate-700'
+                ? 'bg-[#08546c] text-white ring-4 ring-[#08546c]/25 shadow-md' 
+                : 'bg-slate-100 text-slate-500 border border-slate-300'
             }`}>
               2
             </div>
-            <span className={`text-xs sm:text-sm font-semibold ${step === 'otp' ? 'text-white' : 'text-slate-400'}`}>
+            <span className={`text-xs sm:text-sm ${step === 'otp' ? 'text-slate-900 font-bold' : 'text-slate-500 font-semibold'}`}>
               OTP Verification
             </span>
           </div>
         </div>
 
-        {/* MAIN TRANSLUCENT GLOSSY SQUARE BOX FORM CARD */}
-        <div className="relative bg-gradient-to-b from-slate-900/45 via-slate-900/35 to-slate-950/50 backdrop-blur-md rounded-3xl border border-white/30 border-t-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.4)] p-5 sm:p-7 transition-all overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/15 before:via-transparent before:to-transparent before:pointer-events-none">
+        {/* MAIN CLEAN WHITE SQUARE BOX FORM CARD */}
+        <div className="relative bg-white/95 backdrop-blur-md rounded-3xl border border-slate-200/90 shadow-2xl p-6 sm:p-8 text-slate-900 transition-all overflow-hidden">
           {step === 'form' ? (
             /* STEP 1: STUDENT REGISTRATION FORM */
             <form onSubmit={handleProceedToOtp} className="relative z-10 space-y-4">
               <div>
-                <Badge className="mb-2 px-2.5 py-0.5 bg-white/20 text-white border border-white/30 text-[11px] font-medium shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">
+                <Badge className="mb-2 px-3 py-1 bg-cyan-50 text-[#08546c] border border-cyan-200/80 text-xs font-bold shadow-sm">
                   Self-Service Student Onboarding
                 </Badge>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-md">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
                   Student Registration
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-200 mt-1 drop-shadow-sm">
+                <p className="text-xs sm:text-sm text-slate-600 mt-1">
                   Select your institution and department to complete profile setup.
                 </p>
               </div>
@@ -256,8 +265,8 @@ export const RegisterPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <Select
                   label="Select College / Institution"
-                  labelClassName="text-white dark:text-white font-semibold drop-shadow-sm"
-                  className="bg-slate-950/40 text-white dark:text-white border-white/30 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] backdrop-blur-sm"
+                  labelClassName="text-slate-800 font-semibold"
+                  className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#08546c] focus:ring-2 focus:ring-cyan-500/20 shadow-sm placeholder:text-slate-400 font-medium"
                   options={mockColleges.map(c => ({ value: c.id, label: `${c.name} (${c.city})` }))}
                   value={studentCollegeId}
                   onChange={e => setStudentCollegeId(e.target.value)}
@@ -265,8 +274,8 @@ export const RegisterPage: React.FC = () => {
 
                 <Select
                   label="Department / Branch"
-                  labelClassName="text-white dark:text-white font-semibold drop-shadow-sm"
-                  className="bg-slate-950/40 text-white dark:text-white border-white/30 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] backdrop-blur-sm"
+                  labelClassName="text-slate-800 font-semibold"
+                  className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#08546c] focus:ring-2 focus:ring-cyan-500/20 shadow-sm placeholder:text-slate-400 font-medium"
                   options={DEPARTMENTS.map(d => ({
                     value: d,
                     label: d === 'CSE' ? 'Computer Science (CSE)' :
@@ -284,23 +293,23 @@ export const RegisterPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   label="Full Name"
-                  labelClassName="text-white dark:text-white font-semibold drop-shadow-sm"
-                  className="bg-slate-950/40 text-white dark:text-white border-white/30 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] backdrop-blur-sm"
+                  labelClassName="text-slate-800 font-semibold"
+                  className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#08546c] focus:ring-2 focus:ring-cyan-500/20 shadow-sm placeholder:text-slate-400 font-medium"
                   placeholder="Rahul Sharma"
                   value={studentName}
                   onChange={e => setStudentName(e.target.value)}
-                  leftIcon={<User className="w-4 h-4 text-slate-300" />}
+                  leftIcon={<User className="w-4 h-4 text-[#08546c]" />}
                   required
                 />
 
                 <Input
                   label="Roll No / USN"
-                  labelClassName="text-white dark:text-white font-semibold drop-shadow-sm"
-                  className="bg-slate-950/40 text-white dark:text-white border-white/30 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] backdrop-blur-sm"
+                  labelClassName="text-slate-800 font-semibold"
+                  className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#08546c] focus:ring-2 focus:ring-cyan-500/20 shadow-sm placeholder:text-slate-400 font-medium"
                   placeholder="e.g. SONA2021CS045"
                   value={studentIdNum}
                   onChange={e => setStudentIdNum(e.target.value)}
-                  leftIcon={<Hash className="w-4 h-4 text-slate-300" />}
+                  leftIcon={<Hash className="w-4 h-4 text-[#08546c]" />}
                 />
               </div>
 
@@ -308,25 +317,25 @@ export const RegisterPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   label="Student Email Address"
-                  labelClassName="text-white dark:text-white font-semibold drop-shadow-sm"
-                  className="bg-slate-950/40 text-white dark:text-white border-white/30 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] backdrop-blur-sm"
+                  labelClassName="text-slate-800 font-semibold"
+                  className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#08546c] focus:ring-2 focus:ring-cyan-500/20 shadow-sm placeholder:text-slate-400 font-medium"
                   type="email"
                   placeholder="arjun.sharma@rvce.edu.in"
                   value={studentEmail}
                   onChange={e => setStudentEmail(e.target.value)}
-                  leftIcon={<Mail className="w-4 h-4 text-slate-300" />}
+                  leftIcon={<Mail className="w-4 h-4 text-[#08546c]" />}
                   required
                 />
 
                 <Input
                   label="Password"
-                  labelClassName="text-white dark:text-white font-semibold drop-shadow-sm"
-                  className="bg-slate-950/40 text-white dark:text-white border-white/30 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] backdrop-blur-sm"
+                  labelClassName="text-slate-800 font-semibold"
+                  className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#08546c] focus:ring-2 focus:ring-cyan-500/20 shadow-sm placeholder:text-slate-400 font-medium"
                   type="password"
                   placeholder="•••••••••••"
                   value={studentPassword}
                   onChange={e => setStudentPassword(e.target.value)}
-                  leftIcon={<Lock className="w-4 h-4 text-slate-300" />}
+                  leftIcon={<Lock className="w-4 h-4 text-[#08546c]" />}
                   required
                 />
               </div>
@@ -335,8 +344,8 @@ export const RegisterPage: React.FC = () => {
               <div className="grid grid-cols-3 gap-2.5">
                 <Select
                   label="Degree"
-                  labelClassName="text-white dark:text-white font-semibold drop-shadow-sm"
-                  className="bg-slate-950/40 text-white dark:text-white border-white/30 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] backdrop-blur-sm"
+                  labelClassName="text-slate-800 font-semibold"
+                  className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#08546c] focus:ring-2 focus:ring-cyan-500/20 shadow-sm placeholder:text-slate-400 font-medium"
                   options={[
                     { value: 'B.E.', label: 'B.E.' },
                     { value: 'B.Tech', label: 'B.Tech' },
@@ -349,8 +358,8 @@ export const RegisterPage: React.FC = () => {
 
                 <Select
                   label="Batch / Year"
-                  labelClassName="text-white dark:text-white font-semibold drop-shadow-sm"
-                  className="bg-slate-950/40 text-white dark:text-white border-white/30 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] backdrop-blur-sm"
+                  labelClassName="text-slate-800 font-semibold"
+                  className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#08546c] focus:ring-2 focus:ring-cyan-500/20 shadow-sm placeholder:text-slate-400 font-medium"
                   options={[
                     { value: '2025', label: '2025 Passout' },
                     { value: '2026', label: '2026 Passout' },
@@ -362,8 +371,8 @@ export const RegisterPage: React.FC = () => {
 
                 <Input
                   label="CGPA"
-                  labelClassName="text-white dark:text-white font-semibold drop-shadow-sm"
-                  className="bg-slate-950/40 text-white dark:text-white border-white/30 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] backdrop-blur-sm"
+                  labelClassName="text-slate-800 font-semibold"
+                  className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#08546c] focus:ring-2 focus:ring-cyan-500/20 shadow-sm placeholder:text-slate-400 font-medium"
                   type="number"
                   step="0.1"
                   placeholder="8.5"
@@ -374,51 +383,51 @@ export const RegisterPage: React.FC = () => {
 
               <Button 
                 type="submit" 
-                className="w-full h-12 text-sm sm:text-base font-semibold mt-3 bg-gradient-to-r from-brand-500 via-indigo-600 to-brand-600 hover:from-brand-400 hover:to-indigo-500 shadow-[0_10px_25px_rgba(79,70,229,0.4),inset_0_1px_1px_rgba(255,255,255,0.4)] text-white border border-white/30 rounded-xl transition-all duration-200 active:scale-[0.99]" 
+                className="w-full h-12 text-sm sm:text-base font-extrabold mt-3 bg-[#08546c] hover:bg-[#064255] text-white shadow-xl rounded-xl transition-all duration-200 active:scale-[0.99]" 
                 size="lg" 
                 rightIcon={<ArrowRight className="w-5 h-5" />}
               >
                 Complete Student Setup & Launch Dashboard
               </Button>
 
-              <p className="text-center text-xs text-slate-400 pt-3 border-t border-slate-800">
+              <p className="text-center text-xs text-slate-600 pt-3 border-t border-slate-200">
                 Already have an account?{' '}
-                <Link to="/login" className="text-brand-400 font-semibold hover:underline">
+                <Link to="/login" className="text-[#08546c] font-extrabold hover:underline">
                   Sign in to PlacementOS
                 </Link>
               </p>
             </form>
           ) : (
             /* STEP 2: OTP VERIFICATION PAGE */
-            <form onSubmit={handleVerifyAndRegister} className="space-y-5 animate-fade-in">
+            <form onSubmit={handleVerifyAndRegister} className="space-y-5 animate-fade-in text-slate-900">
               <div className="text-center space-y-2">
-                <div className="mx-auto w-14 h-14 bg-gradient-to-br from-brand-500/20 to-indigo-500/20 border border-brand-500/40 text-brand-400 rounded-2xl flex items-center justify-center shadow-inner">
+                <div className="mx-auto w-14 h-14 bg-cyan-50 border border-cyan-200/80 text-[#08546c] rounded-2xl flex items-center justify-center shadow-sm">
                   <ShieldCheck className="w-7 h-7" />
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
                   Verify Email Address
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 max-w-xs mx-auto leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-600 max-w-xs mx-auto leading-relaxed">
                   We've sent a 6-digit OTP verification code to{' '}
-                  <span className="font-semibold text-white underline decoration-brand-400/60">
+                  <span className="font-bold text-slate-900 underline decoration-[#08546c]/60">
                     {studentEmail}
                   </span>
                 </p>
               </div>
 
               {/* Demo Helper Badge */}
-              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-2xl p-3 text-xs flex items-center gap-2.5">
-                <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
+              <div className="bg-amber-50 border border-amber-200/80 text-amber-800 rounded-2xl p-3 text-xs flex items-center gap-2.5 shadow-sm">
+                <Sparkles className="w-4 h-4 shrink-0 text-amber-600" />
                 <div>
                   <span className="font-semibold">Demo Hint:</span> Use code{' '}
-                  <strong className="font-mono text-sm px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40">123456</strong>{' '}
+                  <strong className="font-mono text-sm px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-900">123456</strong>{' '}
                   to verify immediately.
                 </div>
               </div>
 
               {/* 6-Digit OTP Inputs */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-white uppercase tracking-wider text-center">
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider text-center">
                   Enter 6-Digit Verification Code
                 </label>
                 <div className="flex justify-between gap-1.5 sm:gap-2 py-1">
@@ -431,7 +440,7 @@ export const RegisterPage: React.FC = () => {
                       value={digit}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold font-mono rounded-xl border border-slate-700 bg-slate-950/80 text-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all shadow-sm"
+                      className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold font-mono rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:bg-white focus:ring-2 focus:ring-cyan-500 focus:border-[#08546c] outline-none transition-all shadow-sm"
                       autoFocus={index === 0}
                     />
                   ))}
@@ -439,11 +448,11 @@ export const RegisterPage: React.FC = () => {
               </div>
 
               {/* Resend & Timer options */}
-              <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+              <div className="flex items-center justify-between text-xs text-slate-600 px-1">
                 <button
                   type="button"
                   onClick={() => setStep('form')}
-                  className="flex items-center gap-1.5 text-slate-400 hover:text-white font-medium transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 font-semibold transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   Edit Details
@@ -453,10 +462,10 @@ export const RegisterPage: React.FC = () => {
                   type="button"
                   onClick={handleResendOtp}
                   disabled={!canResend}
-                  className={`flex items-center gap-1.5 font-semibold transition-colors ${
+                  className={`flex items-center gap-1.5 font-bold transition-colors ${
                     canResend 
-                      ? 'text-brand-400 hover:underline cursor-pointer' 
-                      : 'text-slate-500 cursor-not-allowed'
+                      ? 'text-[#08546c] hover:underline cursor-pointer' 
+                      : 'text-slate-400 cursor-not-allowed'
                   }`}
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${!canResend ? 'animate-spin-slow' : ''}`} />
@@ -469,7 +478,7 @@ export const RegisterPage: React.FC = () => {
                 type="submit"
                 size="lg"
                 loading={loading}
-                className="w-full h-12 text-sm sm:text-base font-semibold bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-400 hover:to-indigo-500 shadow-xl shadow-brand-600/30 text-white border border-white/20"
+                className="w-full h-12 text-sm sm:text-base font-extrabold bg-[#08546c] hover:bg-[#064255] shadow-xl text-white rounded-xl"
                 rightIcon={<ArrowRight className="w-5 h-5" />}
               >
                 Verify OTP & Launch Dashboard

@@ -234,9 +234,9 @@ export const Select: React.FC<SelectProps> = ({ label, labelClassName, error, op
         )}
         {...props}
       >
-        {placeholder && <option value="">{placeholder}</option>}
+        {placeholder && <option value="" className="bg-slate-900 text-white">{placeholder}</option>}
         {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <option key={opt.value} value={opt.value} className="bg-slate-900 text-white">{opt.label}</option>
         ))}
       </select>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
