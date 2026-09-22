@@ -23,7 +23,7 @@ export const StudentInterviewsPage: React.FC = () => {
     setLoading(true);
     try {
       // Fetch interviews for the current student
-      const res = await interviewService.getAll({ studentId: 'student-1', limit: 50 });
+      const res = await interviewService.getAll({ limit: 50 });
       // If mock list for student-1 is empty or sparse, fall back to all interviews
       if (res.data.length === 0) {
         const allRes = await interviewService.getAll({ limit: 20 });

@@ -62,6 +62,7 @@ export interface College {
   departments: string[];
   tpoName: string;
   tpoEmail: string;
+  tpoPhone?: string;
   subscription: {
     plan: SubscriptionPlan;
     status: SubscriptionStatus;
@@ -140,6 +141,7 @@ export interface Student {
   profileCompletion: number;
   placementStatus: PlacementStatus;
   isEligible: boolean;
+  offersCount: number;
   placementReadinessScore: number;
   aiMatchScore?: number;
   linkedIn?: string;
@@ -619,6 +621,13 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
+  stats?: {
+    totalPartnerCompanies?: number;
+    tiedCount?: number;
+    totalStudentsHired?: number;
+    avgPackage?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface FilterParams {
@@ -679,12 +688,8 @@ export interface Program {
 // ─── Newsroom & Official Announcements ─────────────────────────────────────────
 
 export type NewsCategory =
-  | 'Campus Announcement'
-  | 'Placement Drive Alert'
-  | 'Policy Update'
   | 'Industry Trends'
-  | 'Tech News'
-  | 'Press Release';
+  | 'Tech News';
 
 export type NewsPriority = 'urgent' | 'high' | 'normal';
 

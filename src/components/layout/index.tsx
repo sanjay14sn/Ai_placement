@@ -86,7 +86,6 @@ const getSidebarNav = (role: Role): NavSection[] => {
           title: 'Placements',
           items: [
             { label: 'Companies', icon: <Building2 className="w-4 h-4" />, to: '/college/companies' },
-            { label: 'Jobs', icon: <Briefcase className="w-4 h-4" />, to: '/college/jobs' },
             { label: 'Drives', icon: <Target className="w-4 h-4" />, to: '/college/drives' },
             { label: 'Applications', icon: <ClipboardList className="w-4 h-4" />, to: '/college/applications' },
             { label: 'Interviews', icon: <UserCheck className="w-4 h-4" />, to: '/college/interviews' },
@@ -129,6 +128,7 @@ const getSidebarNav = (role: Role): NavSection[] => {
           title: 'Placements',
           items: [
             { label: 'Recommended Jobs', icon: <Star className="w-4 h-4" />, to: '/student/jobs' },
+            { label: 'Campus Drives', icon: <Target className="w-4 h-4" />, to: '/student/drives' },
             { label: 'Applications', icon: <ClipboardList className="w-4 h-4" />, to: '/student/applications' },
             { label: 'Interviews', icon: <UserCheck className="w-4 h-4" />, to: '/student/interviews' },
             { label: 'Calendar', icon: <Calendar className="w-4 h-4" />, to: '/student/calendar' },

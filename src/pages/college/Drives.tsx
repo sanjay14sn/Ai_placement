@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { Target, Calendar, MapPin, Users, Plus, Star, ArrowUpRight, Search, Award } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Input, Modal, Skeleton, EmptyState, Select } from '../../components/ui';
-import { driveService, companyService } from '../../services';
+import { driveService, companyService, departmentService } from '../../services';
 import { formatDate } from '../../utils';
 import { toast } from 'sonner';
-import type { PlacementDrive, Company } from '../../types';
+import type { PlacementDrive, Company, Department } from '../../types';
+import { useAuthStore } from '../../store';
 
 export const CollegeDrivesPage: React.FC = () => {
   const [drives, setDrives] = useState<PlacementDrive[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [departmentsList, setDepartmentsList] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuthStore();
 
   // New Drive Form State
   const [title, setTitle] = useState('');
@@ -22,20 +27,25 @@ export const CollegeDrivesPage: React.FC = () => {
   const [venue, setVenue] = useState('');
   const [minCgpa, setMinCgpa] = useState('7.0');
   const [openings, setOpenings] = useState('5');
+  const [role, setRole] = useState('');
+  const [department, setDepartment] = useState('');
+  const [requirements, setRequirements] = useState('');
 
   useEffect(() => {
     Promise.all([
       driveService.getAll(),
-      companyService.getAll({ limit: 100 })
-    ]).then(([d, c]) => {
+      companyService.getAll({ limit: 100, status: 'tied' }),
+      departmentService.getAll(user?.tenantId || '')
+    ]).then(([d, c, depts]) => {
       setDrives(d);
       setCompanies(c.data);
+      setDepartmentsList(depts);
     }).finally(() => setLoading(false));
-  }, []);
+  }, [user?.tenantId]);
 
   const handleCreateDrive = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !companyId || !date || !venue) {
+    if (!title || !companyId || !date || !venue || !role || !department) {
       toast.error('Please fill in all fields');
       return;
     }
@@ -47,6 +57,7 @@ export const CollegeDrivesPage: React.FC = () => {
       const newDrive = await driveService.create({
         title,
         companyId,
+        collegeId: user?.tenantId,
         company: {
           id: selectedCompany.id,
           name: selectedCompany.name,
@@ -56,10 +67,18 @@ export const CollegeDrivesPage: React.FC = () => {
         date,
         venue,
         status: 'upcoming',
+        description: requirements,
+        job: {
+          id: `job-${Date.now()}`,
+          title: role,
+          salaryMin: 5,
+          salaryMax: 10,
+          type: 'fulltime'
+        },
         eligibility: {
           minCgpa: parseFloat(minCgpa),
           maxBacklogs: 0,
-          branches: ['CSE', 'ISE', 'ECE'],
+          branches: [department],
           degree: ['B.E.', 'B.Tech'],
           graduationYear: [2025]
         },
@@ -84,6 +103,9 @@ export const CollegeDrivesPage: React.FC = () => {
       setCompanyId('');
       setDate('');
       setVenue('');
+      setRole('');
+      setDepartment('');
+      setRequirements('');
     } catch {
       toast.error('Failed to schedule drive');
     }
@@ -91,7 +113,7 @@ export const CollegeDrivesPage: React.FC = () => {
 
   const filteredDrives = drives.filter(drive => {
     const matchesSearch = drive.title.toLowerCase().includes(search.toLowerCase()) ||
-      drive.company.name.toLowerCase().includes(search.toLowerCase());
+      (drive.company?.name || '').toLowerCase().includes(search.toLowerCase());
     const matchesStatus = status === 'all' || drive.status === status;
     return matchesSearch && matchesStatus;
   });
@@ -166,13 +188,13 @@ export const CollegeDrivesPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-ai-500 rounded-xl flex items-center justify-center text-white font-bold">
-                    {drive.company.name[0]}
+                    {(drive.company?.name || 'C')[0]}
                   </div>
                   {getStatusBadge(drive.status)}
                 </div>
 
                 <h3 className="font-bold text-slate-900 dark:text-white mb-1 leading-snug">{drive.title}</h3>
-                <p className="text-xs text-slate-500 mb-4">{drive.company.industry}</p>
+                <p className="text-xs text-slate-500 mb-4">{drive.company?.industry || 'Unknown'}</p>
 
                 <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400 mb-4">
                   <div className="flex items-center gap-2">
@@ -206,7 +228,13 @@ export const CollegeDrivesPage: React.FC = () => {
                   </div>
                 </div>
 
-                <Button variant="outline" size="sm" className="w-full text-xs justify-center" rightIcon={<ArrowUpRight className="w-3.5 h-3.5" />}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-xs justify-center" 
+                  rightIcon={<ArrowUpRight className="w-3.5 h-3.5" />}
+                  onClick={() => navigate(`/college/drives/${drive.id}/candidates`)}
+                >
                   Manage Candidates
                 </Button>
               </div>
@@ -228,19 +256,34 @@ export const CollegeDrivesPage: React.FC = () => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Select Company</label>
-            <select
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Select Company"
               value={companyId}
               onChange={e => setCompanyId(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              placeholder="-- Choose Company --"
+              options={companies.map(c => ({ value: c.id, label: c.name }))}
               required
-            >
-              <option value="">-- Choose Company --</option>
-              {companies.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            />
+            
+            <Select
+              label="Department"
+              value={department}
+              onChange={e => setDepartment(e.target.value)}
+              placeholder="-- Select Department --"
+              options={departmentsList.map(d => ({ value: d.code, label: `${d.name} (${d.code})` }))}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Job Role / Position</label>
+            <Input
+              placeholder="e.g. Software Engineer, Business Analyst"
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              required
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -290,7 +333,18 @@ export const CollegeDrivesPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="pt-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Requirements / Description</label>
+            <textarea
+              placeholder="Enter drive requirements, skills expected, or job description..."
+              value={requirements}
+              onChange={e => setRequirements(e.target.value)}
+              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
             <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button type="submit">Schedule Drive</Button>
           </div>

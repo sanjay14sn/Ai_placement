@@ -6,19 +6,25 @@ import {
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Button, Card, Badge, Input, Select, Textarea, Modal, Avatar } from '../../components/ui';
-import { useNewsroomStore } from '../../store/newsroomStore';
+import { announcementService } from '../../services';
 import type { NewsArticle, NewsCategory, NewsPriority, TargetAudience } from '../../types';
 import { toast } from 'sonner';
 
 export const SuperAdminNewsroomPage: React.FC = () => {
-  const {
-    articles,
-    addArticle,
-    updateArticle,
-    deleteArticle,
-    togglePinStatus,
-    togglePublishStatus
-  } = useNewsroomStore();
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
+
+  const loadAnnouncements = async () => {
+    try {
+      const data = await announcementService.getAll();
+      setArticles(data);
+    } catch {
+      toast.error('Failed to load announcements');
+    }
+  };
+
+  React.useEffect(() => {
+    loadAnnouncements();
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -32,7 +38,7 @@ export const SuperAdminNewsroomPage: React.FC = () => {
   const [formTitle, setFormTitle] = useState('');
   const [formSummary, setFormSummary] = useState('');
   const [formContent, setFormContent] = useState('');
-  const [formCategory, setFormCategory] = useState<NewsCategory>('Campus Announcement');
+  const [formCategory, setFormCategory] = useState<NewsCategory>('Industry Trends');
   const [formPriority, setFormPriority] = useState<NewsPriority>('normal');
   const [formAudience, setFormAudience] = useState<TargetAudience[]>(['STUDENT']);
   const [formCoverImage, setFormCoverImage] = useState(
@@ -51,7 +57,7 @@ export const SuperAdminNewsroomPage: React.FC = () => {
     setFormTitle('');
     setFormSummary('');
     setFormContent('');
-    setFormCategory('Campus Announcement');
+    setFormCategory('Industry Trends');
     setFormPriority('normal');
     setFormAudience(['STUDENT']);
     setFormCoverImage('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&auto=format&fit=crop&q=80');
@@ -94,7 +100,7 @@ export const SuperAdminNewsroomPage: React.FC = () => {
     }
   };
 
-  const handleSaveArticle = (e: React.FormEvent) => {
+  const handleSaveArticle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTitle.trim() || !formContent.trim()) {
       toast.error('Please fill in required title and announcement content');
@@ -113,45 +119,55 @@ export const SuperAdminNewsroomPage: React.FC = () => {
         ]
       : undefined;
 
-    if (editingArticle) {
-      updateArticle(editingArticle.id, {
-        title: formTitle,
-        summary: formSummary,
-        content: formContent,
-        category: formCategory,
-        priority: formPriority,
-        targetAudience: formAudience,
-        coverImage: formCoverImage,
-        authorName: formAuthorName,
-        authorRole: formAuthorRole,
-        isPinned: formIsPinned,
-        attachments: compiledAttachments
-      });
-      toast.success('Announcement updated!');
-    } else {
-      addArticle({
-        title: formTitle,
-        summary: formSummary,
-        content: formContent,
-        category: formCategory,
-        priority: formPriority,
-        targetAudience: formAudience,
-        coverImage: formCoverImage,
-        authorName: formAuthorName,
-        authorRole: formAuthorRole,
-        isPinned: formIsPinned,
-        isPublished: true,
-        attachments: compiledAttachments
-      });
-      toast.success('News announcement broadcasted to students!');
+    try {
+      if (editingArticle) {
+        await announcementService.update(editingArticle.id, {
+          title: formTitle,
+          summary: formSummary,
+          content: formContent,
+          category: formCategory,
+          priority: formPriority,
+          targetAudience: formAudience,
+          coverImage: formCoverImage,
+          authorName: formAuthorName,
+          authorRole: formAuthorRole,
+          isPinned: formIsPinned,
+          attachments: compiledAttachments
+        });
+        toast.success('Announcement updated!');
+      } else {
+        await announcementService.create({
+          title: formTitle,
+          summary: formSummary,
+          content: formContent,
+          category: formCategory,
+          priority: formPriority,
+          targetAudience: formAudience,
+          coverImage: formCoverImage,
+          authorName: formAuthorName,
+          authorRole: formAuthorRole,
+          isPinned: formIsPinned,
+          isPublished: true,
+          attachments: compiledAttachments
+        });
+        toast.success('News announcement broadcasted to students!');
+      }
+      setIsCreateModalOpen(false);
+      loadAnnouncements();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save announcement');
     }
-    setIsCreateModalOpen(false);
   };
 
-  const handleDelete = (id: string, title: string) => {
+  const handleDelete = async (id: string, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}"?`)) {
-      deleteArticle(id);
-      toast.success('Announcement deleted');
+      try {
+        await announcementService.delete(id);
+        toast.success('Announcement deleted');
+        loadAnnouncements();
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to delete announcement');
+      }
     }
   };
 
@@ -173,7 +189,6 @@ export const SuperAdminNewsroomPage: React.FC = () => {
   return (
     <PageWrapper
       title="Newsroom Broadcast & Announcement Center"
-      subtitle="Broadcast official announcements, campus drive alerts, and policy updates to Direct Students"
       actions={
         <Button onClick={handleOpenCreate} leftIcon={<Plus className="w-4 h-4" />}>
           Publish News Announcement
@@ -252,10 +267,8 @@ export const SuperAdminNewsroomPage: React.FC = () => {
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
               {[
                 'ALL',
-                'Campus Announcement',
-                'Placement Drive Alert',
-                'Policy Update',
-                'Press Release'
+                'Industry Trends',
+                'Tech News'
               ].map(cat => (
                 <button
                   key={cat}
@@ -405,9 +418,14 @@ export const SuperAdminNewsroomPage: React.FC = () => {
                         size="sm"
                         variant="outline"
                         className={`text-xs ${article.isPinned ? 'text-amber-600 border-amber-300' : 'text-slate-500'}`}
-                        onClick={() => {
-                          togglePinStatus(article.id);
-                          toast.success(article.isPinned ? 'Unpinned from top' : 'Pinned to top of Student feed');
+                        onClick={async () => {
+                          try {
+                            await announcementService.togglePin(article.id);
+                            toast.success(article.isPinned ? 'Unpinned from top' : 'Pinned to top of Student feed');
+                            loadAnnouncements();
+                          } catch (err: any) {
+                            toast.error(err.message || 'Failed to pin announcement');
+                          }
                         }}
                         title={article.isPinned ? 'Unpin' : 'Pin to Top'}
                       >
@@ -539,12 +557,8 @@ export const SuperAdminNewsroomPage: React.FC = () => {
                     value={formCategory}
                     onChange={e => setFormCategory(e.target.value as NewsCategory)}
                     options={[
-                      { value: 'Campus Announcement', label: 'Campus Announcement' },
-                      { value: 'Placement Drive Alert', label: 'Placement Drive Alert' },
-                      { value: 'Policy Update', label: 'Policy Update' },
                       { value: 'Industry Trends', label: 'Industry Trends' },
                       { value: 'Tech News', label: 'Tech News' },
-                      { value: 'Press Release', label: 'Press Release' },
                     ]}
                   />
                 </div>

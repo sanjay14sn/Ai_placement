@@ -2,19 +2,53 @@ import React, { useState } from 'react';
 import {
   Video, Play, Plus, Search, Filter, Eye, Edit3, Trash2, CheckCircle2,
   Users, GraduationCap, Building2, Building, BookOpen, Layers, Clock,
-  FileText, ExternalLink, Globe, Sparkles, X, Upload, Check, AlertCircle
+  FileText, ExternalLink, Globe, Sparkles, X, Upload, Check, AlertCircle, RefreshCw, Link as LinkIcon
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Button, Card, Badge, Input, Select, Modal, Tabs, Avatar } from '../../components/ui';
 import { useProgramStore } from '../../store/programStore';
-import type { Program, ProgramVideo, TargetAudience } from '../../types';
+import type { Program, ProgramVideo, TargetAudience, VideoResource } from '../../types';
+import { uploadService } from '../../services';
 import { toast } from 'sonner';
 
+// Helper to convert standard YouTube links to embed format
+const formatVideoEmbedUrl = (url: string): string => {
+  if (!url) return '';
+  if (url.includes('youtube.com/embed/')) return url;
+  
+  // Handle youtube.com/watch?v=...
+  const watchMatch = url.match(/[?&]v=([^&]+)/);
+  if (watchMatch && watchMatch[1]) {
+    return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  }
+
+  // Handle youtu.be/...
+  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+  if (shortMatch && shortMatch[1]) {
+    return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  }
+
+  return url;
+};
+
+// Sample thumbnail presets for quick pick
+const THUMBNAIL_PRESETS = [
+  { name: 'Coding & Tech', url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80' },
+  { name: 'Resume & Career', url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&auto=format&fit=crop&q=80' },
+  { name: 'TPO & Strategy', url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=80' },
+  { name: 'Policy & Legal', url: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&auto=format&fit=crop&q=80' },
+  { name: 'Corporate Hiring', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80' },
+];
+
 export const SuperAdminProgramsPage: React.FC = () => {
-  const { programs, addProgram, updateProgram, deleteProgram, togglePublishStatus } = useProgramStore();
+  const { programs, fetchPrograms, addProgram, updateProgram, deleteProgram, togglePublishStatus } = useProgramStore();
   const [selectedAudience, setSelectedAudience] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
+
+  React.useEffect(() => {
+    fetchPrograms();
+  }, []);
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -30,16 +64,45 @@ export const SuperAdminProgramsPage: React.FC = () => {
   const [formAudience, setFormAudience] = useState<TargetAudience[]>(['STUDENT']);
   const [formInstructorName, setFormInstructorName] = useState('Super Admin Team');
   const [formInstructorTitle, setFormInstructorTitle] = useState('PlacementOS Learning Director');
-  const [formThumbnail, setFormThumbnail] = useState('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80');
+  const [formInstructorAvatar, setFormInstructorAvatar] = useState('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80');
+  const [formThumbnail, setFormThumbnail] = useState(THUMBNAIL_PRESETS[0].url);
+  const [formIsPublished, setFormIsPublished] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
+    if (e.target.files && e.target.files[0]) {
+      try {
+        setIsUploading(true);
+        const res = await uploadService.uploadFile(e.target.files[0]);
+        const fullUrl = import.meta.env.VITE_API_URL 
+          ? import.meta.env.VITE_API_URL.replace('/api', '') + res.url 
+          : 'http://localhost:5001' + res.url;
+        callback(fullUrl);
+        toast.success('File uploaded successfully!');
+      } catch (err: any) {
+        toast.error(err.message || 'File upload failed');
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
 
   // Video Form items
-  const [formVideos, setFormVideos] = useState<Omit<ProgramVideo, 'id'>[]>([
+  const [formVideos, setFormVideos] = useState<{
+    title: string;
+    description: string;
+    duration: string;
+    videoUrl: string;
+    resourceTitle?: string;
+    resourceUrl?: string;
+  }[]>([
     {
-      order: 1,
       title: 'Module 1: Orientation & High-Level Overview',
-      description: 'Introduction to key concepts, objectives, and prerequisites.',
+      description: 'Introduction to key concepts, placement objectives, and syllabus prerequisites.',
       duration: '30:00',
-      videoUrl: 'https://www.youtube.com/embed/1uF7oP33-9w'
+      videoUrl: 'https://www.youtube.com/embed/1uF7oP33-9w',
+      resourceTitle: 'Program Roadmap & Study Handout (PDF)',
+      resourceUrl: '#'
     }
   ]);
 
@@ -52,14 +115,17 @@ export const SuperAdminProgramsPage: React.FC = () => {
     setFormAudience(['STUDENT']);
     setFormInstructorName('Super Admin Team');
     setFormInstructorTitle('PlacementOS Learning Director');
-    setFormThumbnail('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80');
+    setFormInstructorAvatar('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80');
+    setFormThumbnail(THUMBNAIL_PRESETS[0].url);
+    setFormIsPublished(true);
     setFormVideos([
       {
-        order: 1,
         title: 'Module 1: Orientation & High-Level Overview',
-        description: 'Introduction to key concepts, objectives, and prerequisites.',
+        description: 'Introduction to key concepts, placement objectives, and syllabus prerequisites.',
         duration: '30:00',
-        videoUrl: 'https://www.youtube.com/embed/1uF7oP33-9w'
+        videoUrl: 'https://www.youtube.com/embed/1uF7oP33-9w',
+        resourceTitle: 'Program Roadmap & Study Handout (PDF)',
+        resourceUrl: '#'
       }
     ]);
     setIsCreateModalOpen(true);
@@ -68,20 +134,22 @@ export const SuperAdminProgramsPage: React.FC = () => {
   const handleOpenEdit = (program: Program) => {
     setEditingProgram(program);
     setFormTitle(program.title);
-    setFormSubtitle(program.subtitle);
+    setFormSubtitle(program.subtitle || '');
     setFormDescription(program.description);
     setFormCategory(program.category);
     setFormAudience(program.targetAudience);
     setFormInstructorName(program.instructorName);
     setFormInstructorTitle(program.instructorTitle);
+    setFormInstructorAvatar(program.instructorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80');
     setFormThumbnail(program.thumbnailUrl);
+    setFormIsPublished(program.isPublished);
     setFormVideos(program.videos.map(v => ({
-      order: v.order,
       title: v.title,
-      description: v.description,
-      duration: v.duration,
+      description: v.description || '',
+      duration: v.duration || '30:00',
       videoUrl: v.videoUrl,
-      resources: v.resources
+      resourceTitle: v.resources?.[0]?.title || '',
+      resourceUrl: v.resources?.[0]?.url || ''
     })));
     setIsCreateModalOpen(true);
   };
@@ -99,11 +167,12 @@ export const SuperAdminProgramsPage: React.FC = () => {
     setFormVideos([
       ...formVideos,
       {
-        order: formVideos.length + 1,
-        title: `Module ${formVideos.length + 1}: Next Lesson`,
-        description: 'Detailed practical walk-through and scenario breakdown.',
+        title: `Module ${formVideos.length + 1}: Practical Application & Workout`,
+        description: 'Detailed practical walk-through, case study breakdown, and real-world implementation.',
         duration: '25:00',
-        videoUrl: 'https://www.youtube.com/embed/bUHFg8CZFuc'
+        videoUrl: 'https://www.youtube.com/embed/bUHFg8CZFuc',
+        resourceTitle: '',
+        resourceUrl: ''
       }
     ]);
   };
@@ -115,57 +184,84 @@ export const SuperAdminProgramsPage: React.FC = () => {
       return;
     }
 
-    const compiledVideos: ProgramVideo[] = formVideos.map((v, i) => ({
-      id: `vid-${Date.now()}-${i}`,
-      order: i + 1,
-      title: v.title,
-      description: v.description,
-      duration: v.duration,
-      videoUrl: v.videoUrl,
-      resources: v.resources
-    }));
+    const compiledVideos: ProgramVideo[] = formVideos.map((v, i) => {
+      const formattedEmbed = formatVideoEmbedUrl(v.videoUrl);
+      const resources: VideoResource[] = [];
+      if (v.resourceTitle && v.resourceTitle.trim()) {
+        resources.push({
+          id: `res-${Date.now()}-${i}`,
+          title: v.resourceTitle,
+          type: 'pdf',
+          url: v.resourceUrl || '#',
+          size: '1.5 MB'
+        });
+      }
+
+      return {
+        id: `vid-${Date.now()}-${i}`,
+        order: i + 1,
+        title: v.title || `Module ${i + 1}`,
+        description: v.description || 'Module details and learning outcomes.',
+        duration: v.duration || '20:00',
+        videoUrl: formattedEmbed,
+        resources: resources.length > 0 ? resources : undefined
+      };
+    });
+
+    // Calculate total duration roughly
+    const totalMins = compiledVideos.reduce((acc, curr) => {
+      const match = curr.duration.match(/(\d+)/);
+      return acc + (match ? parseInt(match[1], 10) : 30);
+    }, 0);
+    const formattedTotalDuration = totalMins >= 60 
+      ? `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`
+      : `${totalMins} mins`;
 
     if (editingProgram) {
       updateProgram(editingProgram.id, {
         title: formTitle,
-        subtitle: formSubtitle,
-        description: formDescription,
+        subtitle: formSubtitle || formTitle,
+        description: formDescription || formTitle,
         category: formCategory,
         targetAudience: formAudience,
         instructorName: formInstructorName,
         instructorTitle: formInstructorTitle,
+        instructorAvatar: formInstructorAvatar,
         thumbnailUrl: formThumbnail,
+        isPublished: formIsPublished,
+        totalDuration: formattedTotalDuration,
         videosCount: compiledVideos.length,
         videos: compiledVideos
       });
-      toast.success('Program updated successfully!');
+      toast.success('🎉 Video Program updated & persisted in Local Storage!');
     } else {
       addProgram({
         title: formTitle,
-        subtitle: formSubtitle,
-        description: formDescription,
+        subtitle: formSubtitle || formTitle,
+        description: formDescription || formTitle,
         category: formCategory,
         targetAudience: formAudience,
         instructorName: formInstructorName,
         instructorTitle: formInstructorTitle,
+        instructorAvatar: formInstructorAvatar,
         thumbnailUrl: formThumbnail,
-        isPublished: true,
-        totalDuration: `${compiledVideos.length * 40} mins`,
+        isPublished: formIsPublished,
+        totalDuration: formattedTotalDuration,
         videosCount: compiledVideos.length,
         videos: compiledVideos,
-        enrolledCount: 0,
+        enrolledCount: 1,
         rating: 5.0,
         tags: [formCategory]
       });
-      toast.success('New Program published & distributed!');
+      toast.success('🚀 New Video Program published & broadcasted to target audience!');
     }
     setIsCreateModalOpen(false);
   };
 
   const handleDelete = (id: string, title: string) => {
-    if (confirm(`Are you sure you want to delete "${title}"?`)) {
+    if (confirm(`Are you sure you want to delete "${title}"? This change will persist in local storage.`)) {
       deleteProgram(id);
-      toast.success('Program removed');
+      toast.success('Program removed from distribution hub');
     }
   };
 
@@ -197,7 +293,6 @@ export const SuperAdminProgramsPage: React.FC = () => {
   return (
     <PageWrapper
       title="Video Programs & Distribution Hub"
-      subtitle="Super Admin Hub to publish videos for Direct Students, College Placement Officers, and Companies"
       actions={
         <Button onClick={handleOpenCreate} leftIcon={<Plus className="w-4 h-4" />}>
           Create New Video Program
@@ -206,7 +301,7 @@ export const SuperAdminProgramsPage: React.FC = () => {
     >
       <div className="space-y-6">
         {/* KPI Stats */}
-        <div className="grid grid-[#121212] grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="p-4 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-brand-50 dark:bg-brand-900/40 text-brand-600 rounded-xl">
@@ -322,127 +417,87 @@ export const SuperAdminProgramsPage: React.FC = () => {
             </Button>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-4">
             {filteredPrograms.map((program) => (
               <Card
                 key={program.id}
-                className="overflow-hidden bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all flex flex-col group"
+                className="overflow-hidden bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all flex flex-col md:flex-row group"
               >
-                {/* Thumbnail Header */}
-                <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                {/* Thumbnail Side */}
+                <div 
+                  className="relative md:w-64 aspect-video md:aspect-auto bg-slate-900 overflow-hidden cursor-pointer flex-shrink-0"
+                  onClick={() => {
+                    setPreviewProgram(program);
+                    setActiveVideo(program.videos[0] || null);
+                  }}
+                >
                   <img
                     src={program.thumbnailUrl}
                     alt={program.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20" />
-
-                  {/* Play Button Trigger */}
-                  <button
-                    onClick={() => {
-                      setPreviewProgram(program);
-                      setActiveVideo(program.videos[0] || null);
-                    }}
-                    className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-brand-600/90 text-white flex items-center justify-center shadow-lg hover:scale-110 hover:bg-brand-600 transition-all group-hover:opacity-100 opacity-90"
-                  >
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-slate-950/50" />
+                  
+                  <button className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-brand-600/90 text-white flex items-center justify-center shadow-lg hover:scale-110 hover:bg-brand-600 transition-all group-hover:opacity-100 opacity-90">
                     <Play className="w-5 h-5 fill-white ml-0.5" />
                   </button>
 
-                  {/* Duration Badge */}
                   <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/75 text-white text-[11px] font-medium flex items-center gap-1">
                     <Clock className="w-3 h-3" /> {program.totalDuration}
                   </span>
-
-                  {/* Publish Status Badge */}
-                  <span className={`absolute top-2 right-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                    program.isPublished
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-amber-500 text-white'
-                  }`}>
-                    {program.isPublished ? 'Published' : 'Draft'}
-                  </span>
                 </div>
 
-                {/* Card Content */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                {/* Content Side */}
+                <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
-                    {/* Audience Tags */}
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {program.targetAudience.map((aud) => {
-                        if (aud === 'STUDENT') return <Badge key={aud} variant="blue" className="text-[10px]">Direct Students</Badge>;
-                        if (aud === 'COLLEGE_ADMIN' || aud === 'TPO') return <Badge key={aud} variant="purple" className="text-[10px]">College TPOs</Badge>;
-                        if (aud === 'RECRUITER') return <Badge key={aud} variant="amber" className="text-[10px]">Companies</Badge>;
-                        return <Badge key={aud} variant="indigo" className="text-[10px]">All Roles</Badge>;
-                      })}
+                    <div className="flex flex-wrap items-center justify-between mb-2 gap-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        {program.targetAudience.map((aud) => {
+                          if (aud === 'STUDENT') return <Badge key={aud} variant="blue" className="text-[10px]">Direct Students</Badge>;
+                          if (aud === 'COLLEGE_ADMIN' || aud === 'TPO') return <Badge key={aud} variant="purple" className="text-[10px]">College TPOs</Badge>;
+                          if (aud === 'RECRUITER') return <Badge key={aud} variant="amber" className="text-[10px]">Companies</Badge>;
+                          return <Badge key={aud} variant="indigo" className="text-[10px]">All Roles</Badge>;
+                        })}
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        program.isPublished ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      }`}>
+                        {program.isPublished ? 'Published' : 'Draft'}
+                      </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 line-clamp-1 group-hover:text-brand-600 transition-colors">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 line-clamp-1 group-hover:text-brand-600 transition-colors">
                       {program.title}
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
                       {program.description}
                     </p>
                   </div>
 
-                  {/* Program Metadata */}
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-3">
-                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                      <div className="flex items-center gap-1.5">
+                  <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                         <Avatar name={program.instructorName} size="xs" src={program.instructorAvatar} />
-                        <span className="truncate max-w-[120px] font-medium text-slate-700 dark:text-slate-300">
+                        <span className="font-medium text-slate-700 dark:text-slate-300">
                           {program.instructorName}
                         </span>
                       </div>
-                      <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium">
+                      <span className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300 font-medium">
                         <Video className="w-3.5 h-3.5 text-brand-500" /> {program.videosCount} Videos
                       </span>
                     </div>
 
-                    {/* Action Bar */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="flex-1 text-xs"
-                        onClick={() => {
-                          setPreviewProgram(program);
-                          setActiveVideo(program.videos[0] || null);
-                        }}
-                        leftIcon={<Eye className="w-3.5 h-3.5" />}
-                      >
-                        Preview
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" className="text-xs" onClick={() => handleOpenEdit(program)} leftIcon={<Edit3 className="w-3.5 h-3.5" />}>
+                        Edit
                       </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs"
-                        onClick={() => handleOpenEdit(program)}
-                        title="Edit Program"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
+                      <Button size="sm" variant="outline" className="text-xs" onClick={() => {
+                        togglePublishStatus(program.id);
+                        toast.success(program.isPublished ? 'Status changed to Draft' : 'Program Published!');
+                      }}>
+                        {program.isPublished ? 'Unpublish' : 'Publish'}
                       </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className={`text-xs ${program.isPublished ? 'text-amber-600 hover:text-amber-700' : 'text-emerald-600 hover:text-emerald-700'}`}
-                        onClick={() => {
-                          togglePublishStatus(program.id);
-                          toast.success(program.isPublished ? 'Status changed to Draft' : 'Program Published!');
-                        }}
-                        title={program.isPublished ? 'Unpublish to Draft' : 'Publish Program'}
-                      >
-                        {program.isPublished ? 'Draft' : 'Publish'}
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-                        onClick={() => handleDelete(program.id, program.title)}
-                        title="Delete Program"
-                      >
+                      <Button size="sm" variant="ghost" className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={() => handleDelete(program.id, program.title)}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
@@ -558,7 +613,7 @@ export const SuperAdminProgramsPage: React.FC = () => {
                 </label>
                 <Input
                   required
-                  placeholder="e.g. Masterclass on Campus Recruitment & Interviewing"
+                  placeholder="e.g. Masterclass on Campus Recruitment & Technical Interviewing"
                   value={formTitle}
                   onChange={e => setFormTitle(e.target.value)}
                 />
@@ -566,12 +621,25 @@ export const SuperAdminProgramsPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Subtitle / Summary
+                  Subtitle / Tagline Summary
                 </label>
                 <Input
-                  placeholder="Short tagline explaining what viewers will learn"
+                  placeholder="Short summary describing syllabus and career benefits"
                   value={formSubtitle}
                   onChange={e => setFormSubtitle(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Full Program Description
+                </label>
+                <textarea
+                  rows={3}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500"
+                  placeholder="Detailed course overview, prerequisites, target outcomes..."
+                  value={formDescription}
+                  onChange={e => setFormDescription(e.target.value)}
                 />
               </div>
 
@@ -619,42 +687,99 @@ export const SuperAdminProgramsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Category
-                </label>
-                <Select
-                  value={formCategory}
-                  onChange={e => setFormCategory(e.target.value)}
-                  options={[
-                    { value: 'Placement Training', label: 'Placement Training' },
-                    { value: 'TPO Orientation', label: 'TPO Orientation' },
-                    { value: 'Corporate Hiring', label: 'Corporate Hiring' },
-                    { value: 'Career Advice', label: 'Career Advice' },
-                    { value: 'Policy & Compliance', label: 'Policy & Compliance' },
-                  ]}
-                />
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Instructor Name
+                    Category
                   </label>
-                  <Input
-                    value={formInstructorName}
-                    onChange={e => setFormInstructorName(e.target.value)}
+                  <Select
+                    value={formCategory}
+                    onChange={e => setFormCategory(e.target.value)}
+                    options={[
+                      { value: 'Placement Training', label: 'Placement Training' },
+                      { value: 'TPO Orientation', label: 'TPO Orientation' },
+                      { value: 'Corporate Hiring', label: 'Corporate Hiring' },
+                      { value: 'Career Advice', label: 'Career Advice' },
+                      { value: 'Policy & Compliance', label: 'Policy & Compliance' },
+                    ]}
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Thumbnail Image URL
+                    Publishing Status
+                  </label>
+                  <Select
+                    value={formIsPublished ? 'published' : 'draft'}
+                    onChange={e => setFormIsPublished(e.target.value === 'published')}
+                    options={[
+                      { value: 'published', label: 'Published (Visible to Users)' },
+                      { value: 'draft', label: 'Draft (Super Admin Only)' },
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Instructor / Speaker Name
                   </label>
                   <Input
-                    value={formThumbnail}
-                    onChange={e => setFormThumbnail(e.target.value)}
+                    value={formInstructorName}
+                    onChange={e => setFormInstructorName(e.target.value)}
+                    placeholder="e.g. Vikramaditya Sharma"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Instructor Title
+                  </label>
+                  <Input
+                    value={formInstructorTitle}
+                    onChange={e => setFormInstructorTitle(e.target.value)}
+                    placeholder="e.g. Chief Technical Educator"
+                  />
+                </div>
+              </div>
+
+              {/* Thumbnail Selector */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Thumbnail Image Cover (Upload or URL)
+                </label>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={formThumbnail}
+                      onChange={e => setFormThumbnail(e.target.value)}
+                      placeholder="Paste image URL or Upload ->"
+                      leftIcon={<Globe className="w-3.5 h-3.5 text-slate-400" />}
+                    />
+                    <label className="flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl cursor-pointer transition-colors border border-slate-200 dark:border-slate-700 font-medium text-sm">
+                      {isUploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      <span className="ml-2">Upload</span>
+                      <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, setFormThumbnail)} />
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] text-slate-500 font-medium">Quick Presets:</span>
+                    {THUMBNAIL_PRESETS.map((preset, pIdx) => (
+                      <button
+                        key={pIdx}
+                        type="button"
+                        onClick={() => setFormThumbnail(preset.url)}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${
+                          formThumbnail === preset.url
+                            ? 'bg-brand-600 text-white border-brand-600'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-400'
+                        }`}
+                      >
+                        {preset.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -669,43 +794,109 @@ export const SuperAdminProgramsPage: React.FC = () => {
                     onClick={handleAddVideoField}
                     className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1"
                   >
-                    <Plus className="w-3 h-3" /> Add Module
+                    <Plus className="w-3.5 h-3.5" /> Add Module
                   </button>
                 </div>
 
-                <div className="space-y-3 max-h-56 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="space-y-3 max-h-72 overflow-y-auto p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                   {formVideos.map((vid, idx) => (
-                    <div key={idx} className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                          Lesson #{idx + 1}
+                    <div key={idx} className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2.5 shadow-sm">
+                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-1.5">
+                        <span className="text-xs font-bold text-brand-600 dark:text-brand-400 flex items-center gap-1">
+                          <Video className="w-3.5 h-3.5" /> Lesson #{idx + 1}
                         </span>
                         {formVideos.length > 1 && (
                           <button
                             type="button"
                             onClick={() => setFormVideos(formVideos.filter((_, i) => i !== idx))}
-                            className="text-slate-400 hover:text-red-500"
+                            className="text-slate-400 hover:text-red-500 transition-colors"
+                            title="Remove Lesson"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            <X className="w-4 h-4" />
                           </button>
                         )}
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="sm:col-span-2">
+                          <label className="block text-[11px] font-medium text-slate-500 mb-0.5">Lesson Title</label>
+                          <Input
+                            placeholder="e.g. Module 1: Two Pointers & Binary Search"
+                            value={vid.title}
+                            onChange={e => {
+                              const updated = [...formVideos];
+                              updated[idx].title = e.target.value;
+                              setFormVideos(updated);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium text-slate-500 mb-0.5">Duration</label>
+                          <Input
+                            placeholder="e.g. 45:00"
+                            value={vid.duration}
+                            onChange={e => {
+                              const updated = [...formVideos];
+                              updated[idx].duration = e.target.value;
+                              setFormVideos(updated);
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-medium text-slate-500 mb-0.5">Video URL (Upload or Paste Link)</label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            placeholder="e.g. YouTube URL or Uploaded File"
+                            value={vid.videoUrl}
+                            onChange={e => {
+                              const updated = [...formVideos];
+                              updated[idx].videoUrl = e.target.value;
+                              setFormVideos(updated);
+                            }}
+                            leftIcon={<LinkIcon className="w-3.5 h-3.5 text-slate-400" />}
+                          />
+                          <label className="flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-xl cursor-pointer transition-colors border border-slate-200 dark:border-slate-700">
+                            <Upload className="w-4 h-4" />
+                            <input type="file" className="hidden" accept="video/*" onChange={(e) => handleFileUpload(e, (url) => {
+                              const updated = [...formVideos];
+                              updated[idx].videoUrl = url;
+                              setFormVideos(updated);
+                            })} />
+                          </label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-medium text-slate-500 mb-0.5">Module Description</label>
                         <Input
-                          placeholder="Lesson Title"
-                          value={vid.title}
+                          placeholder="Summary of topics covered in this lesson..."
+                          value={vid.description}
                           onChange={e => {
                             const updated = [...formVideos];
-                            updated[idx].title = e.target.value;
+                            updated[idx].description = e.target.value;
+                            setFormVideos(updated);
+                          }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/60">
+                        <Input
+                          placeholder="Handout / Resource Title (Optional)"
+                          value={vid.resourceTitle || ''}
+                          onChange={e => {
+                            const updated = [...formVideos];
+                            updated[idx].resourceTitle = e.target.value;
                             setFormVideos(updated);
                           }}
                         />
                         <Input
-                          placeholder="Video Embed URL (YouTube/Vimeo)"
-                          value={vid.videoUrl}
+                          placeholder="Handout Link URL (Optional)"
+                          value={vid.resourceUrl || ''}
                           onChange={e => {
                             const updated = [...formVideos];
-                            updated[idx].videoUrl = e.target.value;
+                            updated[idx].resourceUrl = e.target.value;
                             setFormVideos(updated);
                           }}
                         />
@@ -722,7 +913,7 @@ export const SuperAdminProgramsPage: React.FC = () => {
                 Cancel
               </Button>
               <Button type="submit">
-                {editingProgram ? 'Save Changes' : 'Publish & Distribute Program'}
+                {editingProgram ? 'Save Changes' : 'Publish & Broadcast Program'}
               </Button>
             </div>
           </form>
@@ -731,3 +922,4 @@ export const SuperAdminProgramsPage: React.FC = () => {
     </PageWrapper>
   );
 };
+

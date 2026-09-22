@@ -1,23 +1,46 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Filter, Download, Plus, Eye, Mail, MoreHorizontal, GraduationCap } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Input, Select, Avatar, Progress, Pagination, EmptyState, Skeleton, Modal } from '../../components/ui';
-import { studentService, collegeService } from '../../services';
+import { studentService, collegeService, departmentService } from '../../services';
 import { getStatusColor, formatDate, cn } from '../../utils';
 import { toast } from 'sonner';
-import type { Student } from '../../types';
+import { useAuthStore } from '../../store';
+import type { Student, Department } from '../../types';
 
 export const StudentsPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialDept = searchParams.get('department') || searchParams.get('dept') || '';
+
   const [students, setStudents] = useState<Student[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [dept, setDept] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [dept, setDept] = useState(initialDept);
   const [status, setStatus] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const [departmentsList, setDepartmentsList] = useState<Department[]>([]);
+
+  useEffect(() => {
+    const urlDept = searchParams.get('department') || searchParams.get('dept') || '';
+    if (urlDept !== dept) {
+      setDept(urlDept);
+      setPage(1);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Add Student State
   const [colleges, setColleges] = useState<{ id: string; name: string }[]>([]);
@@ -35,6 +58,7 @@ export const StudentsPage: React.FC = () => {
     cgpa: number;
     gender: 'male' | 'female' | 'other';
     skillsInput: string;
+    offersCount: number;
   }
 
   const initialFormState: StudentFormState = {
@@ -48,29 +72,37 @@ export const StudentsPage: React.FC = () => {
     batch: '2025',
     cgpa: 0,
     gender: 'male',
-    skillsInput: ''
+    skillsInput: '',
+    offersCount: 0
   };
 
   const [formState, setFormState] = useState<StudentFormState>(initialFormState);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchColleges = async () => {
+  const fetchCollegesAndDepartments = async () => {
     try {
-      const res = await collegeService.getAll({ limit: 100 });
-      const mapped = res.data.map(c => ({ id: c.id, name: c.name }));
+      const [collegesRes, deptRes] = await Promise.all([
+        collegeService.getAll({ limit: 100 }),
+        departmentService.getAll(user?.tenantId || '')
+      ]);
+      let mapped = collegesRes.data.map(c => ({ id: c.id, name: c.name }));
+      if (user?.tenantId) {
+        mapped = mapped.filter(c => c.id === user.tenantId);
+      }
       setColleges(mapped);
       if (mapped.length > 0) {
         setFormState(prev => ({ ...prev, collegeId: mapped[0].id }));
       }
+      setDepartmentsList(deptRes);
     } catch {
-      toast.error('Failed to load colleges');
+      toast.error('Failed to load initial data');
     }
   };
 
   useEffect(() => {
-    fetchColleges();
-  }, []);
+    fetchCollegesAndDepartments();
+  }, [user?.tenantId]);
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -84,6 +116,7 @@ export const StudentsPage: React.FC = () => {
     if (!formState.degree) errors.degree = 'Degree is required';
     if (!formState.batch) errors.batch = 'Batch is required';
     if (formState.cgpa < 0 || formState.cgpa > 10) errors.cgpa = 'CGPA must be between 0 and 10';
+    if (formState.offersCount < 0) errors.offersCount = 'Offers count cannot be negative';
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -111,6 +144,7 @@ export const StudentsPage: React.FC = () => {
         batch: formState.batch,
         cgpa: formState.cgpa,
         gender: formState.gender,
+        offersCount: formState.offersCount,
         skills,
       });
 
@@ -121,14 +155,14 @@ export const StudentsPage: React.FC = () => {
         collegeId: colleges[0]?.id || ''
       });
       fetchStudents();
-    } catch {
-      toast.error('Failed to add student');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to add student');
     } finally {
       setActionLoading(false);
     }
   };
 
-  const LIMIT = 15;
+  const LIMIT = 10;
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -143,6 +177,16 @@ export const StudentsPage: React.FC = () => {
   };
 
   useEffect(() => { fetchStudents(); }, [search, dept, status, page]);
+
+  const handleStatusChange = async (studentId: string, newStatus: string) => {
+    try {
+      await studentService.update(studentId, { placementStatus: newStatus as any });
+      toast.success('Status updated');
+      fetchStudents();
+    } catch {
+      toast.error('Failed to update status');
+    }
+  };
 
   const placementBadge = (status: string) => {
     const map: Record<string, { label: string; variant: 'green' | 'amber' | 'red' | 'slate' }> = {
@@ -186,17 +230,35 @@ export const StudentsPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <Input
-              placeholder="Search by name, ID, email, department..."
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search by Name or Register Number..."
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
               leftIcon={<Search className="w-4 h-4" />}
             />
           </div>
           <Select
             value={dept}
-            onChange={e => { setDept(e.target.value); setPage(1); }}
+            onChange={e => {
+              const selected = e.target.value;
+              setDept(selected);
+              setPage(1);
+              if (selected) {
+                setSearchParams(prev => {
+                  const next = new URLSearchParams(prev);
+                  next.set('department', selected);
+                  return next;
+                });
+              } else {
+                setSearchParams(prev => {
+                  const next = new URLSearchParams(prev);
+                  next.delete('department');
+                  next.delete('dept');
+                  return next;
+                });
+              }
+            }}
             placeholder="All Departments"
-            options={['CSE', 'ISE', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA'].map(d => ({ value: d, label: d }))}
+            options={departmentsList.map(d => ({ value: d.code, label: d.code }))}
             className="sm:w-48"
           />
           <Select
@@ -242,6 +304,7 @@ export const StudentsPage: React.FC = () => {
                 <th>Profile</th>
                 <th>Resume</th>
                 <th>Applications</th>
+                <th>Offers</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -313,7 +376,21 @@ export const StudentsPage: React.FC = () => {
                     <td className="text-sm text-slate-600 dark:text-slate-400">
                       {student.applications}
                     </td>
-                    <td>{placementBadge(student.placementStatus)}</td>
+                    <td className="text-sm text-slate-600 dark:text-slate-400">
+                      {student.offersCount || 0}
+                    </td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <select
+                        className="text-xs font-medium rounded px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        value={student.placementStatus}
+                        onChange={(e) => handleStatusChange(student.id, e.target.value)}
+                      >
+                        <option value="not_placed">Seeking</option>
+                        <option value="placed">Placed</option>
+                        <option value="not_eligible">Not Eligible</option>
+                        <option value="opted_out">Opted Out</option>
+                      </select>
+                    </td>
                     <td>
                       <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" onClick={() => navigate(`/college/students/${student.id}`)}>
@@ -398,7 +475,7 @@ export const StudentsPage: React.FC = () => {
               value={formState.department}
               onChange={e => setFormState({ ...formState, department: e.target.value })}
               placeholder="Select Department"
-              options={['CSE', 'ISE', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA'].map(d => ({ value: d, label: d }))}
+              options={departmentsList.map(d => ({ value: d.code, label: `${d.name} (${d.code})` }))}
               error={formErrors.department}
               required
             />
@@ -445,6 +522,14 @@ export const StudentsPage: React.FC = () => {
               ]}
               error={formErrors.gender}
               required
+            />
+            <Input
+              label="Number of Offers"
+              type="number"
+              value={formState.offersCount}
+              onChange={e => setFormState({ ...formState, offersCount: parseInt(e.target.value) || 0 })}
+              placeholder="e.g. 1"
+              error={formErrors.offersCount}
             />
             <div className="md:col-span-2">
               <Input

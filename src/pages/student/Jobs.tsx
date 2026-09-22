@@ -19,20 +19,25 @@ export const StudentJobsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [expandedAi, setExpandedAi] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const limit = 5;
+  const [jobTypeFilter, setJobTypeFilter] = useState('all');
+  const limit = 2;
   const navigate = useNavigate();
 
   useEffect(() => {
-    jobService.getRecommendedForStudent('student-1')
+    jobService.getRecommendedForStudent()
       .then(setJobs)
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = jobs.filter(j =>
-    !search ||
-    j.title.toLowerCase().includes(search.toLowerCase()) ||
-    j.company.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = jobs.filter(j => {
+    const matchesSearch = !search ||
+      j.title.toLowerCase().includes(search.toLowerCase()) ||
+      j.company.name.toLowerCase().includes(search.toLowerCase());
+    
+    const matchesType = jobTypeFilter === 'all' || j.type === jobTypeFilter;
+
+    return matchesSearch && matchesType;
+  });
 
   const totalFiltered = filtered.length;
   const totalPages = Math.ceil(totalFiltered / limit) || 1;
@@ -77,17 +82,32 @@ export const StudentJobsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search & Filters */}
       <Card className="p-4 mb-6">
-        <Input
-          placeholder="Search jobs by title or company..."
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          leftIcon={<Search className="w-4 h-4" />}
-        />
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Input
+            placeholder="Search jobs by title or company..."
+            value={search}
+            onChange={e => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            leftIcon={<Search className="w-4 h-4" />}
+            className="flex-1"
+          />
+          <div className="w-full sm:w-48 shrink-0">
+            <Select 
+              value={jobTypeFilter} 
+              onChange={e => { setJobTypeFilter(e.target.value); setPage(1); }}
+              options={[
+                { value: 'all', label: 'All Job Types' },
+                { value: 'fulltime', label: 'Fulltime' },
+                { value: 'internship', label: 'Internship' },
+                { value: 'contract', label: 'Contract' },
+              ]}
+            />
+          </div>
+        </div>
       </Card>
 
       {/* Job Cards */}

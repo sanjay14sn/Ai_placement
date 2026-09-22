@@ -10,10 +10,14 @@ import type { Program, ProgramVideo } from '../../types';
 import { toast } from 'sonner';
 
 export const StudentProgramsPage: React.FC = () => {
-  const { getProgramsForRole, completedVideos, toggleVideoCompleted } = useProgramStore();
+  const { getProgramsForRole, fetchPrograms, completedVideos, toggleVideoCompleted } = useProgramStore();
   const programs = getProgramsForRole('STUDENT');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+
+  React.useEffect(() => {
+    fetchPrograms();
+  }, []);
 
   // Video Player state
   const [activeProgram, setActiveProgram] = useState<Program | null>(null);

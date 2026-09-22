@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Filter, Check, X, FileText, Bot, Eye, RefreshCw, Layers } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Input, Select, Avatar, ProgressRing, Pagination, EmptyState, Skeleton, AIBadge } from '../../components/ui';
 import { applicationService } from '../../services';
@@ -15,7 +16,8 @@ export const CollegeApplicationsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
-  const [jobId, setJobId] = useState('');
+  const [searchParams] = useSearchParams();
+  const [jobId, setJobId] = useState(searchParams.get('jobId') || '');
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
 
   const LIMIT = 10;

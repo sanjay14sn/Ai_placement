@@ -4,18 +4,33 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { Award, TrendingUp, Target, Zap, Bot, ChevronRight, CheckCircle2, Globe, FileText, Mic, Link2, Sparkles } from 'lucide-react';
+import { Award, TrendingUp, Target, Zap, Bot, ChevronRight, CheckCircle2, Globe, FileText, Mic, Link2, Sparkles, Megaphone, Bell } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, AIBadge, ProgressRing, Progress, Badge, Tabs } from '../../components/ui';
-import { aiService } from '../../services';
+import { aiService, studentService } from '../../services';
 import { getMatchScoreRingColor } from '../../utils';
+import { announcementService } from '../../services';
+import type { NewsArticle } from '../../types';
 
 export const StudentDashboard: React.FC = () => {
   const [readiness, setReadiness] = useState<Awaited<ReturnType<typeof aiService.getPlacementReadiness>> | null>(null);
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const [announcements, setAnnouncements] = useState<NewsArticle[]>([]);
+  const pinnedAnnouncement = announcements.find(a => a.isPinned);
 
   useEffect(() => {
-    aiService.getPlacementReadiness('student-1').then(setReadiness);
+    aiService.getPlacementReadiness().then(setReadiness);
+    studentService.getDashboardData()
+      .then(setDashboardData)
+      .finally(() => setIsLoading(false));
+      
+    announcementService.getAll()
+      .then(data => {
+        setAnnouncements(data.slice(0, 5)); // Just take top 5 recent for dashboard feed
+      })
+      .catch(() => {});
   }, []);
 
   const radarData = readiness ? Object.entries(readiness.breakdown).map(([key, value]) => ({
@@ -24,126 +39,123 @@ export const StudentDashboard: React.FC = () => {
     fullMark: 100,
   })) : [];
 
-  const recentActivity = [
-    { text: 'Applied to Java Developer at Google India', time: '1 hr ago', type: 'application' },
-    { text: 'Your application at Amazon India was shortlisted', time: '3 hr ago', type: 'success' },
-    { text: 'Technical interview scheduled for tomorrow at 10:30 AM', time: '5 hr ago', type: 'interview' },
-    { text: 'Resume score improved to 82/100 after update', time: '1 day ago', type: 'info' },
-    { text: 'New job match: 94% fit with Flipkart SDE role', time: '1 day ago', type: 'ai' },
-  ];
+  if (isLoading) {
+    return (
+      <PageWrapper title="My Dashboard" subtitle="Loading dashboard...">
+        <div className="flex justify-center items-center h-64">
+          <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  const kpis = dashboardData?.kpis || { appliedJobs: 0, shortlisted: 0, interviews: 0, jobMatches: 0 };
+  const pipeline = dashboardData?.pipeline || [];
+  
+  // Combine activity from backend with newsroom announcements
+  const backendActivity = dashboardData?.recentActivity || [];
+  const newsActivity = announcements.filter(a => !a.isPinned).slice(0, 3).map(a => ({
+    text: a.title,
+    time: a.publishedAt,
+    type: 'announcement',
+    category: a.category
+  }));
+  
+  const recentActivity = [...newsActivity, ...backendActivity];
+  const portals = dashboardData?.portals || [];
+  const connectedPortalsCount = portals.filter((p: any) => p.connected).length;
+  const totalPortalsCount = portals.length || 6;
 
   return (
     <PageWrapper
       title="My Dashboard"
-      subtitle="Your placement command center"
       breadcrumbs={[{ label: 'Student' }, { label: 'Dashboard' }]}
     >
       {/* Placement Readiness Hero */}
-      <div className="relative rounded-3xl p-6 sm:p-8 mb-6 text-white overflow-hidden shadow-2xl group border border-brand-800/40">
-        {/* Background Image with Dual Layer Gradient Overlay */}
-        <img
-          src="https://res.cloudinary.com/dq6gr5zjc/image/upload/v1788933606/ed955128-46ab-4673-b0f3-a33ad19613cc_biiq0i.png"
-          alt="Placement Readiness Background"
-          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/75 to-slate-950/40" />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-ai-500/20 rounded-full blur-2xl" />
+      {/* ── Placement Readiness Hero — Cut-Corner Gradient Card ─────────── */}
+      <div className="relative mb-6 text-white overflow-hidden shadow-2xl" style={{ borderRadius: '1.5rem', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #4c1d95 50%, #1d4ed8 75%, #0c4a6e 100%)' }}>
+        {/* Decorative glow blobs */}
+        <div className="absolute top-0 left-0 w-72 h-72 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(167,139,250,0.3), transparent 70%)', transform: 'translate(-30%, -40%)' }} />
+        <div className="absolute bottom-0 right-[30%] w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(56,189,248,0.25), transparent 70%)', transform: 'translateY(40%)' }} />
+        {/* Dot pattern texture */}
+        <div className="absolute inset-0 pointer-events-none opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
 
-        <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6">
-          <ProgressRing
-            value={readiness?.overallScore || 91}
-            size={100}
-            strokeWidth={7}
-            color="#fff"
-            label={`${readiness?.overallScore || 91}%`}
-            sublabel="Ready"
-            labelColor="text-white"
-          />
-          <div className="text-center sm:text-left flex-1">
-            <div className="flex items-center gap-2 justify-center sm:justify-start mb-2">
+        {/* Cut-corner accent panel on the right */}
+        <div className="absolute top-0 right-0 h-full w-64 pointer-events-none" style={{ background: 'linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.06) 100%)', clipPath: 'polygon(30% 0%, 100% 0%, 100% 100%, 0% 100%)' }} />
+        {/* Extra diagonal slice */}
+        <div className="absolute top-0 right-0 h-full w-40 pointer-events-none" style={{ background: 'rgba(255,255,255,0.04)', clipPath: 'polygon(60% 0%, 100% 0%, 100% 100%, 20% 100%)' }} />
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col sm:flex-row items-center gap-0">
+          {/* Left: Text info */}
+          <div className="flex-1 p-6 sm:p-8 text-center sm:text-left">
+            <div className="flex items-center gap-2 justify-center sm:justify-start mb-3">
               <AIBadge label="AI Placement Score" className="bg-white/95 text-slate-950 font-extrabold shadow-sm px-3 py-1" />
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold mb-1 tracking-tight">Placement Readiness: {readiness?.overallScore || 91}%</h2>
-            <p className="text-brand-200 text-sm mb-4">You're in the top 25% of your batch! A few improvements can push you to 95%+.</p>
-            <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-              <Button variant="secondary" size="sm" className="bg-white text-brand-700 hover:bg-slate-100 font-bold shadow-md" onClick={() => navigate('/student/readiness')}>
+            <h2 className="text-2xl sm:text-3xl font-extrabold mb-1 tracking-tight leading-tight">
+              Placement Readiness
+              <span className="block text-violet-300 text-4xl font-black">{readiness?.overallScore || 91}%</span>
+            </h2>
+            <p className="text-indigo-200 text-sm mb-5 max-w-sm">You're in the top 25% of your batch! A few improvements can push you to 95%+.</p>
+            <div className="flex flex-wrap gap-2.5 justify-center sm:justify-start">
+              <Button variant="secondary" size="sm" className="bg-white text-indigo-700 hover:bg-slate-100 font-bold shadow-md" onClick={() => navigate('/student/readiness')}>
                 View Full Analysis
               </Button>
-              <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md" onClick={() => navigate('/student/ai-assistant')}>
+              <Button size="sm" className="bg-white/15 hover:bg-white/25 text-white border border-white/25 backdrop-blur-md" onClick={() => navigate('/student/ai-assistant')}>
                 <Zap className="w-3.5 h-3.5 mr-1.5 text-amber-300" />Ask AI
               </Button>
             </div>
           </div>
+
+          {/* Right: Progress ring in accent cut panel */}
+          <div className="flex flex-col items-center justify-center p-6 sm:p-8 sm:w-56 shrink-0 border-t border-white/10 sm:border-t-0 sm:border-l sm:border-white/10">
+            <div className="relative">
+              <ProgressRing
+                value={readiness?.overallScore || 91}
+                size={110}
+                strokeWidth={9}
+                color="#a78bfa"
+                label={`${readiness?.overallScore || 91}%`}
+                sublabel="Ready"
+                labelColor="text-white font-black"
+              />
+              <div className="absolute inset-0 rounded-full blur-2xl opacity-40 pointer-events-none" style={{ background: 'radial-gradient(circle, #a78bfa, transparent)' }} />
+            </div>
+            <p className="text-xs font-semibold text-indigo-200 mt-3 uppercase tracking-widest">AI Score</p>
+          </div>
         </div>
       </div>
 
-      {/* PROFESSIONAL JOB PORTAL ACCOUNTS CARD */}
-      <Card className="p-6 mb-6 border-slate-200 dark:border-slate-800">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold border border-brand-200 dark:border-brand-900/60">
-              <Globe className="w-5 h-5" />
+      {/* Pinned Announcement Alert (if any) */}
+      {pinnedAnnouncement && (
+        <Card className="p-4 mb-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-900/50 shadow-sm cursor-pointer hover:border-amber-300 dark:hover:border-amber-800 transition-all" onClick={() => navigate('/student/announcements')}>
+          <div className="flex items-start gap-4">
+            <div className="p-2.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-xl shrink-0">
+              <Megaphone className="w-5 h-5 animate-pulse" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">Job Portal Account Credentials</h3>
-                <Badge variant="indigo" className="text-[10px]">4 of 6 Connected</Badge>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="amber" className="text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">{pinnedAnnouncement.category}</Badge>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">{pinnedAnnouncement.publishedAt}</span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Linked accounts (LinkedIn, Indeed, Glassdoor) for automated campus recruitment application sync.
-              </p>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-0.5">{pinnedAnnouncement.title}</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">{pinnedAnnouncement.summary}</p>
             </div>
+            <Button variant="ghost" size="sm" className="shrink-0 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50">
+              Read <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
           </div>
+        </Card>
+      )}
 
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs"
-            onClick={() => navigate('/student/settings')}
-          >
-            Manage Credentials
-          </Button>
-        </div>
-
-        {/* Professional Status Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          {[
-            { name: 'LinkedIn', connected: true },
-            { name: 'Indeed', connected: true },
-            { name: 'Glassdoor', connected: true },
-            { name: 'Naukri.com', connected: true },
-            { name: 'Unstop', connected: false },
-            { name: 'Wellfound', connected: false },
-          ].map(portal => (
-            <div
-              key={portal.name}
-              onClick={() => navigate('/student/settings')}
-              className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                portal.connected
-                  ? 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-brand-500'
-                  : 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40 hover:border-amber-400'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-xs text-slate-900 dark:text-white">{portal.name}</span>
-                <span className={`w-2 h-2 rounded-full ${portal.connected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-              </div>
-              <span className={`text-[10px] block font-medium ${portal.connected ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400 font-semibold'}`}>
-                {portal.connected ? 'Connected' : 'Add Credentials'}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Card>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Applied Jobs', value: 8, change: '+3 this week', color: 'text-brand-600' },
-          { label: 'Shortlisted', value: 3, change: '37.5% rate', color: 'text-emerald-600' },
-          { label: 'Interviews', value: 2, change: 'Next: Tomorrow', color: 'text-amber-600' },
-          { label: 'Job Matches', value: 34, change: '6 new today', color: 'text-ai-600' },
+          { label: 'Applied Jobs', value: kpis.appliedJobs, change: 'Total applications', color: 'text-brand-600' },
+          { label: 'Shortlisted', value: kpis.shortlisted, change: kpis.appliedJobs > 0 ? `${Math.round((kpis.shortlisted / kpis.appliedJobs) * 100)}% rate` : '0% rate', color: 'text-emerald-600' },
+          { label: 'Interviews', value: kpis.interviews, change: 'Scheduled / pending', color: 'text-amber-600' },
+          { label: 'Job Matches', value: kpis.jobMatches, change: 'Based on your skills', color: 'text-ai-600' },
         ].map(kpi => (
           <Card key={kpi.label} className="p-4 text-center">
             <p className={`text-3xl font-bold ${kpi.color}`}>{kpi.value}</p>
@@ -161,13 +173,7 @@ export const StudentDashboard: React.FC = () => {
             <Button variant="ghost" size="sm" onClick={() => navigate('/student/applications')}>View all</Button>
           </div>
           <div className="space-y-3">
-            {[
-              { stage: 'Applied', count: 8, color: 'bg-brand-500', percent: 100 },
-              { stage: 'Under Review', count: 6, color: 'bg-amber-500', percent: 75 },
-              { stage: 'Shortlisted', count: 3, color: 'bg-ai-500', percent: 37.5 },
-              { stage: 'Interview', count: 2, color: 'bg-blue-500', percent: 25 },
-              { stage: 'Selected', count: 1, color: 'bg-emerald-500', percent: 12.5 },
-            ].map(stage => (
+            {pipeline.map((stage: any) => (
               <div key={stage.stage} className="flex items-center gap-3">
                 <span className="text-xs text-slate-500 dark:text-slate-400 w-24">{stage.stage}</span>
                 <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full">
@@ -201,23 +207,31 @@ export const StudentDashboard: React.FC = () => {
         {/* Recent Activity */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-5">
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Recent Activity</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Activity & Announcements</h3>
           </div>
           <div className="space-y-3">
-            {recentActivity.map((item, i) => (
+            {recentActivity.length > 0 ? recentActivity.map((item: any, i: number) => (
               <div key={i} className="flex items-start gap-3 py-2">
                 <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
                   item.type === 'success' ? 'bg-emerald-500' :
                   item.type === 'interview' ? 'bg-brand-500' :
+                  item.type === 'announcement' ? 'bg-amber-500' :
                   item.type === 'ai' ? 'bg-ai-500' :
                   'bg-slate-300'
                 }`} />
                 <div className="flex-1">
-                  <p className="text-sm text-slate-700 dark:text-slate-300">{item.text}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{item.time}</p>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-1">{item.text}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {item.type === 'announcement' && <span className="font-medium text-amber-600 dark:text-amber-500 mr-1">{item.category} •</span>}
+                    {item.time}
+                  </p>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">
+                No recent activity to show. Start applying for jobs!
+              </div>
+            )}
           </div>
         </Card>
 
@@ -303,59 +317,7 @@ export const StudentDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Connected Job Portals Banner */}
-      <Card className="p-6 mt-6 bg-gradient-to-r from-slate-900 to-brand-950 text-white rounded-3xl border border-slate-800 shadow-lg">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <h3 className="font-bold text-base text-white">Job Portal Profiles & Credentials Sync</h3>
-              <Badge variant="indigo" className="text-[10px] ml-2">4/6 Connected</Badge>
-            </div>
-            <p className="text-xs text-slate-300">
-              Connect your <strong>LinkedIn</strong>, <strong>Indeed</strong>, <strong>Glassdoor</strong>, and <strong>Naukri</strong> IDs to enable 1-click campus job applications and resume auto-sync.
-            </p>
-          </div>
 
-          <Button
-            size="sm"
-            className="!bg-white !text-black hover:!bg-slate-100 font-extrabold text-xs whitespace-nowrap shadow-md"
-            onClick={() => navigate('/student/settings')}
-          >
-            Manage Portals & Passwords
-          </Button>
-        </div>
-
-        {/* Portal Pills Status */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mt-4 pt-4 border-t border-slate-800 text-xs">
-          {[
-            { name: 'LinkedIn', connected: true, id: 'arjun.sharma@rvce.edu.in' },
-            { name: 'Indeed', connected: true, id: 'arjun.sharma@gmail.com' },
-            { name: 'Glassdoor', connected: true, id: 'arjun_sharma_rv' },
-            { name: 'Naukri.com', connected: true, id: 'arjun.sharma@rvce.edu.in' },
-            { name: 'Unstop', connected: false, id: 'Not Connected' },
-            { name: 'Wellfound', connected: false, id: 'Not Connected' },
-          ].map(p => (
-            <div
-              key={p.name}
-              onClick={() => navigate('/student/settings')}
-              className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
-                p.connected
-                  ? 'bg-slate-800/80 border-slate-700 hover:border-brand-500'
-                  : 'bg-amber-950/30 border-amber-800/60 hover:border-amber-500'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-[11px] text-white">{p.name}</span>
-                <span className={`w-2 h-2 rounded-full ${p.connected ? 'bg-emerald-400' : 'bg-amber-500'}`} />
-              </div>
-              <p className={`text-[10px] truncate mt-0.5 ${p.connected ? 'text-slate-400' : 'text-amber-400 font-semibold'}`}>
-                {p.connected ? 'Connected ✅' : 'Connect Now ⚠️'}
-              </p>
-            </div>
-          ))}
-        </div>
-      </Card>
     </PageWrapper>
   );
 };

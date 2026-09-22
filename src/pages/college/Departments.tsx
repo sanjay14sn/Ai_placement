@@ -7,18 +7,17 @@ import {
   Trash2,
   Edit2,
   User,
-  DollarSign,
   Briefcase,
   GraduationCap,
-  TrendingUp,
   Users
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Cell } from 'recharts';
 import { PageWrapper } from '../../layouts';
-import { Card, Button, Badge, Input, Select, Progress, Modal, ConfirmDialog, StatCard, EmptyState, SkeletonCard } from '../../components/ui';
+import { Card, Button, Badge, Input, Select, Progress, Modal, ConfirmDialog, StatCard, EmptyState } from '../../components/ui';
 import { departmentService } from '../../services';
 import { toast } from 'sonner';
 import type { Department } from '../../types';
+import { useAuthStore } from '../../store';
 
 interface FormState {
   name: string;
@@ -49,6 +48,7 @@ export const CollegeDepartmentsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('name');
+  const { user } = useAuthStore();
   
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -68,7 +68,8 @@ export const CollegeDepartmentsPage: React.FC = () => {
   const fetchDepartments = async () => {
     setLoading(true);
     try {
-      const data = await departmentService.getAll('college-1');
+      const collegeId = user?.tenantId || '';
+      const data = await departmentService.getAll(collegeId);
       setDepartments([...data]);
     } catch {
       toast.error('Failed to load departments');
@@ -79,7 +80,7 @@ export const CollegeDepartmentsPage: React.FC = () => {
 
   useEffect(() => {
     fetchDepartments();
-  }, []);
+  }, [user?.tenantId]);
 
   // Form Validation
   const validateForm = (): boolean => {
@@ -95,18 +96,6 @@ export const CollegeDepartmentsPage: React.FC = () => {
     }
 
     if (!formState.hod.trim()) errors.hod = 'HOD Name is required';
-    
-    if (formState.totalStudents < 0) errors.totalStudents = 'Total Intake cannot be negative';
-    
-    if (formState.eligibleStudents < 0) errors.eligibleStudents = 'Eligible Students cannot be negative';
-    else if (formState.eligibleStudents > formState.totalStudents) {
-      errors.eligibleStudents = 'Eligible Students cannot exceed Total Intake';
-    }
-    
-    if (formState.placedStudents < 0) errors.placedStudents = 'Placed Students cannot be negative';
-    else if (formState.placedStudents > formState.eligibleStudents) {
-      errors.placedStudents = 'Placed Students cannot exceed Eligible Students';
-    }
     
     if (formState.avgPackage < 0) errors.avgPackage = 'Average Package cannot be negative';
     if (formState.activeJobs < 0) errors.activeJobs = 'Active Jobs cannot be negative';
@@ -128,12 +117,10 @@ export const CollegeDepartmentsPage: React.FC = () => {
         .filter(s => s.length > 0);
         
       await departmentService.create({
+        collegeId: user?.tenantId || '',
         name: formState.name.trim(),
         code: formState.code.trim(),
         hod: formState.hod.trim(),
-        totalStudents: formState.totalStudents,
-        eligibleStudents: formState.eligibleStudents,
-        placedStudents: formState.placedStudents,
         avgPackage: formState.avgPackage,
         topSkills: skills,
         activeJobs: formState.activeJobs
@@ -184,9 +171,6 @@ export const CollegeDepartmentsPage: React.FC = () => {
         name: formState.name.trim(),
         code: formState.code.trim(),
         hod: formState.hod.trim(),
-        totalStudents: formState.totalStudents,
-        eligibleStudents: formState.eligibleStudents,
-        placedStudents: formState.placedStudents,
         avgPackage: formState.avgPackage,
         topSkills: skills,
         activeJobs: formState.activeJobs
@@ -340,155 +324,171 @@ export const CollegeDepartmentsPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* 4. Departments Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))
-        ) : filteredDepartments.length === 0 ? (
-          <div className="col-span-full">
-            <EmptyState
-              icon={<BookOpen className="w-10 h-10" />}
-              title="No departments found"
-              description={search ? "Try adjusting your search criteria" : "Click 'Add Department' to create one"}
-              action={search ? undefined : {
-                label: 'Add Department',
-                onClick: () => {
-                  setFormState(initialFormState);
-                  setFormErrors({});
-                  setIsAddModalOpen(true);
-                }
-              }}
-            />
-          </div>
-        ) : (
-          filteredDepartments.map(dept => {
-            const progressColor = dept.placementPercent >= 80 
-              ? 'green' 
-              : dept.placementPercent >= 60 
-                ? 'brand' 
-                : dept.placementPercent >= 40 
-                  ? 'amber' 
-                  : 'red';
-                  
-            return (
-              <Card key={dept.id} className="relative group overflow-hidden flex flex-col justify-between hover:shadow-elevated transition-all duration-200">
-                <div>
-                  {/* Card Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <Badge variant="indigo" className="font-bold text-xs uppercase mb-1">
-                        {dept.code}
-                      </Badge>
-                      <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-base leading-tight group-hover:text-brand-600 transition-colors">
-                        {dept.name}
-                      </h4>
-                    </div>
-                    {/* Action buttons (hidden on mobile, hover-only on desktop) */}
-                    <div className="flex items-center gap-1 opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700" 
-                        onClick={() => handleEditClick(dept)}
-                      >
-                        <Edit2 className="w-3.5 h-3.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="w-8 h-8 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20" 
-                        onClick={() => handleDeleteClick(dept)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-red-500 hover:text-red-600" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* HOD Info */}
-                  <div className="flex items-center gap-2 mb-4 text-sm text-slate-600 dark:text-slate-400">
-                    <User className="w-4 h-4 text-slate-400" />
-                    <span>HOD: <span className="font-medium text-slate-800 dark:text-slate-200">{dept.hod}</span></span>
-                  </div>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl mb-4 text-xs">
-                    <div>
-                      <span className="text-slate-400 block mb-0.5">Students Placed</span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
-                        {dept.placedStudents} <span className="text-slate-400 text-[10px]">/ {dept.eligibleStudents} eligible</span>
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block mb-0.5">Average Package</span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-0.5">
-                        <DollarSign className="w-3.5 h-3.5 text-amber-500" />
-                        {dept.avgPackage || 0} LPA
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block mb-0.5">Total Intake</span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
-                        {dept.totalStudents} <span className="text-slate-400 text-[10px]">Students</span>
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block mb-0.5">Active Jobs</span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-0.5">
-                        <Briefcase className="w-3.5 h-3.5 text-brand-500" />
-                        {dept.activeJobs} Jobs
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Placement Rate Progress */}
-                  <div className="space-y-1 mb-4">
-                    <div className="flex items-center justify-between text-xs font-medium">
-                      <span className="text-slate-500 dark:text-slate-400">Placement Success</span>
-                      <span className={`text-${progressColor === 'brand' ? 'brand-600' : progressColor === 'green' ? 'emerald-600' : progressColor === 'amber' ? 'amber-600' : 'red-600'}`}>
-                        {dept.placementPercent}%
-                      </span>
-                    </div>
-                    <Progress value={dept.placementPercent} color={progressColor} size="sm" />
-                  </div>
-                </div>
-
-                {/* Skills tags and View Students Action */}
-                <div>
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {dept.topSkills.slice(0, 4).map(skill => (
-                      <Badge key={skill} variant="slate" className="text-[10px] py-0.5 px-2">
-                        {skill}
-                      </Badge>
+      {/* 4. Departments Table List */}
+      <Card padding={false}>
+        <div className="overflow-x-auto">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Department</th>
+                <th>HOD</th>
+                <th>Intake</th>
+                <th>Placed / Eligible</th>
+                <th>Avg Package</th>
+                <th>Active Jobs</th>
+                <th>Placement %</th>
+                <th>Top Skills</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>
+                    {Array.from({ length: 9 }).map((_, j) => (
+                      <td key={j}><div className="h-4 bg-slate-100 dark:bg-slate-700 rounded animate-pulse" /></td>
                     ))}
-                    {dept.topSkills.length > 4 && (
-                      <Badge variant="slate" className="text-[10px] py-0.5 px-2">
-                        +{dept.topSkills.length - 4} more
-                      </Badge>
-                    )}
-                  </div>
+                  </tr>
+                ))
+              ) : filteredDepartments.length === 0 ? (
+                <tr>
+                  <td colSpan={9}>
+                    <EmptyState
+                      icon={<BookOpen className="w-6 h-6" />}
+                      title="No departments found"
+                      description={search ? "Try adjusting your search criteria" : "Click 'Add Department' to create one"}
+                      action={search ? undefined : {
+                        label: 'Add Department',
+                        onClick: () => {
+                          setFormState(initialFormState);
+                          setFormErrors({});
+                          setIsAddModalOpen(true);
+                        }
+                      }}
+                    />
+                  </td>
+                </tr>
+              ) : (
+                filteredDepartments.map(dept => {
+                  const pct = dept.placementPercent !== undefined && dept.placementPercent > 0
+                    ? dept.placementPercent
+                    : (dept.eligibleStudents > 0 ? Math.round((dept.placedStudents / dept.eligibleStudents) * 100) : 0);
+                  const progressColor = pct >= 80 ? 'green' : pct >= 60 ? 'brand' : pct >= 40 ? 'amber' : 'red';
+                  const pctText = pct >= 80 ? 'text-emerald-600 dark:text-emerald-400' : pct >= 60 ? 'text-brand-600 dark:text-brand-400' : pct >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500 dark:text-red-400';
 
-                  <div className="border-t border-slate-100 dark:border-slate-700/60 pt-3 flex items-center justify-between">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 p-0 hover:bg-transparent"
-                      onClick={() => navigate('/college/students')}
+                  return (
+                    <tr 
+                      key={dept.id} 
+                      className="group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                      onClick={() => navigate(`/college/departments/${dept.id}`)}
                     >
-                      View Students
-                    </Button>
-                    
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                      ID: {dept.id}
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            );
-          })
-        )}
-      </div>
+                      {/* Department name + code */}
+                      <td>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-ai-500 flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-[10px] font-bold">{dept.code}</span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm leading-tight">{dept.name}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">ID: {dept.id.slice(-8)}</p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* HOD */}
+                      <td>
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                          <span className="text-sm text-slate-700 dark:text-slate-300">{dept.hod}</span>
+                        </div>
+                      </td>
+
+                      {/* Total intake */}
+                      <td>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{dept.totalStudents}</span>
+                        <span className="text-xs text-slate-400 ml-1">students</span>
+                      </td>
+
+                      {/* Placed / Eligible */}
+                      <td>
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-sm">{dept.placedStudents}</span>
+                        <span className="text-xs text-slate-400 mx-1">/</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">{dept.eligibleStudents}</span>
+                      </td>
+
+                      {/* Avg Package */}
+                      <td>
+                        <span className="font-semibold text-amber-600 dark:text-amber-400 text-sm">
+                          ₹{dept.avgPackage ? dept.avgPackage.toLocaleString('en-IN') : '—'}
+                        </span>
+                        {dept.avgPackage > 0 && <span className="text-xs text-slate-400 ml-1">LPA</span>}
+                      </td>
+
+                      {/* Active Jobs */}
+                      <td>
+                        <div className="flex items-center gap-1.5">
+                          <Briefcase className="w-3.5 h-3.5 text-brand-400" />
+                          <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">{dept.activeJobs}</span>
+                        </div>
+                      </td>
+
+                      {/* Placement % with progress bar */}
+                      <td>
+                        <div className="flex items-center gap-2 min-w-[110px]">
+                          <Progress value={pct} size="sm" color={progressColor} className="flex-1" />
+                          <span className={`text-xs font-bold tabular-nums w-8 text-right ${pctText}`}>{pct}%</span>
+                        </div>
+                      </td>
+
+                      {/* Skills */}
+                      <td>
+                        <div className="flex flex-wrap gap-1 max-w-[180px]">
+                          {dept.topSkills.slice(0, 3).map(skill => (
+                            <Badge key={skill} variant="slate" className="text-[10px] py-0.5 px-1.5">{skill}</Badge>
+                          ))}
+                          {dept.topSkills.length > 3 && (
+                            <Badge variant="slate" className="text-[10px] py-0.5 px-1.5">+{dept.topSkills.length - 3}</Badge>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td>
+                        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate(`/college/students?department=${dept.code}`)}
+                            title={`View ${dept.code} Students`}
+                          >
+                            <GraduationCap className="w-3.5 h-3.5 text-brand-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditClick(dept)}
+                            title="Edit Department"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteClick(dept)}
+                            title="Delete Department"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       {/* Visual Analytics Section (Placed at bottom) */}
       {!loading && departments.length > 0 && (
@@ -500,7 +500,10 @@ export const CollegeDepartmentsPage: React.FC = () => {
               <Badge variant="green" dot>Active Drives</Badge>
             </div>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={departments}>
+              <BarChart data={departments.map(d => ({
+                ...d,
+                placementPercent: d.placementPercent || (d.eligibleStudents > 0 ? Math.round((d.placedStudents / d.eligibleStudents) * 100) : 0)
+              }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="code" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} unit="%" />
@@ -576,30 +579,6 @@ export const CollegeDepartmentsPage: React.FC = () => {
               required
             />
             <Input
-              label="Total Intake (Capacity)"
-              type="number"
-              value={formState.totalStudents}
-              onChange={e => setFormState({ ...formState, totalStudents: parseInt(e.target.value) || 0 })}
-              placeholder="e.g. 120"
-              error={formErrors.totalStudents}
-            />
-            <Input
-              label="Eligible Students"
-              type="number"
-              value={formState.eligibleStudents}
-              onChange={e => setFormState({ ...formState, eligibleStudents: parseInt(e.target.value) || 0 })}
-              placeholder="e.g. 100"
-              error={formErrors.eligibleStudents}
-            />
-            <Input
-              label="Placed Students"
-              type="number"
-              value={formState.placedStudents}
-              onChange={e => setFormState({ ...formState, placedStudents: parseInt(e.target.value) || 0 })}
-              placeholder="e.g. 80"
-              error={formErrors.placedStudents}
-            />
-            <Input
               label="Average CTC Package (LPA)"
               type="number"
               step="0.1"
@@ -658,7 +637,6 @@ export const CollegeDepartmentsPage: React.FC = () => {
               onChange={e => setFormState({ ...formState, code: e.target.value.toUpperCase() })}
               placeholder="e.g. CSE"
               error={formErrors.code}
-              disabled
               required
             />
             <Input
@@ -668,30 +646,6 @@ export const CollegeDepartmentsPage: React.FC = () => {
               placeholder="e.g. Dr. Rajesh Kumar"
               error={formErrors.hod}
               required
-            />
-            <Input
-              label="Total Intake (Capacity)"
-              type="number"
-              value={formState.totalStudents}
-              onChange={e => setFormState({ ...formState, totalStudents: parseInt(e.target.value) || 0 })}
-              placeholder="e.g. 120"
-              error={formErrors.totalStudents}
-            />
-            <Input
-              label="Eligible Students"
-              type="number"
-              value={formState.eligibleStudents}
-              onChange={e => setFormState({ ...formState, eligibleStudents: parseInt(e.target.value) || 0 })}
-              placeholder="e.g. 100"
-              error={formErrors.eligibleStudents}
-            />
-            <Input
-              label="Placed Students"
-              type="number"
-              value={formState.placedStudents}
-              onChange={e => setFormState({ ...formState, placedStudents: parseInt(e.target.value) || 0 })}
-              placeholder="e.g. 80"
-              error={formErrors.placedStudents}
             />
             <Input
               label="Average CTC Package (LPA)"

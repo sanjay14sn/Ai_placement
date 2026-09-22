@@ -12,6 +12,7 @@ import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 // Super Admin
 import { SuperAdminOverview } from '../pages/super-admin/Overview';
 import { SuperAdminCollegesPage } from '../pages/super-admin/Colleges';
+import { SuperAdminCollegeDetailsPage } from '../pages/super-admin/CollegeDetails';
 import { SuperAdminCompaniesPage } from '../pages/super-admin/Companies';
 import { SuperAdminUsersPage } from '../pages/super-admin/Users';
 import { SuperAdminSubscriptionsPage } from '../pages/super-admin/Subscriptions';
@@ -28,9 +29,11 @@ import { CollegeDashboard } from '../pages/college/Dashboard';
 import { StudentsPage } from '../pages/college/Students';
 import { StudentDetailPage } from '../pages/college/StudentDetail';
 import { CollegeDepartmentsPage } from '../pages/college/Departments';
+import { DepartmentDetail } from '../pages/college/DepartmentDetail';
 import { CollegeCompaniesPage } from '../pages/college/Companies';
 import { CollegeJobsPage } from '../pages/college/Jobs';
 import { CollegeDrivesPage } from '../pages/college/Drives';
+import { CollegeDriveCandidatesPage } from '../pages/college/DriveCandidates';
 import { CollegeApplicationsPage } from '../pages/college/Applications';
 import { CollegeInterviewsPage } from '../pages/college/Interviews';
 import { CollegeCalendarPage } from '../pages/college/Calendar';
@@ -56,6 +59,7 @@ import { StudentNotificationsPage } from '../pages/student/Notifications';
 import { StudentSettingsPage } from '../pages/student/Settings';
 import { StudentProgramsPage } from '../pages/student/Programs';
 import { StudentNewsroomPage } from '../pages/student/Newsroom';
+import { StudentCampusDrivesPage } from '../pages/student/CampusDrives';
 
 // Recruiter
 import { RecruiterDashboard } from '../pages/recruiter/Dashboard';
@@ -96,6 +100,7 @@ export const AppRouter: React.FC = () => {
             <Route path="/super-admin/newsroom" element={<SuperAdminNewsroomPage />} />
             <Route path="/super-admin/programs" element={<SuperAdminProgramsPage />} />
             <Route path="/super-admin/colleges" element={<SuperAdminCollegesPage />} />
+            <Route path="/super-admin/colleges/:id" element={<SuperAdminCollegeDetailsPage />} />
             <Route path="/super-admin/companies" element={<SuperAdminCompaniesPage />} />
             <Route path="/super-admin/users" element={<SuperAdminUsersPage />} />
             <Route path="/super-admin/subscriptions" element={<SuperAdminSubscriptionsPage />} />
@@ -114,9 +119,11 @@ export const AppRouter: React.FC = () => {
             <Route path="/college/students" element={<StudentsPage />} />
             <Route path="/college/students/:id" element={<StudentDetailPage />} />
             <Route path="/college/departments" element={<CollegeDepartmentsPage />} />
+            <Route path="/college/departments/:id" element={<DepartmentDetail />} />
             <Route path="/college/companies" element={<CollegeCompaniesPage />} />
             <Route path="/college/jobs" element={<CollegeJobsPage />} />
             <Route path="/college/drives" element={<CollegeDrivesPage />} />
+            <Route path="/college/drives/:id/candidates" element={<CollegeDriveCandidatesPage />} />
             <Route path="/college/applications" element={<CollegeApplicationsPage />} />
             <Route path="/college/interviews" element={<CollegeInterviewsPage />} />
             <Route path="/college/calendar" element={<CollegeCalendarPage />} />
@@ -137,6 +144,7 @@ export const AppRouter: React.FC = () => {
             <Route path="/student/resume" element={<StudentResumePage />} />
             <Route path="/student/ats-checker" element={<StudentATSCheckerPage />} />
             <Route path="/student/jobs" element={<StudentJobsPage />} />
+            <Route path="/student/drives" element={<StudentCampusDrivesPage />} />
             <Route path="/student/applications" element={<StudentApplicationsPage />} />
             <Route path="/student/interviews" element={<StudentInterviewsPage />} />
             <Route path="/student/calendar" element={<StudentCalendarPage />} />

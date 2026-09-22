@@ -24,7 +24,7 @@ export const StudentApplicationsPage: React.FC = () => {
   const fetchApplications = async () => {
     setLoading(true);
     try {
-      const res = await applicationService.getAll({ studentId: 'student-1', limit: 50 });
+      const res = await applicationService.getAll({ limit: 50 });
       // If student-1 list is sparse, fall back to default mock list
       if (res.data.length === 0) {
         const allRes = await applicationService.getAll({ limit: 20 });

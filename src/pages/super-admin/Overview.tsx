@@ -46,12 +46,12 @@ export const SuperAdminOverview: React.FC = () => {
           Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)
         ) : (
           <>
-            <StatCard title="Total Colleges" value={stats?.totalColleges || 0} change="↑ 12 this month" changeType="increase" icon={<Building2 className="w-5 h-5" />} color="brand" />
-            <StatCard title="Total Students" value={formatNumber(stats?.totalStudents || 0)} change="↑ 1,234 new" changeType="increase" icon={<Users className="w-5 h-5" />} color="green" />
-            <StatCard title="Companies" value={stats?.totalCompanies || 0} change="↑ 28 new" changeType="increase" icon={<Building2 className="w-5 h-5" />} color="purple" />
-            <StatCard title="Active Jobs" value={stats?.activeJobs || 0} change="↑ 45 today" changeType="increase" icon={<Briefcase className="w-5 h-5" />} color="amber" />
-            <StatCard title="Placed Students" value={formatNumber(stats?.placedStudents || 0)} change="↑ 15.3%" changeType="increase" icon={<TrendingUp className="w-5 h-5" />} color="green" />
-            <StatCard title="MRR" value={`₹${formatNumber(stats?.mrr || 0)}`} change="↑ 8.2%" changeType="increase" icon={<DollarSign className="w-5 h-5" />} color="brand" />
+            <StatCard title="Total Colleges" value={stats?.totalColleges || 0} icon={<Building2 className="w-5 h-5" />} color="brand" />
+            <StatCard title="Total Students" value={formatNumber(stats?.totalStudents || 0)} icon={<Users className="w-5 h-5" />} color="green" />
+            <StatCard title="Companies" value={stats?.totalCompanies || 0} icon={<Building2 className="w-5 h-5" />} color="purple" />
+            <StatCard title="Active Jobs" value={stats?.activeJobs || 0} icon={<Briefcase className="w-5 h-5" />} color="amber" />
+            <StatCard title="Placed Students" value={formatNumber(stats?.placedStudents || 0)} icon={<TrendingUp className="w-5 h-5" />} color="green" />
+            <StatCard title="MRR" value={`₹${formatNumber(stats?.mrr || 0)}`} icon={<DollarSign className="w-5 h-5" />} color="brand" />
           </>
         )}
       </div>

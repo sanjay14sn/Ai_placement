@@ -45,7 +45,7 @@ The Super Administration team has released the official **Campus Placement Direc
 - Review your uploaded resume ATS score before participating in upcoming drives.
 - Keep your linked contact details and CGPA grade sheets updated on the Student Portal.
     `,
-    category: 'Policy Update',
+    category: 'Industry Trends',
     priority: 'urgent',
     targetAudience: ['STUDENT', 'COLLEGE_ADMIN', 'TPO'],
     coverImage: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&auto=format&fit=crop&q=80',
@@ -118,7 +118,7 @@ PlacementOS Super Admin is thrilled to announce the **National Mega Tech Campus 
 ### How to Apply
 Students can apply directly via the **Recommended Jobs** section on their Student Dashboard. Ensure your ATS Resume Score is at least **80%** to guarantee automated eligibility.
     `,
-    category: 'Placement Drive Alert',
+    category: 'Tech News',
     priority: 'high',
     targetAudience: ['STUDENT'],
     coverImage: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80',
@@ -174,7 +174,7 @@ PlacementOS in collaboration with leading AI technology partners announces the *
 - **Grand Prize Pool**: $10,000 Cash + AWS/Google Cloud Credits.
 - **Recruitment Perk**: Top 50 finalists bypass round 1 screening for participating Tech Giants.
     `,
-    category: 'Campus Announcement',
+    category: 'Industry Trends',
     priority: 'normal',
     targetAudience: ['STUDENT'],
     coverImage: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&auto=format&fit=crop&q=80',
@@ -208,7 +208,7 @@ We are excited to celebrate an extraordinary month of campus placement milestone
 
 Congratulations to all selected candidates, TPO cells, and participating recruitment teams!
     `,
-    category: 'Press Release',
+    category: 'Tech News',
     priority: 'normal',
     targetAudience: ['STUDENT', 'COLLEGE_ADMIN', 'TPO', 'RECRUITER'],
     coverImage: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&auto=format&fit=crop&q=80',

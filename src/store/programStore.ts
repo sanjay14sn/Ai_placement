@@ -1,20 +1,22 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Program, Role } from '../types';
+import { programService } from '../services';
 
 interface ProgramStore {
   programs: Program[];
   completedVideos: Record<string, boolean>; // `${programId}_${videoId}` -> boolean
-  addProgram: (program: Omit<Program, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateProgram: (id: string, updates: Partial<Program>) => void;
-  deleteProgram: (id: string) => void;
-  togglePublishStatus: (id: string) => void;
+  loading: boolean;
+  fetchPrograms: (params?: Record<string, string | number | boolean | undefined>) => Promise<void>;
+  addProgram: (program: Omit<Program, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateProgram: (id: string, updates: Partial<Program>) => Promise<void>;
+  deleteProgram: (id: string) => Promise<void>;
+  togglePublishStatus: (id: string) => Promise<void>;
   toggleVideoCompleted: (programId: string, videoId: string) => void;
   getProgramsForRole: (role: Role) => Program[];
 }
 
 const INITIAL_PROGRAMS: Program[] = [
-  // ─── Direct Students Programs ─────────────────────────────────────────────
   {
     id: 'prog-student-1',
     title: 'A-Z Placement Prep & Technical Interview Masterclass',
@@ -134,8 +136,6 @@ const INITIAL_PROGRAMS: Program[] = [
       }
     ]
   },
-
-  // ─── College Placement Officers (TPO / College Admin) Programs ─────────────
   {
     id: 'prog-tpo-1',
     title: 'Campus Placement Strategy 2026 & Corporate Relations',
@@ -229,8 +229,6 @@ const INITIAL_PROGRAMS: Program[] = [
       }
     ]
   },
-
-  // ─── Companies / Recruiters Programs ───────────────────────────────────────
   {
     id: 'prog-rec-1',
     title: 'High-Velocity Campus Hiring & AI Candidate Screening',
@@ -290,38 +288,85 @@ export const useProgramStore = create<ProgramStore>()(
     (set, get) => ({
       programs: INITIAL_PROGRAMS,
       completedVideos: {},
+      loading: false,
 
-      addProgram: (programData) => {
-        const id = `prog-${Date.now()}`;
-        const newProgram: Program = {
+      fetchPrograms: async (params) => {
+        set({ loading: true });
+        try {
+          const apiPrograms = await programService.getAll(params);
+          if (apiPrograms && apiPrograms.length > 0) {
+            set({ programs: apiPrograms, loading: false });
+          } else {
+            set({ loading: false });
+          }
+        } catch {
+          set({ loading: false });
+        }
+      },
+
+      addProgram: async (programData) => {
+        // Optimistic UI update
+        const tempId = `prog-${Date.now()}`;
+        const tempProgram: Program = {
           ...programData,
-          id,
+          id: tempId,
           createdAt: new Date().toISOString().split('T')[0],
           updatedAt: new Date().toISOString().split('T')[0],
         };
-        set((state) => ({ programs: [newProgram, ...state.programs] }));
+        set((state) => ({ programs: [tempProgram, ...state.programs] }));
+
+        try {
+          const created = await programService.create(programData);
+          if (created && created.id) {
+            set((state) => ({
+              programs: state.programs.map((p) => (p.id === tempId ? created : p)),
+            }));
+          }
+        } catch (err) {
+          console.error('Failed to create program in DB:', err);
+        }
       },
 
-      updateProgram: (id, updates) => {
+      updateProgram: async (id, updates) => {
+        // Optimistic UI update
         set((state) => ({
           programs: state.programs.map((p) =>
             p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString().split('T')[0] } : p
           ),
         }));
+
+        try {
+          await programService.update(id, updates);
+        } catch (err) {
+          console.error('Failed to update program in DB:', err);
+        }
       },
 
-      deleteProgram: (id) => {
+      deleteProgram: async (id) => {
+        // Optimistic UI update
         set((state) => ({
           programs: state.programs.filter((p) => p.id !== id),
         }));
+
+        try {
+          await programService.delete(id);
+        } catch (err) {
+          console.error('Failed to delete program from DB:', err);
+        }
       },
 
-      togglePublishStatus: (id) => {
+      togglePublishStatus: async (id) => {
         set((state) => ({
           programs: state.programs.map((p) =>
             p.id === id ? { ...p, isPublished: !p.isPublished } : p
           ),
         }));
+
+        try {
+          await programService.togglePublish(id);
+        } catch (err) {
+          console.error('Failed to toggle publish status in DB:', err);
+        }
       },
 
       toggleVideoCompleted: (programId, videoId) => {
@@ -350,7 +395,7 @@ export const useProgramStore = create<ProgramStore>()(
     }),
     {
       name: 'placementos-program-storage',
-      partialize: (state) => ({ programs: state.programs, completedVideos: state.completedVideos }),
+      partialize: (state) => ({ completedVideos: state.completedVideos }),
     }
   )
 );

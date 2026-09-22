@@ -2,21 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { Calendar, User, Clock, AlertTriangle, Check, X, ShieldAlert, Plus, Search, Video } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Input, Select, Avatar, Modal, EmptyState, Skeleton } from '../../components/ui';
-import { interviewService, studentService, companyService } from '../../services';
+import { interviewService, studentService, companyService, departmentService } from '../../services';
 import { formatDate, formatTime } from '../../utils';
 import { toast } from 'sonner';
-import type { Interview, Student, Company } from '../../types';
+import type { Interview, Student, Company, Department } from '../../types';
+import { useAuthStore } from '../../store';
 
 export const CollegeInterviewsPage: React.FC = () => {
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'scheduled' | 'completed' | 'cancelled'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuthStore();
 
   // Form State
   const [studentId, setStudentId] = useState('');
+  const [selectedDeptId, setSelectedDeptId] = useState('');
+  const [studentSearch, setStudentSearch] = useState('');
   const [companyId, setCompanyId] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -28,14 +34,16 @@ export const CollegeInterviewsPage: React.FC = () => {
   const fetchInterviews = async () => {
     setLoading(true);
     try {
-      const [res, sList, cList] = await Promise.all([
+      const [res, sList, cList, dList] = await Promise.all([
         interviewService.getAll({ page: 1, limit: 100 }),
-        studentService.getAll({ limit: 100 }),
+        studentService.getAll({ limit: 1000 }),
         companyService.getAll({ limit: 100 }),
+        departmentService.getAll(user?.tenantId || ''),
       ]);
       setInterviews(res.data);
       setStudents(sList.data);
       setCompanies(cList.data);
+      setDepartments(dList);
     } catch {
       toast.error('Failed to load data');
     } finally {
@@ -107,6 +115,8 @@ export const CollegeInterviewsPage: React.FC = () => {
       toast.success('Interview scheduled successfully');
       // Reset
       setStudentId('');
+      setSelectedDeptId('');
+      setStudentSearch('');
       setCompanyId('');
       setDate('');
       setTime('');
@@ -126,10 +136,13 @@ export const CollegeInterviewsPage: React.FC = () => {
     }
   };
 
-  const filteredInterviews = interviews.filter(i =>
-    i.student.name.toLowerCase().includes(search.toLowerCase()) ||
-    i.company.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredInterviews = interviews.filter(i => {
+    const studentName = i.student?.name || 'Unknown Candidate';
+    const companyName = i.company?.name || 'Unknown Company';
+    const matchesSearch = studentName.toLowerCase().includes(search.toLowerCase()) || companyName.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || i.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <PageWrapper
@@ -144,94 +157,161 @@ export const CollegeInterviewsPage: React.FC = () => {
     >
       {/* Filters */}
       <Card className="p-4 mb-6">
-        <Input
-          placeholder="Search by student name or company name..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          leftIcon={<Search className="w-4 h-4" />}
-        />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1">
+            <Input
+              placeholder="Search by student name or company name..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              leftIcon={<Search className="w-4 h-4" />}
+            />
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
+            {(['all', 'scheduled', 'completed', 'cancelled'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setStatusFilter(tab)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold capitalize whitespace-nowrap transition-all ${
+                  statusFilter === tab
+                    ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
       </Card>
 
-      {/* Grid */}
+      {/* Table View */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="h-44"><Skeleton className="h-full w-full rounded-2xl" /></Card>
-          ))}
-        </div>
+        <Card className="p-6">
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-xl" />
+            ))}
+          </div>
+        </Card>
       ) : filteredInterviews.length === 0 ? (
         <EmptyState
           icon={<Calendar className="w-6 h-6" />}
-          title="No interviews scheduled"
-          description="Click Schedule Interview to coordinate a meeting."
+          title="No interviews found"
+          description="Try adjusting your search or filters to see results."
           action={{ label: 'Schedule Interview', onClick: () => setIsModalOpen(true) }}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredInterviews.map((interview) => (
-            <Card key={interview.id} className="p-5 hover:shadow-elevated transition-shadow duration-200">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <Avatar name={interview.student.name} size="sm" />
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">{interview.student.name}</h3>
-                    <p className="text-xs text-slate-500">{interview.student.department} · CGPA {interview.student.cgpa}</p>
-                  </div>
-                </div>
-                <Badge variant={interview.status === 'completed' ? 'green' : interview.status === 'scheduled' ? 'blue' : 'slate'}>
-                  {interview.status}
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-xs text-slate-600 dark:text-slate-400 mb-4 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
-                <div>
-                  <span className="font-semibold block text-[10px] uppercase text-slate-400">Recruiter</span>
-                  <span>{interview.company.name}</span>
-                </div>
-                <div>
-                  <span className="font-semibold block text-[10px] uppercase text-slate-400">Round</span>
-                  <span>Round {interview.round} ({interview.type.toUpperCase()})</span>
-                </div>
-                <div>
-                  <span className="font-semibold block text-[10px] uppercase text-slate-400">Time & Date</span>
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-slate-400" />{formatTime(interview.time)} · {formatDate(interview.date)}</span>
-                </div>
-                <div>
-                  <span className="font-semibold block text-[10px] uppercase text-slate-400">Interview Mode</span>
-                  <span className="flex items-center gap-1">
-                    {interview.mode === 'video' ? <Video className="w-3 h-3 text-slate-400" /> : <User className="w-3 h-3 text-slate-400" />}
-                    {interview.mode}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                {interview.status === 'scheduled' && (
-                  <>
-                    <Button variant="ghost" size="sm" className="text-emerald-600 font-semibold" leftIcon={<Check className="w-3.5 h-3.5" />} onClick={() => handleUpdateStatus(interview.id, 'completed')}>
-                      Complete
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-red-500 font-semibold" leftIcon={<X className="w-3.5 h-3.5" />} onClick={() => handleUpdateStatus(interview.id, 'cancelled')}>
-                      Cancel
-                    </Button>
-                  </>
-                )}
-                {interview.meetingLink && interview.status === 'scheduled' && (
-                  <a href={interview.meetingLink} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline ml-auto flex items-center gap-1 font-semibold">
-                    Join Call <ArrowUpRight className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
-            </Card>
-          ))}
-        </div>
+        <Card className="overflow-hidden border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Candidate</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Recruiter</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Schedule</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Details</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {filteredInterviews.map((interview) => (
+                  <tr key={interview.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={interview.student?.name || 'Unknown'} size="sm" />
+                        <div>
+                          <p className="font-bold text-sm text-slate-900 dark:text-white">{interview.student?.name || 'Unknown Candidate'}</p>
+                          <p className="text-xs text-slate-500">{interview.student?.department || 'N/A'} · CGPA {interview.student?.cgpa || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                          {(interview.company?.name || 'U').substring(0, 2).toUpperCase()}
+                        </div>
+                        <p className="font-semibold text-sm text-slate-900 dark:text-white">{interview.company?.name || 'Unknown Company'}</p>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          {formatDate(interview.date)}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          {formatTime(interview.time)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Round {interview.round} ({interview.type.toUpperCase()})
+                        </span>
+                        <span className="flex items-center gap-1 text-[11px] text-slate-500 uppercase font-medium tracking-wide">
+                          {interview.mode === 'video' ? <Video className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                          {interview.mode}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <Badge variant={interview.status === 'completed' ? 'green' : interview.status === 'scheduled' ? 'blue' : 'slate'}>
+                        {interview.status}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2 transition-opacity">
+                        {interview.status === 'scheduled' && (
+                          <>
+                            <Button variant="ghost" size="sm" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 font-semibold px-2" onClick={() => handleUpdateStatus(interview.id, 'completed')}>
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 font-semibold px-2" onClick={() => handleUpdateStatus(interview.id, 'cancelled')}>
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                        {interview.meetingLink && interview.status === 'scheduled' && (
+                          <a href={interview.meetingLink} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 dark:bg-brand-900/20 dark:text-brand-300 text-xs font-semibold transition-colors">
+                            Join Call <ArrowUpRight className="w-3 h-3 ml-1" />
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {/* Scheduler Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Schedule Student Interview">
         <form onSubmit={handleSchedule} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Select Student</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Select Department</label>
+            <select
+              value={selectedDeptId}
+              onChange={e => { setSelectedDeptId(e.target.value); setStudentId(''); }}
+              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 mb-4"
+            >
+              <option value="">-- All Departments --</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Search & Select Student</label>
+            <Input 
+              placeholder="Type to search student name..."
+              value={studentSearch}
+              onChange={e => { setStudentSearch(e.target.value); setStudentId(''); }}
+              className="mb-2"
+            />
             <select
               value={studentId}
               onChange={e => setStudentId(e.target.value)}
@@ -239,7 +319,11 @@ export const CollegeInterviewsPage: React.FC = () => {
               required
             >
               <option value="">-- Choose Candidate --</option>
-              {students.map(s => (
+              {students.filter(s => {
+                const matchesDept = selectedDeptId ? s.departmentId === selectedDeptId : true;
+                const matchesSearch = s.name.toLowerCase().includes(studentSearch.toLowerCase());
+                return matchesDept && matchesSearch;
+              }).map(s => (
                 <option key={s.id} value={s.id}>{s.name} ({s.department})</option>
               ))}
             </select>

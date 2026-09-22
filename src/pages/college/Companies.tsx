@@ -1,25 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import {
   Building2, Search, Plus, Filter, Globe, MapPin, Users, Briefcase,
-  DollarSign, CheckCircle, ShieldCheck, Eye, Edit3, Trash2, LayoutGrid,
-  List, ExternalLink, AlertTriangle, Calendar, Mail, Phone, UserCheck, Send
+  DollarSign, CheckCircle, ShieldCheck, Eye, Edit3, Trash2,
+  ExternalLink, AlertTriangle, Calendar, Mail, Phone, UserCheck, Send
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
-import { StatCard, Card, Badge, Button, Input, Select, Modal, Skeleton, EmptyState, ConfirmDialog, Tabs } from '../../components/ui';
+import { StatCard, Card, Badge, Button, Input, Select, Modal, Skeleton, EmptyState, ConfirmDialog } from '../../components/ui';
 import { companyService, driveService, jobService } from '../../services';
 import { formatNumber } from '../../utils';
 import type { Company, Recruiter } from '../../types';
+import { useAuthStore } from '../../store';
 
 export const CollegeCompaniesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const { user } = useAuthStore();
 
   // Filters
   const [search, setSearch] = useState('');
   const [industryFilter, setIndustryFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -63,28 +63,15 @@ export const CollegeCompaniesPage: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      let finalType = typeFilter;
-      if (activeTab === 'product') finalType = 'product';
-      if (activeTab === 'service') finalType = 'service';
-      if (activeTab === 'startup') finalType = 'startup';
-
-      let finalStatus = 'all';
-      if (activeTab === 'visiting') finalStatus = 'tied';
-
       const res = await companyService.getAll({
         search,
-        type: finalType,
-        status: finalStatus,
+        type: typeFilter,
+        status: 'all',
         page,
         limit: 12,
       });
 
       let list = res.data as Company[];
-      if (activeTab === 'tier1') {
-        list = list.filter(c => c.avgPackage >= 10 || c.highestPackage >= 20);
-      } else if (activeTab === 'mass') {
-        list = list.filter(c => c.type === 'service');
-      }
 
       if (industryFilter !== 'all') {
         list = list.filter(c => c.industry.toLowerCase().includes(industryFilter.toLowerCase()));
@@ -102,7 +89,7 @@ export const CollegeCompaniesPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [search, industryFilter, typeFilter, activeTab, page]);
+  }, [search, industryFilter, typeFilter, page]);
 
   const handleOpenInvite = () => {
     setFormName('');
@@ -179,7 +166,7 @@ export const CollegeCompaniesPage: React.FC = () => {
     setActionLoading(true);
     try {
       await driveService.create({
-        collegeId: 'college-1',
+        collegeId: user?.tenantId || '',
         companyId: selectedCompany.id,
         title: driveTitle,
         date: driveDate,
@@ -227,7 +214,6 @@ export const CollegeCompaniesPage: React.FC = () => {
     setSearch('');
     setIndustryFilter('all');
     setTypeFilter('all');
-    setActiveTab('all');
     setPage(1);
   };
 
@@ -261,31 +247,19 @@ export const CollegeCompaniesPage: React.FC = () => {
       )}
 
       {/* Top Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <StatCard title="Partner Companies" value={totalCount || 20} change="Active recruiters" changeType="increase" icon={<Building2 className="w-5 h-5" />} color="brand" />
-        <StatCard title="Upcoming Drives" value={5} change="Scheduled this month" changeType="increase" icon={<Calendar className="w-5 h-5" />} color="green" />
-        <StatCard title="Total Students Hired" value="428" change="Across all departments" changeType="increase" icon={<Users className="w-5 h-5" />} color="purple" />
-        <StatCard title="Highest Package" value="₹45.0 LPA" change="Google India offer" changeType="increase" icon={<DollarSign className="w-5 h-5" />} color="amber" />
-        <StatCard title="Average CTC" value="₹8.6 LPA" change="Campus average" changeType="neutral" icon={<Briefcase className="w-5 h-5" />} color="purple" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+        <StatCard title="Partner Companies" value={totalCount || 20} icon={<Building2 className="w-5 h-5" />} color="brand" />
+        <StatCard title="Upcoming Drives" value={5} icon={<Calendar className="w-5 h-5" />} color="green" />
+        <StatCard title="Total Students Hired" value="428" icon={<Users className="w-5 h-5" />} color="purple" />
+        <StatCard title="Highest Package" value="₹45.0 LPA" icon={<DollarSign className="w-5 h-5" />} color="amber" />
+        <StatCard title="Average CTC" value="₹8.6 LPA" icon={<Briefcase className="w-5 h-5" />} color="purple" />
       </div>
 
       {/* Filters & Navigation */}
       <Card className="mb-6" padding={false}>
         <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <Tabs
-            tabs={[
-              { id: 'all', label: 'All Recruiters' },
-              { id: 'visiting', label: 'Campus Partners' },
-              { id: 'tier1', label: 'Tier-1 Premium (12+ LPA)' },
-              { id: 'product', label: 'Product Companies' },
-              { id: 'service', label: 'IT Services' },
-            ]}
-            activeTab={activeTab}
-            onChange={(id) => { setActiveTab(id); setPage(1); }}
-          />
-
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 md:w-64">
+          <div className="flex items-center gap-3 w-full">
+            <div className="relative flex-1">
               <Input
                 placeholder="Search company, industry, HR name..."
                 value={search}
@@ -307,23 +281,6 @@ export const CollegeCompaniesPage: React.FC = () => {
               onChange={(e) => { setIndustryFilter(e.target.value); setPage(1); }}
               className="w-40"
             />
-
-            <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 p-0.5">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-brand-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                title="Grid View"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-lg transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-slate-700 text-brand-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                title="Table View"
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
 
@@ -341,73 +298,6 @@ export const CollegeCompaniesPage: React.FC = () => {
             action={{ label: "Reset All Filters", onClick: resetFilters }}
             className="py-16"
           />
-        ) : viewMode === 'grid' ? (
-          /* GRID VIEW */
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {companies.map((comp) => {
-              const mainHr = comp.recruiters && comp.recruiters.length > 0 ? comp.recruiters[0] : null;
-
-              return (
-                <Card key={comp.id} hover className="flex flex-col justify-between p-5 border border-slate-200 dark:border-slate-700">
-                  <div>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-50 to-indigo-100 dark:from-slate-800 dark:to-slate-700 font-bold text-lg text-brand-600 dark:text-brand-400 flex items-center justify-center border border-brand-200 dark:border-slate-600 shadow-sm">
-                          {comp.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-base text-slate-900 dark:text-slate-100 line-clamp-1">{comp.name}</h4>
-                          <p className="text-xs text-slate-500">{comp.industry}</p>
-                        </div>
-                      </div>
-                      {getTypeBadge(comp.type)}
-                    </div>
-
-                    <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 mb-4 leading-relaxed">
-                      {comp.description}
-                    </p>
-
-                    {/* Stats & HR Details */}
-                    <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs mb-3">
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">Avg Package</span>
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{comp.avgPackage} LPA</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">Highest Offer</span>
-                        <span className="font-bold text-amber-600 dark:text-amber-400">₹{comp.highestPackage} LPA</span>
-                      </div>
-                    </div>
-
-                    {mainHr && (
-                      <div className="flex items-center gap-2 p-2 rounded-lg bg-brand-50/50 dark:bg-brand-900/10 text-xs mb-3 border border-brand-100 dark:border-brand-900/30">
-                        <UserCheck className="w-3.5 h-3.5 text-brand-600 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">{mainHr.name}</p>
-                          <p className="text-[10px] text-slate-400 truncate">{mainHr.email}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => handleOpenScheduleDrive(comp)} leftIcon={<Calendar className="w-3.5 h-3.5" />}>
-                      Schedule Drive
-                    </Button>
-
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => { setSelectedCompany(comp); setIsDetailModalOpen(true); }}>
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => { setSelectedCompany(comp); setIsDeleteConfirmOpen(true); }}>
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
         ) : (
           /* TABLE VIEW */
           <div className="overflow-x-auto">

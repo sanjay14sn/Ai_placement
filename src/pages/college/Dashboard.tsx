@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { StatCard, Card, Badge, Button, AIBadge, Alert, Progress } from '../../components/ui';
-import { analyticsService } from '../../services';
+import { analyticsService, collegeService } from '../../services';
 import { formatNumber } from '../../utils';
 import { useAuthStore } from '../../store';
 
@@ -18,6 +18,7 @@ const DEPT_COLORS = ['#4f46e5', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06
 
 export const CollegeDashboard: React.FC = () => {
   const [analytics, setAnalytics] = useState<Awaited<ReturnType<typeof analyticsService.getCollegeAnalytics>> | null>(null);
+  const [collegeName, setCollegeName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -27,15 +28,22 @@ export const CollegeDashboard: React.FC = () => {
   const firstName = user?.name.split(' ')[0] || 'Officer';
 
   useEffect(() => {
-    analyticsService.getCollegeAnalytics('college-1')
+    const collegeId = user?.tenantId || '';
+    if (collegeId) {
+      collegeService.getById(collegeId)
+        .then(res => setCollegeName(res.name))
+        .catch(() => {});
+    }
+    analyticsService.getCollegeAnalytics(collegeId)
       .then(setAnalytics)
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.tenantId]);
+
 
   const kpis = [
     { label: 'Total Students', value: analytics?.totalStudents || 0, icon: <GraduationCap className="w-4 h-4" />, color: 'brand' as const },
     { label: 'Eligible', value: analytics?.eligibleStudents || 0, icon: <Users className="w-4 h-4" />, color: 'blue' as const, color2: 'brand' as const },
-    { label: 'Active Jobs', value: 42, icon: <Briefcase className="w-4 h-4" />, color: 'amber' as const },
+    { label: 'Placed', value: analytics?.placedStudents || 0, icon: <Briefcase className="w-4 h-4" />, color: 'amber' as const },
     { label: 'Applications', value: analytics?.totalApplications || 0, icon: <Target className="w-4 h-4" />, color: 'purple' as const, color2: 'purple' as const },
     { label: 'Interviews', value: analytics?.totalInterviews || 0, icon: <UserCheck className="w-4 h-4" />, color: 'green' as const },
   ];
@@ -60,8 +68,8 @@ export const CollegeDashboard: React.FC = () => {
   return (
     <PageWrapper
       title={`${greeting}, ${firstName} 👋`}
-      subtitle="Here's your placement command center"
-      breadcrumbs={[{ label: 'College' }, { label: 'Dashboard' }]}
+      subtitle={collegeName ? `${collegeName} — Placement Command Center` : "Here's your placement command center"}
+      breadcrumbs={[{ label: collegeName || 'College' }, { label: 'Dashboard' }]}
     >
       {/* KPI Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">

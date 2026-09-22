@@ -25,7 +25,7 @@ export const StudentResumePage: React.FC = () => {
 
   const fetchDefaultJobs = async () => {
     try {
-      const jobs = await jobService.getRecommendedForStudent('student-1');
+      const jobs = await jobService.getRecommendedForStudent();
       setMatchedJobs(jobs as MatchedJob[]);
     } catch {
       toast.error('Failed to load job matches');
@@ -49,7 +49,7 @@ export const StudentResumePage: React.FC = () => {
     }
     setAnalyzing(true);
     try {
-      const jobs = await jobService.getRecommendedForStudent('student-1');
+      const jobs = await jobService.getRecommendedForStudent();
       setMatchedJobs(jobs as MatchedJob[]);
       setHasSearched(true);
       toast.success('Resume parsed & matching job opportunities loaded!');
@@ -62,7 +62,7 @@ export const StudentResumePage: React.FC = () => {
 
   const handleApply = async (job: MatchedJob) => {
     try {
-      await applicationService.apply('student-1', job.id);
+      await applicationService.apply(job.id);
       setAppliedJobs(prev => [...prev, job.id]);
       toast.success(`Applied to ${job.title} at ${job.company.name}!`);
     } catch {
@@ -73,7 +73,6 @@ export const StudentResumePage: React.FC = () => {
   return (
     <PageWrapper
       title="Resume Job Matcher"
-      subtitle="Upload your resume to instantly find campus drive roles matched to your experience."
       breadcrumbs={[{ label: 'Student' }, { label: 'Resume Job Matcher' }]}
     >
       {/* Upload Banner */}
@@ -91,30 +90,52 @@ export const StudentResumePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <input
-              type="file"
-              id="resume-matcher-upload"
-              accept=".pdf"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            <label htmlFor="resume-matcher-upload" className="flex-1 md:flex-initial">
-              <span className="inline-flex items-center justify-center px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl cursor-pointer transition-all w-full text-center">
-                {file ? file.name : 'Choose Resume PDF'}
-              </span>
-            </label>
+          <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-3 w-full justify-end">
+              <input
+                type="file"
+                id="resume-matcher-upload"
+                accept=".pdf"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <label htmlFor="resume-matcher-upload" className="flex-1 md:flex-initial">
+                <span className="inline-flex items-center justify-center px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl cursor-pointer transition-all w-full text-center border border-transparent">
+                  {file ? file.name : 'Choose Resume PDF'}
+                </span>
+              </label>
 
-            <Button
-              disabled={analyzing}
-              loading={analyzing}
-              onClick={handleMatchJobs}
-              variant="ai"
-              size="sm"
-              className="text-xs whitespace-nowrap"
-            >
-              Find Matching Jobs
-            </Button>
+              <Button
+                disabled={analyzing}
+                loading={analyzing}
+                onClick={handleMatchJobs}
+                variant="ai"
+                size="sm"
+                className="text-xs whitespace-nowrap"
+              >
+                Find Matching Jobs
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recent Resumes</span>
+              <select 
+                className="text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-brand-500 cursor-pointer shadow-sm w-48"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    toast.success(`Selected recent resume: ${e.target.value}`);
+                    // Optionally set a mock file object here to light up the UI
+                    const mockFile = new File([""], e.target.value, { type: "application/pdf" });
+                    setFile(mockFile as any);
+                  }
+                }}
+              >
+                <option value="">Select recent...</option>
+                <option value="Arjun_Sharma_SDE_Resume_v2.pdf">Arjun_Sharma_SDE_Resume_v2.pdf</option>
+                <option value="Arjun_Frontend_Final.pdf">Arjun_Frontend_Final.pdf</option>
+                <option value="SDE_2026_ATS_Optimized.pdf">SDE_2026_ATS_Optimized.pdf</option>
+              </select>
+            </div>
           </div>
         </div>
       </Card>

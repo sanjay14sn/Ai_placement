@@ -8,11 +8,13 @@ import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Input, Modal, Avatar } from '../../components/ui';
 import { mockCompanies, mockColleges } from '../../mock/data';
 import { toast } from 'sonner';
+import { useAuthStore } from '../../store';
+import { companyService } from '../../services';
 
 export const RecruiterCompanyPage: React.FC = () => {
-  // Use Infosys as default recruiter company profile
-  const initialCompany = mockCompanies[0];
-  const [company, setCompany] = useState(initialCompany);
+  const { user } = useAuthStore();
+  const [company, setCompany] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'team' | 'colleges'>('overview');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -24,25 +26,51 @@ export const RecruiterCompanyPage: React.FC = () => {
   const [editDesc, setEditDesc] = useState(company.description);
 
   useEffect(() => {
-    setEditName(company.name);
-    setEditIndustry(company.industry);
-    setEditHq(company.hq);
-    setEditWebsite(company.website);
-    setEditDesc(company.description);
+    if (user?.tenantId) {
+      companyService.getById(user.tenantId)
+        .then(res => {
+          setCompany(res);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setCompany(mockCompanies[0]); // fallback for testing
+          setLoading(false);
+        });
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (company) {
+      setEditName(company.name || '');
+      setEditIndustry(company.industry || '');
+      setEditHq(company.hq || '');
+      setEditWebsite(company.website || '');
+      setEditDesc(company.description || '');
+    }
   }, [company]);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCompany(prev => ({
-      ...prev,
-      name: editName,
-      industry: editIndustry,
-      hq: editHq,
-      website: editWebsite,
-      description: editDesc,
-    }));
-    setIsEditModalOpen(false);
-    toast.success('Company profile updated successfully!');
+    if (!user?.tenantId) return;
+    
+    try {
+      const updates = {
+        name: editName,
+        industry: editIndustry,
+        hq: editHq,
+        website: editWebsite,
+        description: editDesc,
+      };
+      
+      const updatedCompany = await companyService.update(user.tenantId, updates);
+      setCompany(updatedCompany);
+      setIsEditModalOpen(false);
+      toast.success('Company profile updated successfully!');
+    } catch (err) {
+      toast.error('Failed to update company profile');
+      console.error(err);
+    }
   };
 
   const perks = [
@@ -69,6 +97,11 @@ export const RecruiterCompanyPage: React.FC = () => {
         </Button>
       }
     >
+      {loading || !company ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+        </div>
+      ) : (
       <div className="space-y-6">
         {/* HERO BANNER CARD */}
         <Card className="p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white relative overflow-hidden border border-slate-800 shadow-xl">
@@ -443,6 +476,7 @@ export const RecruiterCompanyPage: React.FC = () => {
           </form>
         </Modal>
       </div>
+      )}
     </PageWrapper>
   );
 };

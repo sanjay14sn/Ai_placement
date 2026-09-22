@@ -4,38 +4,58 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { Users, Briefcase, UserCheck, TrendingUp, Star, Building2, Bot, ChevronRight } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { StatCard, Card, Button, Badge, AIBadge, Avatar, Progress, ProgressRing } from '../../components/ui';
-import { analyticsService, jobService } from '../../services';
-import { mockStudents } from '../../mock/data';
+import { analyticsService, jobService, recruiterService } from '../../services';
 import { getMatchScoreRingColor } from '../../utils';
 
 const COLORS = ['#4f46e5', '#8b5cf6', '#10b981', '#f59e0b'];
 
 export const RecruiterDashboard: React.FC = () => {
-  const [funnel, setFunnel] = useState<Awaited<ReturnType<typeof analyticsService.getRecruitingFunnel>> | null>(null);
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    analyticsService.getRecruitingFunnel('company-1').then(setFunnel);
+    recruiterService.getDashboardData()
+      .then(res => {
+        setDashboardData(res);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
   }, []);
 
-  const topCandidates = mockStudents.slice(0, 5).map(s => ({
-    ...s,
-    matchScore: 75 + Math.floor(Math.random() * 22),
-  })).sort((a, b) => b.matchScore - a.matchScore);
+  const topCandidates = dashboardData?.topCandidates || [];
+  const activeJobPostings = dashboardData?.activeJobPostings || [];
+  const funnel = dashboardData?.funnel || [];
+  const kpiData = dashboardData?.kpis || {
+    activeJobs: 0, totalApplicants: 0, eligibleCandidates: 0, shortlisted: 0, interviews: 0, offers: 0
+  };
 
   const kpis = [
-    { title: 'Active Jobs', value: 5, change: '+2 this week', changeType: 'increase' as const, color: 'brand' as const },
-    { title: 'Total Applicants', value: 284, change: '+48 new', changeType: 'increase' as const, color: 'purple' as const },
-    { title: 'Eligible Candidates', value: 126, change: 'AI filtered', changeType: 'neutral' as const, color: 'amber' as const },
-    { title: 'Shortlisted', value: 42, change: '33% rate', changeType: 'increase' as const, color: 'green' as const },
-    { title: 'Interviews', value: 18, change: '6 today', changeType: 'increase' as const, color: 'brand' as const },
-    { title: 'Offers', value: 7, change: '94% acceptance', changeType: 'increase' as const, color: 'green' as const },
+    { title: 'Active Jobs', value: kpiData.activeJobs, change: 'Live postings', changeType: 'neutral' as const, color: 'brand' as const },
+    { title: 'Total Applicants', value: kpiData.totalApplicants, change: 'Total received', changeType: 'neutral' as const, color: 'purple' as const },
+    { title: 'Eligible Candidates', value: kpiData.eligibleCandidates, change: 'AI filtered', changeType: 'neutral' as const, color: 'amber' as const },
+    { title: 'Shortlisted', value: kpiData.shortlisted, change: 'Moved forward', changeType: 'increase' as const, color: 'green' as const },
+    { title: 'Interviews', value: kpiData.interviews, change: 'Scheduled', changeType: 'increase' as const, color: 'brand' as const },
+    { title: 'Offers', value: kpiData.offers, change: 'Selected', changeType: 'increase' as const, color: 'green' as const },
   ];
 
   const qualityData = [
     { month: 'Mar', avgScore: 72 }, { month: 'Apr', avgScore: 75 }, { month: 'May', avgScore: 78 },
     { month: 'Jun', avgScore: 76 }, { month: 'Jul', avgScore: 82 }, { month: 'Aug', avgScore: 85 },
   ];
+
+  if (loading) {
+    return (
+      <PageWrapper title="Recruiter Dashboard" subtitle="Talent acquisition overview">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper title="Recruiter Dashboard" subtitle="Talent acquisition overview"
@@ -53,14 +73,14 @@ export const RecruiterDashboard: React.FC = () => {
         {/* Candidate Funnel */}
         <Card className="p-6">
           <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-5">Candidate Funnel</h3>
-          {funnel && (
+          {funnel.length > 0 ? (
             <div className="space-y-2.5">
-              {funnel.map((stage, i) => (
+              {funnel.map((stage: any, i: number) => (
                 <div key={stage.stage} className="flex items-center gap-3">
                   <span className="text-xs text-slate-500 dark:text-slate-400 w-28 text-right">{stage.stage}</span>
                   <div className="flex-1 h-7 bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden">
                     <div className="h-full rounded-lg flex items-center justify-end pr-2 transition-all duration-700"
-                      style={{ width: `${stage.percent}%`, background: COLORS[i % COLORS.length] }}>
+                      style={{ width: `${Math.max(stage.percent, 5)}%`, background: COLORS[i % COLORS.length] }}>
                       <span className="text-white text-xs font-bold">{stage.count}</span>
                     </div>
                   </div>
@@ -68,6 +88,8 @@ export const RecruiterDashboard: React.FC = () => {
                 </div>
               ))}
             </div>
+          ) : (
+            <div className="text-sm text-slate-500">No application data available yet.</div>
           )}
         </Card>
 
@@ -96,7 +118,7 @@ export const RecruiterDashboard: React.FC = () => {
           <Button variant="ghost" size="sm" onClick={() => navigate('/recruiter/candidates')}>View all candidates</Button>
         </div>
         <div className="space-y-3">
-          {topCandidates.map((candidate, i) => (
+          {topCandidates.length > 0 ? topCandidates.map((candidate: any, i: number) => (
             <div key={candidate.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               onClick={() => navigate(`/recruiter/candidates/${candidate.id}`)}>
               <span className="text-lg font-black text-slate-200 dark:text-slate-700 w-6 text-center">#{i + 1}</span>
@@ -105,7 +127,7 @@ export const RecruiterDashboard: React.FC = () => {
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{candidate.name}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{candidate.department} · CGPA: {candidate.cgpa}</p>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {candidate.skills.slice(0, 3).map(s => <Badge key={s} variant="slate" className="text-[10px]">{s}</Badge>)}
+                  {(candidate.skills || []).slice(0, 3).map((s: string) => <Badge key={s} variant="slate" className="text-[10px]">{s}</Badge>)}
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
@@ -117,7 +139,9 @@ export const RecruiterDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="text-sm text-slate-500 text-center py-4">No candidates have applied to your active jobs yet.</div>
+          )}
         </div>
       </Card>
 
@@ -128,16 +152,18 @@ export const RecruiterDashboard: React.FC = () => {
           <Button variant="ghost" size="sm" onClick={() => navigate('/recruiter/jobs')}>View all</Button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {['Software Engineer', 'Backend Developer', 'Data Analyst', 'DevOps Engineer'].map((title, i) => (
-            <div key={title} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-brand-300 transition-colors cursor-pointer"
-              onClick={() => navigate('/recruiter/jobs')}>
+          {activeJobPostings.length > 0 ? activeJobPostings.map((job: any) => (
+            <div key={job.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-brand-300 transition-colors cursor-pointer"
+              onClick={() => navigate(`/recruiter/jobs/${job.id}`)}>
               <div>
-                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{title}</p>
-                <p className="text-xs text-slate-400">{40 + i * 15} applicants · {5 + i} openings</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{job.title}</p>
+                <p className="text-xs text-slate-400">{job.applicants} applicants · {job.openings} openings</p>
               </div>
               <Badge variant="green">Active</Badge>
             </div>
-          ))}
+          )) : (
+            <div className="col-span-2 text-sm text-slate-500 text-center py-4">No active job postings found. Post a new job to start receiving applications.</div>
+          )}
         </div>
       </Card>
     </PageWrapper>

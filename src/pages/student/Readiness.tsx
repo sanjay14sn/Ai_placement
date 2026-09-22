@@ -18,7 +18,7 @@ export const StudentReadinessPage: React.FC = () => {
   const fetchReadiness = async () => {
     setLoading(true);
     try {
-      const data = await aiService.getPlacementReadiness('student-1');
+      const data = await aiService.getPlacementReadiness();
       setReadiness(data);
     } catch {
       toast.error('Failed to load readiness score');

@@ -22,7 +22,7 @@ export const StudentNotificationsPage: React.FC = () => {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const data = await notificationService.getAll('student-1');
+      const data = await notificationService.getAll();
       setNotifications(data);
     } catch {
       toast.error('Failed to load notifications');

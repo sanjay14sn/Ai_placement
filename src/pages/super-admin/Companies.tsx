@@ -13,16 +13,20 @@ import type { Company } from '../../types';
 export const SuperAdminCompaniesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   
   // Filters
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [statsData, setStatsData] = useState({
+    totalPartnerCompanies: 0,
+    tiedCount: 0,
+    totalStudentsHired: '0',
+    avgPackage: '₹0.0 LPA',
+  });
 
   // Selected Company Modals
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -54,18 +58,10 @@ export const SuperAdminCompaniesPage: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      let finalType = typeFilter;
-      if (activeTab === 'product') finalType = 'product';
-      if (activeTab === 'service') finalType = 'service';
-      if (activeTab === 'startup') finalType = 'startup';
-
-      let finalStatus = statusFilter;
-      if (activeTab === 'tied') finalStatus = 'tied';
-
       const res = await companyService.getAll({
         search,
-        type: finalType,
-        status: finalStatus,
+        type: typeFilter,
+        status: statusFilter,
         page,
         limit: 12,
       });
@@ -73,6 +69,15 @@ export const SuperAdminCompaniesPage: React.FC = () => {
       setCompanies(res.data as Company[]);
       setTotalPages(res.totalPages);
       setTotalCount(res.total);
+
+      if (res.stats) {
+        setStatsData({
+          totalPartnerCompanies: Number(res.stats.totalPartnerCompanies || res.total || 0),
+          tiedCount: Number(res.stats.tiedCount || 0),
+          totalStudentsHired: formatNumber(Number(res.stats.totalStudentsHired || 0)),
+          avgPackage: String(res.stats.avgPackage || '₹0.0 LPA'),
+        });
+      }
     } catch (err) {
       console.error('Error loading companies', err);
     } finally {
@@ -82,7 +87,7 @@ export const SuperAdminCompaniesPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [search, typeFilter, statusFilter, activeTab, page]);
+  }, [search, typeFilter, statusFilter, page]);
 
   const handleOpenAdd = () => {
     setFormName('');
@@ -116,15 +121,18 @@ export const SuperAdminCompaniesPage: React.FC = () => {
   };
 
   const handleSaveAdd = async () => {
-    if (!formName) return;
+    if (!formName) {
+      showToast('Please enter a company name');
+      return;
+    }
     setActionLoading(true);
     try {
       await companyService.create({
         name: formName,
-        industry: formIndustry,
-        type: formType,
-        size: formSize,
-        hq: formHq,
+        industry: formIndustry || 'Technology',
+        type: formType || 'product',
+        size: formSize || 'medium',
+        hq: formHq || 'Bengaluru',
         website: formWebsite,
         founded: formFounded,
         avgPackage: formAvgPackage,
@@ -137,6 +145,7 @@ export const SuperAdminCompaniesPage: React.FC = () => {
       loadData();
     } catch (e) {
       console.error(e);
+      showToast(e instanceof Error ? e.message : 'Failed to onboard company');
     } finally {
       setActionLoading(false);
     }
@@ -164,6 +173,7 @@ export const SuperAdminCompaniesPage: React.FC = () => {
       loadData();
     } catch (e) {
       console.error(e);
+      showToast(e instanceof Error ? e.message : 'Failed to update company');
     } finally {
       setActionLoading(false);
     }
@@ -198,7 +208,6 @@ export const SuperAdminCompaniesPage: React.FC = () => {
     setSearch('');
     setTypeFilter('all');
     setStatusFilter('all');
-    setActiveTab('all');
     setPage(1);
   };
 
@@ -215,7 +224,6 @@ export const SuperAdminCompaniesPage: React.FC = () => {
   return (
     <PageWrapper
       title="Company & Recruiter Directory"
-      subtitle="Manage corporate partners, hiring companies, recruiter ties, and campus placement drives"
       breadcrumbs={[{ label: 'Super Admin' }, { label: 'Companies' }]}
       actions={
         <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />} onClick={handleOpenAdd}>
@@ -233,40 +241,28 @@ export const SuperAdminCompaniesPage: React.FC = () => {
 
       {/* KPI Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Partner Companies" value={totalCount || 20} change="Active on platform" changeType="increase" icon={<Building2 className="w-5 h-5" />} color="brand" />
-        <StatCard title="Tied-Up Institutions" value={15} change="Exclusive drive contracts" changeType="increase" icon={<ShieldCheck className="w-5 h-5" />} color="purple" />
-        <StatCard title="Total Students Hired" value="1,420" change="Across all placement drives" changeType="increase" icon={<Users className="w-5 h-5" />} color="green" />
-        <StatCard title="Avg Package Offered" value="₹12.4 LPA" change="Platform-wide average" changeType="neutral" icon={<DollarSign className="w-5 h-5" />} color="amber" />
+        <StatCard title="Total Partner Companies" value={statsData.totalPartnerCompanies || totalCount} change="Active on platform" changeType="increase" icon={<Building2 className="w-5 h-5" />} color="brand" />
+        <StatCard title="Tied-Up Partners" value={statsData.tiedCount} change="Exclusive drive contracts" changeType="increase" icon={<ShieldCheck className="w-5 h-5" />} color="purple" />
+        <StatCard title="Total Students Hired" value={statsData.totalStudentsHired} change="Across all placement drives" changeType="increase" icon={<Users className="w-5 h-5" />} color="green" />
+        <StatCard title="Avg Package Offered" value={statsData.avgPackage} change="Platform-wide average" changeType="neutral" icon={<DollarSign className="w-5 h-5" />} color="amber" />
       </div>
 
-      {/* Filter Bar & Tabs */}
+      {/* Search & Filter Header Bar */}
       <Card className="mb-6" padding={false}>
         <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <Tabs
-            tabs={[
-              { id: 'all', label: 'All Companies' },
-              { id: 'tied', label: 'Tied-Up Partners' },
-              { id: 'product', label: 'Product Companies' },
-              { id: 'service', label: 'IT Services' },
-              { id: 'startup', label: 'Startups' },
-            ]}
-            activeTab={activeTab}
-            onChange={(id) => { setActiveTab(id); setPage(1); }}
-          />
+          <div className="relative flex-1 md:w-80">
+            <Input
+              placeholder="Search company, industry, HQ..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              leftIcon={<Search className="w-4 h-4" />}
+            />
+          </div>
 
           <div className="flex items-center gap-3">
-            <div className="relative flex-1 md:w-64">
-              <Input
-                placeholder="Search company, industry, HQ..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                leftIcon={<Search className="w-4 h-4" />}
-              />
-            </div>
-
             <Select
               options={[
-                { value: 'all', label: 'All Types' },
+                { value: 'all', label: 'All Company Types' },
                 { value: 'product', label: 'Product' },
                 { value: 'service', label: 'IT Services' },
                 { value: 'startup', label: 'Startup' },
@@ -274,32 +270,15 @@ export const SuperAdminCompaniesPage: React.FC = () => {
               ]}
               value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-              className="w-36"
+              className="w-44"
             />
-
-            <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 p-0.5">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-brand-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                title="Grid View"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-lg transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-slate-700 text-brand-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                title="Table View"
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
 
-        {/* Content Container */}
+        {/* Content Container — Table List View */}
         {loading ? (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44 rounded-2xl" />)}
+          <div className="p-6 space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
           </div>
         ) : companies.length === 0 ? (
           /* EMPTY DATA STATE */
@@ -310,71 +289,8 @@ export const SuperAdminCompaniesPage: React.FC = () => {
             action={{ label: "Reset Search & Filters", onClick: resetFilters }}
             className="py-16"
           />
-        ) : viewMode === 'grid' ? (
-          /* GRID VIEW */
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {companies.map((comp) => (
-              <Card key={comp.id} hover className="flex flex-col justify-between p-5 border border-slate-200 dark:border-slate-700">
-                <div>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-50 to-indigo-100 dark:from-slate-800 dark:to-slate-700 font-bold text-lg text-brand-600 dark:text-brand-400 flex items-center justify-center border border-brand-200 dark:border-slate-600 shadow-sm">
-                        {comp.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-base text-slate-900 dark:text-slate-100 line-clamp-1">{comp.name}</h4>
-                        <p className="text-xs text-slate-500">{comp.industry}</p>
-                      </div>
-                    </div>
-                    {getTypeBadge(comp.type)}
-                  </div>
-
-                  <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 mb-4 leading-relaxed">
-                    {comp.description}
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs mb-4">
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Headquarters</span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3 h-3 text-slate-400" /> {comp.hq}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Avg Package</span>
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
-                        ₹{comp.avgPackage} LPA
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {comp.isTied ? (
-                      <Badge variant="green" dot>Tied-Up</Badge>
-                    ) : (
-                      <Badge variant="slate">Standard</Badge>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => { setSelectedCompany(comp); setIsDetailModalOpen(true); }}>
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(comp)}>
-                      <Edit3 className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => { setSelectedCompany(comp); setIsDeleteConfirmOpen(true); }}>
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
         ) : (
-          /* TABLE VIEW */
+          /* TABLE LIST VIEW */
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, LineChart, Line, FunnelChart, Funnel, LabelList, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Download, TrendingUp, Users, Briefcase, Award, Filter } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Select, StatCard } from '../../components/ui';
 import { analyticsService } from '../../services';
 import { formatNumber } from '../../utils';
 import { toast } from 'sonner';
+import { useAuthStore } from '../../store';
 
 const COLORS = ['#4f46e5', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16'];
 
@@ -13,19 +14,21 @@ export const CollegeAnalyticsPage: React.FC = () => {
   const [analytics, setAnalytics] = useState<Awaited<ReturnType<typeof analyticsService.getCollegeAnalytics>> | null>(null);
   const [period, setPeriod] = useState('this_year');
   const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
 
   useEffect(() => {
-    analyticsService.getCollegeAnalytics('college-1')
+    const collegeId = user?.tenantId || '';
+    analyticsService.getCollegeAnalytics(collegeId)
       .then(setAnalytics)
       .finally(() => setLoading(false));
-  }, [period]);
+  }, [period, user?.tenantId]);
 
   const funnelData = [
-    { name: 'Total Students', value: analytics?.totalStudents || 850, fill: '#4f46e5' },
-    { name: 'Eligible', value: analytics?.eligibleStudents || 720, fill: '#8b5cf6' },
-    { name: 'Applied', value: 580, fill: '#06b6d4' },
-    { name: 'Shortlisted', value: 280, fill: '#f59e0b' },
-    { name: 'Interviewed', value: 165, fill: '#10b981' },
+    { name: 'Total Students', value: analytics?.totalStudents || 0, fill: '#4f46e5' },
+    { name: 'Eligible', value: analytics?.eligibleStudents || 0, fill: '#8b5cf6' },
+    { name: 'Applied', value: analytics?.totalApplications || 0, fill: '#06b6d4' },
+    { name: 'Shortlisted', value: 0, fill: '#f59e0b' },
+    { name: 'Interviewed', value: analytics?.totalInterviews || 0, fill: '#10b981' },
   ];
 
   return (
@@ -54,10 +57,10 @@ export const CollegeAnalyticsPage: React.FC = () => {
     >
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Students" value={`${analytics?.totalStudents || 850}`} icon={<Users className="w-5 h-5" />} color="brand" />
-        <StatCard title="Eligible Students" value={`${analytics?.eligibleStudents || 720}`} icon={<Users className="w-5 h-5" />} color="green" />
-        <StatCard title="Selection Rate" value={`${analytics?.selectionRate || 29.8}%`} change="Industry avg: 18%" changeType="increase" icon={<Users className="w-5 h-5" />} color="purple" />
-        <StatCard title="Highest Package" value={`₹${analytics?.highestPackage || 42}L`} icon={<Briefcase className="w-5 h-5" />} color="amber" />
+        <StatCard title="Total Students" value={`${analytics?.totalStudents || 0}`} icon={<Users className="w-5 h-5" />} color="brand" />
+        <StatCard title="Eligible Students" value={`${analytics?.eligibleStudents || 0}`} icon={<Users className="w-5 h-5" />} color="green" />
+        <StatCard title="Selection Rate" value={`${analytics?.selectionRate || 0}%`} change="Industry avg: 18%" changeType="increase" icon={<Users className="w-5 h-5" />} color="purple" />
+        <StatCard title="Highest Package" value={analytics?.highestPackage ? `₹${analytics.highestPackage / 100000}L` : '—'} icon={<Briefcase className="w-5 h-5" />} color="amber" />
       </div>
 
       {/* Monthly Trend */}

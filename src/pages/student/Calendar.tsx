@@ -49,25 +49,25 @@ export const StudentCalendarPage: React.FC = () => {
           id: i.id,
           title: `Round ${i.round}: ${i.type.toUpperCase()} Interview`,
           type: 'interview',
-          companyName: i.company.name,
+          companyName: i.company?.name || 'Unknown Company',
           date: i.date,
           time: i.time,
           meetingLink: i.meetingLink,
           venue: i.venue || 'Online / Google Meet',
           status: i.status,
-          description: `Interview round with ${i.company.name} panelists. Mode: ${i.mode}`,
+          description: `Interview round with ${i.company?.name || 'Unknown Company'} panelists. Mode: ${i.mode}`,
         }));
 
         const mappedDrives: CalendarEvent[] = drivesRes.map(d => ({
           id: d.id,
           title: d.title,
           type: 'drive',
-          companyName: d.company.name,
+          companyName: d.company?.name || 'Unknown Company',
           date: d.date,
           time: '09:30',
           venue: d.venue,
           status: d.status,
-          description: `Placement Drive for ${d.company.name} at ${d.venue}`,
+          description: `Placement Drive for ${d.company?.name || 'Unknown Company'} at ${d.venue || 'TBA'}`,
         }));
 
         // Mock application deadlines
@@ -96,8 +96,9 @@ export const StudentCalendarPage: React.FC = () => {
         ];
 
         setEvents([...mappedInterviews, ...mappedDrives, ...deadlines]);
-      } catch {
-        toast.error('Failed to load calendar events');
+      } catch (err: any) {
+        console.error('Failed to load events:', err);
+        toast.error(err.message || 'Failed to load calendar events');
       } finally {
         setLoading(false);
       }
@@ -167,7 +168,6 @@ export const StudentCalendarPage: React.FC = () => {
   return (
     <PageWrapper
       title="Placement Calendar"
-      subtitle="Track campus recruitment drives, interview slots, and application deadlines."
       breadcrumbs={[{ label: 'Student' }, { label: 'Calendar' }]}
       actions={
         <div className="flex items-center gap-2">

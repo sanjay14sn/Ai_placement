@@ -383,7 +383,7 @@ interface StatCardProps {
   change?: string;
   changeType?: 'increase' | 'decrease' | 'neutral';
   icon?: React.ReactNode;
-  color?: 'brand' | 'green' | 'amber' | 'red' | 'purple' | 'slate';
+  color?: 'brand' | 'green' | 'amber' | 'red' | 'purple' | 'slate' | 'blue';
   suffix?: string;
   className?: string;
 }
@@ -398,6 +398,7 @@ export const StatCard: React.FC<StatCardProps> = ({
     red: 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400',
     purple: 'bg-ai-50 text-ai-600 dark:bg-ai-900/30 dark:text-ai-400',
     slate: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',
+    blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
   };
 
   return (
