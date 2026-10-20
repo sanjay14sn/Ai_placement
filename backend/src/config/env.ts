@@ -24,6 +24,13 @@ export const env = {
   },
 
   clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  serpApiKey: process.env.SERPAPI_KEY || '',
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+    apiKey: process.env.CLOUDINARY_API_KEY || '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || '',
+  },
 
   smtp: {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',

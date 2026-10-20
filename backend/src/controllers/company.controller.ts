@@ -5,16 +5,19 @@ import { createError } from '../middleware/errorHandler';
 export const getCompanies = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const filter: Record<string, unknown> = {};
-    const { search, type, status } = req.query;
+    const { search, type, status, industry } = req.query;
 
-    if (search) {
+    if (typeof search === 'string' && search.trim()) {
+      const term = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter['$or'] = [
-        { name: { $regex: search, $options: 'i' } },
-        { industry: { $regex: search, $options: 'i' } },
-        { hq: { $regex: search, $options: 'i' } },
+        { name: { $regex: term, $options: 'i' } },
+        { industry: { $regex: term, $options: 'i' } },
+        { hq: { $regex: term, $options: 'i' } },
+        { 'recruiters.name': { $regex: term, $options: 'i' } },
       ];
     }
     if (type && type !== 'all') filter.type = type;
+    if (typeof industry === 'string' && industry && industry !== 'all') filter.industry = industry;
     if (status === 'active') filter.isActive = true;
     else if (status === 'inactive') filter.isActive = false;
     else if (status === 'tied') filter.isTied = true;
@@ -39,6 +42,11 @@ export const getCompanies = async (req: Request, res: Response, next: NextFuncti
     const avgPkgVal = rawPackages.length > 0
       ? (rawPackages.reduce((a, b) => a + b, 0) / rawPackages.length).toFixed(1)
       : '12.4';
+    const highestPkgVal = allCompanies.reduce((max, c) => {
+      const p = c.highestPackage > 1000 ? c.highestPackage / 100000 : (c.highestPackage || 0);
+      return Math.max(max, p);
+    }, 0);
+    const industries = [...new Set(allCompanies.map(c => c.industry).filter(Boolean))].sort();
 
     const formattedData = data.map(c => ({
       ...c,
@@ -60,6 +68,8 @@ export const getCompanies = async (req: Request, res: Response, next: NextFuncti
           tiedCount,
           totalStudentsHired,
           avgPackage: `₹${avgPkgVal} LPA`,
+          highestPackage: Math.round(highestPkgVal * 10) / 10,
+          industries,
         },
       },
     });

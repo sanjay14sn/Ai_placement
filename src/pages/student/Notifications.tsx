@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   Bell, CheckCheck, Sparkles, Calendar, Clock, Award, ClipboardList,
   AlertCircle, ChevronRight, Search, Trash2, CheckCircle2, ArrowUpRight,
-  Filter, ShieldAlert, Settings, ExternalLink
+  Filter, ShieldAlert, ExternalLink
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Input, AIBadge, EmptyState, Skeleton } from '../../components/ui';
-import { notificationService } from '../../services';
+import { notificationService, rememberNoticeRead } from '../../services';
 import { formatDate } from '../../utils';
 import { toast } from 'sonner';
 import type { Notification } from '../../types';
@@ -39,11 +39,16 @@ export const StudentNotificationsPage: React.FC = () => {
 
   const handleMarkAsRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    rememberNoticeRead([id]);
+    if (!id.includes(':')) notificationService.markRead(id).catch(() => undefined);
     toast.success('Marked as read');
   };
 
   const handleMarkAllRead = () => {
+    const ids = notifications.map((item) => item.id);
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    rememberNoticeRead(ids);
+    notificationService.markAllRead().catch(() => undefined);
     toast.success('All notifications marked as read');
   };
 
@@ -164,21 +169,22 @@ export const StudentNotificationsPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
             {[
-              { id: 'all', label: `All (${notifications.length})` },
-              { id: 'unread', label: `Unread (${unreadCount})` },
-              { id: 'interview', label: 'Interviews 🎯' },
-              { id: 'application', label: 'Applications 📋' },
-              { id: 'ai', label: 'AI Matches 🤖' },
+              { id: 'all', label: `All (${notifications.length})`, icon: Bell },
+              { id: 'unread', label: `Unread (${unreadCount})`, icon: Clock },
+              { id: 'interview', label: 'Interviews', icon: Calendar },
+              { id: 'application', label: 'Applications', icon: ClipboardList },
+              { id: 'ai', label: 'AI Matches', icon: Sparkles },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
+                className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-300 shadow-sm'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
+                <tab.icon className="w-3.5 h-3.5" />
                 {tab.label}
               </button>
             ))}
@@ -275,25 +281,6 @@ export const StudentNotificationsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Settings Shortcut Banner */}
-      <Card className="p-6 bg-slate-900 text-white rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center font-bold">
-            <Settings className="w-5 h-5 text-brand-400" />
-          </div>
-          <div>
-            <h4 className="font-bold text-sm">Customize Notification Alerts</h4>
-            <p className="text-xs text-slate-400">Configure email digests, SMS reminders, and AI job match notifications.</p>
-          </div>
-        </div>
-        <Button
-          size="sm"
-          className="bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs"
-          onClick={() => navigate('/student/settings')}
-        >
-          Manage Settings
-        </Button>
-      </Card>
     </PageWrapper>
   );
 };

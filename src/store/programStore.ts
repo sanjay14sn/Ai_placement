@@ -18,73 +18,6 @@ interface ProgramStore {
 
 const INITIAL_PROGRAMS: Program[] = [
   {
-    id: 'prog-student-1',
-    title: 'A-Z Placement Prep & Technical Interview Masterclass',
-    subtitle: 'Complete roadmap to crack Tier-1 product & service tech interviews',
-    description: 'Master Data Structures & Algorithms, System Design basics, Core CS fundamentals (OS, DBMS, CN), and Live Coding interviews curated specifically for campus placements.',
-    category: 'Placement Training',
-    targetAudience: ['STUDENT'],
-    thumbnailUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80',
-    instructorName: 'Vikramaditya Sharma',
-    instructorTitle: 'Ex-Google SDE & Chief Technical Educator',
-    instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-    isPublished: true,
-    totalDuration: '4h 45m',
-    videosCount: 4,
-    enrolledCount: 1420,
-    rating: 4.9,
-    tags: ['DSA', 'System Design', 'Technical Interview', 'Coding'],
-    createdAt: '2026-08-10',
-    updatedAt: '2026-08-15',
-    videos: [
-      {
-        id: 'vid-s1-1',
-        order: 1,
-        title: 'Mastering Coding Interviews & DSA Patterns',
-        description: 'Two pointers, sliding window, binary search, and dynamic programming patterns commonly asked in campus online tests.',
-        duration: '45:00',
-        videoUrl: 'https://www.youtube.com/embed/1uF7oP33-9w',
-        resources: [
-          { id: 'res-1', title: 'Top 50 DSA Cheat Sheet (PDF)', type: 'pdf', url: '#', size: '2.4 MB' },
-          { id: 'res-2', title: 'Python & C++ Starter Code', type: 'code', url: '#', size: '1.1 MB' }
-        ]
-      },
-      {
-        id: 'vid-s1-2',
-        order: 2,
-        title: 'System Design Basics for Undergraduates',
-        description: 'Understand Scalability, Load Balancers, Caching, Databases (SQL vs NoSQL), and Microservices for technical rounds.',
-        duration: '58:30',
-        videoUrl: 'https://www.youtube.com/embed/bUHFg8CZFuc',
-        resources: [
-          { id: 'res-3', title: 'System Design Architecture Diagrams', type: 'ppt', url: '#', size: '4.8 MB' }
-        ]
-      },
-      {
-        id: 'vid-s1-3',
-        order: 3,
-        title: 'DBMS & SQL Live Queries Workout',
-        description: 'Joins, Subqueries, Indexing, ACID Properties, and normalization scenario-based questions.',
-        duration: '50:15',
-        videoUrl: 'https://www.youtube.com/embed/HXV3zeQKqGY',
-        resources: [
-          { id: 'res-4', title: 'Top SQL Interview Questions & Scripts', type: 'doc', url: '#', size: '850 KB' }
-        ]
-      },
-      {
-        id: 'vid-s1-4',
-        order: 4,
-        title: 'HR Round Playbook & Behavioral Questions',
-        description: 'How to answer "Tell me about yourself", STAR method scenarios, salary expectations, and confidence building.',
-        duration: '40:00',
-        videoUrl: 'https://www.youtube.com/embed/y8YH0Qbu5hU',
-        resources: [
-          { id: 'res-5', title: 'Behavioral Answer Framework Worksheet', type: 'pdf', url: '#', size: '1.5 MB' }
-        ]
-      }
-    ]
-  },
-  {
     id: 'prog-student-2',
     title: 'ATS Resume Masterclass & Portfolio Accelerator',
     subtitle: 'Pass AI resume screeners and land 3x more interview callbacks',
@@ -385,7 +318,9 @@ export const useProgramStore = create<ProgramStore>()(
         return programs.filter((p) => {
           if (!p.isPublished) return false;
           if (p.targetAudience.includes('ALL')) return true;
-          if (role === 'STUDENT' && p.targetAudience.includes('STUDENT')) return true;
+          if (role === 'STUDENT' && p.targetAudience.includes('STUDENT')) {
+            return p.title !== 'A-Z Placement Prep & Technical Interview Masterclass';
+          }
           if ((role === 'COLLEGE_ADMIN' || role === 'TPO') &&
               (p.targetAudience.includes('COLLEGE_ADMIN') || p.targetAudience.includes('TPO'))) return true;
           if (role === 'RECRUITER' && p.targetAudience.includes('RECRUITER')) return true;

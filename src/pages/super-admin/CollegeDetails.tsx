@@ -97,6 +97,7 @@ export const SuperAdminCollegeDetailsPage: React.FC = () => {
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-3 mb-2">
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{college.name}</h2>
+                {college.code && <Badge variant="indigo">College code {college.code}</Badge>}
                 {getPlanBadge(college.subscription.plan)}
                 {getStatusBadge(college.subscription.status)}
                 {!college.isActive && <Badge variant="red">Suspended</Badge>}

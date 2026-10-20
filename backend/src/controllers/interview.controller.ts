@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { Interview } from '../models/Interview';
 import { Student } from '../models/Student';
+import { Application } from '../models/Application';
 import { createError } from '../middleware/errorHandler';
 
 export const getInterviews = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -29,6 +30,7 @@ export const getInterviews = async (req: Request, res: Response, next: NextFunct
         .populate('studentId', 'name email avatar department cgpa')
         .populate('jobId', 'title')
         .populate('companyId', 'name logo')
+        .populate('driveId', 'title')
         .sort({ date: 1 })
         .skip(skip)
         .limit(limit)
@@ -41,8 +43,12 @@ export const getInterviews = async (req: Request, res: Response, next: NextFunct
       id: i._id?.toString(),
       student: i.studentId ? { id: i.studentId._id?.toString(), name: i.studentId.name, email: i.studentId.email, avatar: i.studentId.avatar, department: i.studentId.department, cgpa: i.studentId.cgpa } : undefined,
       studentId: i.studentId?._id?.toString() || i.studentId,
-      company: i.companyId ? { id: i.companyId._id?.toString(), name: i.companyId.name, logo: i.companyId.logo } : undefined,
+      company: i.companyId
+        ? { id: i.companyId._id?.toString(), name: i.companyId.name, logo: i.companyId.logo }
+        : i.driveId?.title ? { id: i.driveId._id?.toString(), name: i.driveId.title } : undefined,
       companyId: i.companyId?._id?.toString() || i.companyId,
+      driveId: i.driveId?._id?.toString() || i.driveId,
+      applicationId: i.applicationId?.toString(),
       job: i.jobId ? { id: i.jobId._id?.toString(), title: i.jobId.title } : undefined,
       jobId: i.jobId?._id?.toString() || i.jobId,
     });
@@ -56,10 +62,21 @@ export const getInterviews = async (req: Request, res: Response, next: NextFunct
 
 export const scheduleInterview = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    if (req.user?.role === 'STUDENT') throw createError('Students cannot schedule interviews', 403);
+
     const interviewData: any = {
       ...req.body,
     };
-    
+
+    if (interviewData.applicationId) {
+      const application = await Application.findById(interviewData.applicationId).lean();
+      if (!application) throw createError('Application not found', 404);
+      interviewData.studentId = application.studentId;
+      interviewData.jobId = application.jobId;
+      interviewData.companyId = application.companyId || interviewData.companyId;
+      interviewData.driveId = application.driveId || interviewData.driveId;
+    }
+
     if (req.user?.userId) {
       interviewData.recruiterId = new mongoose.Types.ObjectId(req.user.userId);
     }

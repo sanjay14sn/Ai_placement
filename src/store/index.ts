@@ -38,11 +38,13 @@ export const useAuthStore = create<AuthStore>()(
 interface UIStore {
   theme: 'light' | 'dark';
   sidebarCollapsed: boolean;
+  mobileNavOpen: boolean;
   commandPaletteOpen: boolean;
   toggleTheme: () => void;
   setTheme: (theme: 'light' | 'dark') => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  setMobileNavOpen: (open: boolean) => void;
   openCommandPalette: () => void;
   closeCommandPalette: () => void;
 }
@@ -52,6 +54,7 @@ export const useUIStore = create<UIStore>()(
     (set) => ({
       theme: 'light',
       sidebarCollapsed: false,
+      mobileNavOpen: false,
       commandPaletteOpen: false,
       toggleTheme: () =>
         set((state) => {
@@ -73,6 +76,7 @@ export const useUIStore = create<UIStore>()(
       },
       toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+      setMobileNavOpen: (open) => set({ mobileNavOpen: open }),
       openCommandPalette: () => set({ commandPaletteOpen: true }),
       closeCommandPalette: () => set({ commandPaletteOpen: false }),
     }),
@@ -93,7 +97,7 @@ interface NotificationStore {
 }
 
 export const useNotificationStore = create<NotificationStore>()((set) => ({
-  unreadCount: 3,
+  unreadCount: 0,
   setUnreadCount: (count) => set({ unreadCount: count }),
   decrementUnread: () => set((state) => ({ unreadCount: Math.max(0, state.unreadCount - 1) })),
   clearUnread: () => set({ unreadCount: 0 }),

@@ -74,7 +74,13 @@ export const getJobs = async (req: Request, res: Response, next: NextFunction): 
     res.json({
       success: true,
       data: {
-        data: data.map(j => ({ ...j, id: j._id.toString(), company: j.companyId })),
+        data: data.map(j => {
+          const populated = j.companyId && typeof j.companyId === 'object' ? j.companyId : null;
+          const company = populated && 'name' in populated
+            ? populated
+            : { _id: j._id, name: j.title || 'Company', industry: 'Campus Drive', hq: j.location || '', logo: '' };
+          return { ...j, id: j._id.toString(), companyId: populated?._id || j.companyId, company };
+        }),
         total, page, limit,
         totalPages: Math.ceil(total / limit),
       },

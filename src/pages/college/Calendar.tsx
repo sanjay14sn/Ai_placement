@@ -1,27 +1,81 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalIcon, Clock, MapPin, Video, User, Building, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalIcon, Clock, MapPin, Video, User, Building, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { PageWrapper } from '../../layouts';
-import { Card, Badge, Skeleton } from '../../components/ui';
-import { driveService, interviewService } from '../../services';
+import { Card, Badge, Skeleton, Button, Modal, Input, Select, Textarea } from '../../components/ui';
+import { driveService, interviewService, communityService, jobService } from '../../services';
+import { formatTime, toDateKey } from '../../utils';
 import type { PlacementDrive, Interview } from '../../types';
+
+interface CampusEvent {
+  id: string;
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  speaker: string;
+  speakerRole?: string;
+  image?: string;
+  type: 'Webinar' | 'Orientation' | 'Masterclass';
+}
+
+interface DeadlineItem {
+  id: string;
+  title: string;
+  companyName: string;
+  date: string;
+  time: string;
+}
+
+const toDateInput = (date: Date) => toDateKey(date);
 
 export const CollegeCalendarPage: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [drives, setDrives] = useState<PlacementDrive[]>([]);
   const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [campusEvents, setCampusEvents] = useState<CampusEvent[]>([]);
+  const [deadlines, setDeadlines] = useState<DeadlineItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    date: toDateInput(new Date()),
+    startTime: '',
+    endTime: '',
+    location: '',
+    type: 'Webinar' as CampusEvent['type'],
+    speaker: '',
+    speakerRole: '',
+    image: '',
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [dList, iList] = await Promise.all([
+        const [dList, iList, posted, jobs] = await Promise.all([
           driveService.getAll(),
           interviewService.getAll({ page: 1, limit: 100 }),
+          communityService.getEvents().catch(() => []),
+          jobService.getAll({ limit: 100, status: 'active' }).catch(() => ({ data: [] })),
         ]);
         setDrives(dList);
         setInterviews(iList.data);
+        setCampusEvents(posted);
+        setDeadlines((jobs.data || []).filter((job) => job.applicationDeadline).map((job) => {
+          const when = new Date(job.applicationDeadline);
+          return {
+            id: job.id,
+            title: job.title,
+            companyName: job.company?.name || 'Company',
+            date: toDateKey(when),
+            time: `${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`,
+          };
+        }));
       } catch (error) {
         console.error('Failed to fetch calendar data', error);
       } finally {
@@ -53,23 +107,56 @@ export const CollegeCalendarPage: React.FC = () => {
     d1.getDate() === d2.getDate();
 
   // Find events for a specific day
-  const getEventsForDay = (day: number) => {
-    const checkDate = new Date(year, month, day);
-    const dayDrives = drives.filter(d => isSameDay(new Date(d.date), checkDate));
-    const dayInterviews = interviews.filter(i => isSameDay(new Date(i.date), checkDate));
-    return { drives: dayDrives, interviews: dayInterviews };
+  const getEventsForDate = (checkDate: Date) => {
+    const key = toDateKey(checkDate);
+    return {
+      drives: drives.filter(d => toDateKey(d.date) === key),
+      interviews: interviews.filter(i => toDateKey(i.date) === key),
+      campus: campusEvents.filter(event => toDateKey(event.date) === key),
+      deadlines: deadlines.filter(item => item.date === key),
+    };
   };
 
-  const selectedEvents = isSameDay(currentDate, selectedDate) 
-    ? getEventsForDay(selectedDate.getDate())
-    : { drives: [], interviews: [] };
-    
-  if (selectedDate.getMonth() !== currentDate.getMonth() || selectedDate.getFullYear() !== currentDate.getFullYear()) {
-    // If selected date is in another month but we clicked it, we shouldn't fail, but let's just use it
-    const checkDate = selectedDate;
-    selectedEvents.drives = drives.filter(d => isSameDay(new Date(d.date), checkDate));
-    selectedEvents.interviews = interviews.filter(i => isSameDay(new Date(i.date), checkDate));
-  }
+  const getEventsForDay = (day: number) => getEventsForDate(new Date(year, month, day));
+  const selectedEvents = getEventsForDate(selectedDate);
+
+  const openPost = () => {
+    setForm((prev) => ({ ...prev, date: toDateInput(selectedDate) }));
+    setIsModalOpen(true);
+  };
+
+  const setField = (key: keyof typeof form, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title || !form.date || !form.startTime || !form.endTime || !form.location || !form.speaker) {
+      toast.error('Fill in the title, speaker, date, time, and venue');
+      return;
+    }
+    setSaving(true);
+    try {
+      const created = await communityService.createEvent(form);
+      setCampusEvents((prev) => [...prev, created]);
+      setForm((prev) => ({
+        ...prev,
+        title: '',
+        description: '',
+        startTime: '',
+        endTime: '',
+        location: '',
+        speaker: '',
+        speakerRole: '',
+      }));
+      setIsModalOpen(false);
+      toast.success('Event posted for this day');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not post the event');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const days = [];
   for (let i = 0; i < firstDay; i++) {
@@ -79,8 +166,8 @@ export const CollegeCalendarPage: React.FC = () => {
   for (let d = 1; d <= daysInMonth; d++) {
     const isSelected = selectedDate.getDate() === d && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
     const isToday = isSameDay(new Date(), new Date(year, month, d));
-    const { drives: dayDrives, interviews: dayInterviews } = getEventsForDay(d);
-    const hasEvents = dayDrives.length > 0 || dayInterviews.length > 0;
+    const { drives: dayDrives, interviews: dayInterviews, campus: dayCampus, deadlines: dayDeadlines } = getEventsForDay(d);
+    const hasEvents = dayDrives.length > 0 || dayInterviews.length > 0 || dayCampus.length > 0 || dayDeadlines.length > 0;
 
     days.push(
       <div 
@@ -104,6 +191,8 @@ export const CollegeCalendarPage: React.FC = () => {
             <div className="flex gap-1">
               {dayDrives.length > 0 && <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>}
               {dayInterviews.length > 0 && <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>}
+              {dayCampus.length > 0 && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>}
+              {dayDeadlines.length > 0 && <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>}
             </div>
           )}
         </div>
@@ -119,6 +208,16 @@ export const CollegeCalendarPage: React.FC = () => {
               {dayInterviews.length} {dayInterviews.length === 1 ? 'Interview' : 'Interviews'}
             </div>
           )}
+          {dayCampus.slice(0, 1).map(event => (
+            <div key={event.id} className="text-[10px] truncate px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded font-semibold border border-emerald-100 dark:border-emerald-800">
+              {event.startTime} {event.title}
+            </div>
+          ))}
+          {dayDeadlines.slice(0, 2).map(item => (
+            <div key={item.id} className="text-[10px] truncate px-1.5 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded font-semibold border border-red-100 dark:border-red-800">
+              {item.time} {item.companyName}
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -130,7 +229,6 @@ export const CollegeCalendarPage: React.FC = () => {
   return (
     <PageWrapper
       title="Placement Calendar"
-      subtitle="Track drives, interviews, and deadlines"
       breadcrumbs={[{ label: 'College' }, { label: 'Calendar' }]}
     >
       <div className="flex flex-col lg:flex-row gap-6">
@@ -138,7 +236,7 @@ export const CollegeCalendarPage: React.FC = () => {
         {/* Calendar Grid */}
         <div className="flex-1">
           <Card className="overflow-hidden border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
-            <div className="p-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/20">
+            <div className="p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/20">
               <div className="flex items-center gap-4">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                   {monthNames[month]} {year}
@@ -183,10 +281,17 @@ export const CollegeCalendarPage: React.FC = () => {
         {/* Agenda Sidebar */}
         <div className="w-full lg:w-80 shrink-0 flex flex-col gap-4">
           <Card className="p-5 border border-slate-200/60 dark:border-slate-700/60 shadow-sm sticky top-24">
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Agenda</h3>
-            <p className="text-sm text-slate-500 mb-6 font-medium">
-              {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
+            <div className="flex items-start justify-between gap-3 mb-6">
+              <div>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Agenda</h3>
+                <p className="text-sm text-slate-500 font-medium">
+                  {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </p>
+              </div>
+              <Button size="sm" leftIcon={<Plus className="w-3.5 h-3.5" />} onClick={openPost}>
+                Post
+              </Button>
+            </div>
 
             <div className="space-y-6">
               {loading ? (
@@ -194,13 +299,15 @@ export const CollegeCalendarPage: React.FC = () => {
                   <Skeleton className="h-24 w-full rounded-xl" />
                   <Skeleton className="h-24 w-full rounded-xl" />
                 </div>
-              ) : selectedEvents.drives.length === 0 && selectedEvents.interviews.length === 0 ? (
+              ) : selectedEvents.drives.length === 0 && selectedEvents.interviews.length === 0 && selectedEvents.campus.length === 0 && selectedEvents.deadlines.length === 0 ? (
                 <div className="text-center py-10">
                   <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
                     <CalIcon className="w-5 h-5 text-slate-400" />
                   </div>
                   <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">No events scheduled</p>
-                  <p className="text-xs text-slate-500 mt-1">Take a break or schedule a new event.</p>
+                  <Button size="sm" className="mt-4" leftIcon={<Plus className="w-3.5 h-3.5" />} onClick={openPost}>
+                    Post event
+                  </Button>
                 </div>
               ) : (
                 <>
@@ -216,6 +323,38 @@ export const CollegeCalendarPage: React.FC = () => {
                       <div className="flex items-center gap-2 text-xs text-slate-500">
                         <MapPin className="w-3.5 h-3.5" />
                         {drive.venue}
+                      </div>
+                    </div>
+                  ))}
+
+                  {selectedEvents.campus.map(event => (
+                    <div key={event.id} className="relative pl-4 border-l-2 border-emerald-500">
+                      <div className="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-white dark:ring-slate-900"></div>
+                      <Badge variant="green" className="mb-2">{event.type}</Badge>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-1">{event.title}</h4>
+                      <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mb-1 font-medium">
+                        <Clock className="w-3.5 h-3.5" />
+                        {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {event.location}
+                      </div>
+                    </div>
+                  ))}
+
+                  {selectedEvents.deadlines.map(item => (
+                    <div key={item.id} className="relative pl-4 border-l-2 border-red-500">
+                      <div className="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-red-500 ring-4 ring-white dark:ring-slate-900"></div>
+                      <Badge variant="red" className="mb-2">Deadline</Badge>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-1">{item.title}</h4>
+                      <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mb-1 font-medium">
+                        <Building className="w-3.5 h-3.5" />
+                        {item.companyName}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <Clock className="w-3.5 h-3.5" />
+                        {formatTime(item.time)}
                       </div>
                     </div>
                   ))}
@@ -241,6 +380,40 @@ export const CollegeCalendarPage: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Post an event" size="lg">
+        <form onSubmit={handleCreate} className="space-y-4">
+          <Input label="Title" value={form.title} onChange={(e) => setField('title', e.target.value)} placeholder="Campus Placement Orientation 2025-26" required />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Select
+              label="Type"
+              value={form.type}
+              onChange={(e) => setField('type', e.target.value)}
+              options={[
+                { value: 'Webinar', label: 'Webinar' },
+                { value: 'Orientation', label: 'Orientation' },
+                { value: 'Masterclass', label: 'Masterclass' },
+              ]}
+            />
+            <Input label="Date" type="date" value={form.date} onChange={(e) => setField('date', e.target.value)} required />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input label="Start time" type="time" value={form.startTime} onChange={(e) => setField('startTime', e.target.value)} required />
+            <Input label="End time" type="time" value={form.endTime} onChange={(e) => setField('endTime', e.target.value)} required />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input label="Speaker" value={form.speaker} onChange={(e) => setField('speaker', e.target.value)} placeholder="Prof. S. K. Sharma" required />
+            <Input label="Speaker role" value={form.speakerRole} onChange={(e) => setField('speakerRole', e.target.value)} placeholder="Placement Head (TPO)" />
+          </div>
+          <Input label="Venue or link" value={form.location} onChange={(e) => setField('location', e.target.value)} placeholder="Main Auditorium or Online (Zoom)" required />
+          <Input label="Event Cover Image URL" value={form.image} onChange={(e) => setField('image', e.target.value)} placeholder="https://images.unsplash.com/... or uploaded image URL" />
+          <Textarea label="Description" value={form.description} onChange={(e) => setField('description', e.target.value)} placeholder="What students should expect" rows={3} />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Posting...' : 'Post event'}</Button>
+          </div>
+        </form>
+      </Modal>
     </PageWrapper>
   );
 };

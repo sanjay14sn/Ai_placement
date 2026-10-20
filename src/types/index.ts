@@ -25,11 +25,14 @@ export type DriveStatus = 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 
 export interface User {
   id: string;
+  _id?: string;
   email: string;
   name: string;
   role: Role;
   avatar?: string;
   tenantId?: string; // collegeId for college users
+  collegeCode?: string;
+  collegeName?: string;
   phone?: string;
   createdAt: string;
   lastLogin?: string;
@@ -63,6 +66,13 @@ export interface College {
   tpoName: string;
   tpoEmail: string;
   tpoPhone?: string;
+  settings?: {
+    minCgpa: number;
+    maxBacklogs: number;
+    driveAlerts: boolean;
+    applicationAlerts: boolean;
+    interviewReminders: boolean;
+  };
   subscription: {
     plan: SubscriptionPlan;
     status: SubscriptionStatus;
@@ -119,6 +129,7 @@ export interface Student {
   email: string;
   phone: string;
   avatar?: string;
+  coverImage?: string;
   department: string;
   departmentId: string;
   batch: string; // 2024, 2025
@@ -138,6 +149,13 @@ export interface Student {
   education: Education[];
   experience: Experience[];
   resume?: Resume;
+  aadharNumber?: string;
+  aadharCard?: {
+    fileUrl: string;
+    fileName: string;
+    uploadedAt?: string;
+    fileSize?: number;
+  };
   profileCompletion: number;
   placementStatus: PlacementStatus;
   isEligible: boolean;
@@ -152,6 +170,7 @@ export interface Student {
   expectedSalary: number;
   applications: number; // count
   interviews: number; // count
+  isProfilePublic?: boolean;
   createdAt: string;
 }
 
@@ -628,6 +647,15 @@ export interface PaginatedResponse<T> {
     avgPackage?: string;
     [key: string]: unknown;
   };
+}
+
+export interface SavedResume {
+  id: string;
+  fileName: string;
+  size: number;
+  lastQuery: string;
+  uploadedAt: string;
+  lastUsedAt: string;
 }
 
 export interface FilterParams {

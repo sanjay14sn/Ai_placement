@@ -8,6 +8,118 @@ import { getMatchScoreRingColor, formatDate, cn } from '../../utils';
 import { toast } from 'sonner';
 import type { Student } from '../../types';
 
+const Shimmer: React.FC<{ className?: string }> = ({ className }) => (
+  <div className={cn('relative overflow-hidden bg-slate-200 dark:bg-slate-700/70', !className?.includes('rounded-') && 'rounded-lg', className)}>
+    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-slate-500/20 to-transparent bg-[length:200%_100%] animate-shimmer" />
+  </div>
+);
+
+const StudentDetailSkeleton: React.FC = () => (
+  <div aria-busy="true" aria-label="Loading student profile">
+    <Card className="p-6 mb-6">
+      <div className="flex flex-col sm:flex-row gap-6">
+        <Shimmer className="w-16 h-16 rounded-full shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-2.5 min-w-0">
+              <Shimmer className="h-6 w-44" />
+              <Shimmer className="h-4 w-72 max-w-full" />
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Shimmer className="h-6 w-16 rounded-full" />
+                <Shimmer className="h-6 w-24 rounded-full" />
+                <Shimmer className="h-6 w-20 rounded-full" />
+                <Shimmer className="h-6 w-24 rounded-full" />
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              {[0, 1].map(i => (
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <Shimmer className="w-[72px] h-[72px] rounded-full" />
+                  <Shimmer className="h-3 w-14" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-4 mt-4">
+            <Shimmer className="h-4 w-40" />
+            <Shimmer className="h-4 w-28" />
+          </div>
+        </div>
+      </div>
+    </Card>
+
+    <div className="flex gap-2 mb-6 overflow-x-auto">
+      {['w-20', 'w-24', 'w-16', 'w-20', 'w-28', 'w-28'].map((w, i) => (
+        <Shimmer key={i} className={cn('h-9 shrink-0 rounded-xl', w)} />
+      ))}
+    </div>
+
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-6">
+        <Card className="p-6">
+          <Shimmer className="h-5 w-16 mb-4" />
+          <div className="flex flex-wrap gap-2">
+            {['w-20', 'w-28', 'w-16', 'w-24', 'w-20', 'w-14', 'w-24', 'w-16'].map((w, i) => (
+              <Shimmer key={i} className={cn('h-8 rounded-xl', w)} />
+            ))}
+          </div>
+        </Card>
+        <Card className="p-6">
+          <Shimmer className="h-5 w-20 mb-4" />
+          <div className="space-y-4">
+            {[0, 1].map(i => (
+              <div key={i} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-2.5">
+                <Shimmer className="h-4 w-56 max-w-full" />
+                <Shimmer className="h-3 w-full" />
+                <Shimmer className="h-3 w-4/5" />
+                <div className="flex gap-1.5 pt-1">
+                  <Shimmer className="h-5 w-14 rounded-full" />
+                  <Shimmer className="h-5 w-16 rounded-full" />
+                  <Shimmer className="h-5 w-12 rounded-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="space-y-6">
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Shimmer className="h-5 w-40" />
+            <Shimmer className="h-5 w-8 rounded-full" />
+          </div>
+          <div className="space-y-3">
+            {[0, 1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="space-y-1.5">
+                <div className="flex justify-between">
+                  <Shimmer className="h-3 w-24" />
+                  <Shimmer className="h-3 w-8" />
+                </div>
+                <Shimmer className="h-1.5 w-full rounded-full" />
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card className="p-6">
+          <Shimmer className="h-5 w-28 mb-4" />
+          <Shimmer className="h-12 w-full rounded-xl" />
+        </Card>
+        <Card className="p-6 space-y-3">
+          <Shimmer className="h-5 w-28 mb-1" />
+          <Shimmer className="h-3 w-28" />
+          <div className="flex gap-1">
+            <Shimmer className="h-5 w-20 rounded-full" />
+            <Shimmer className="h-5 w-16 rounded-full" />
+          </div>
+          <Shimmer className="h-3 w-24" />
+          <Shimmer className="h-4 w-20" />
+        </Card>
+      </div>
+    </div>
+  </div>
+);
+
 export const StudentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -27,11 +139,8 @@ export const StudentDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <PageWrapper title="Loading..." breadcrumbs={[{ label: 'College' }, { label: 'Students', to: '/college/students' }, { label: '...' }]}>
-        <div className="animate-pulse space-y-4">
-          <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
-          <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
-        </div>
+      <PageWrapper title="Student Profile" breadcrumbs={[{ label: 'College' }, { label: 'Students', to: '/college/students' }, { label: 'Loading' }]}>
+        <StudentDetailSkeleton />
       </PageWrapper>
     );
   }

@@ -5,11 +5,11 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import {
-  GraduationCap, Briefcase, UserCheck, TrendingUp, Bot, Zap,
+  GraduationCap, Briefcase, UserCheck, TrendingUp, Zap,
   Users, Target, Award, Bell, ChevronRight, ArrowUpRight, CheckCircle2
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
-import { StatCard, Card, Badge, Button, AIBadge, Alert, Progress } from '../../components/ui';
+import { StatCard, Card, Badge, Button, Alert, Progress } from '../../components/ui';
 import { analyticsService, collegeService } from '../../services';
 import { formatNumber } from '../../utils';
 import { useAuthStore } from '../../store';
@@ -19,6 +19,7 @@ const DEPT_COLORS = ['#4f46e5', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06
 export const CollegeDashboard: React.FC = () => {
   const [analytics, setAnalytics] = useState<Awaited<ReturnType<typeof analyticsService.getCollegeAnalytics>> | null>(null);
   const [collegeName, setCollegeName] = useState<string>('');
+  const [collegeCode, setCollegeCode] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -31,7 +32,10 @@ export const CollegeDashboard: React.FC = () => {
     const collegeId = user?.tenantId || '';
     if (collegeId) {
       collegeService.getById(collegeId)
-        .then(res => setCollegeName(res.name))
+        .then(res => {
+          setCollegeName(res.name);
+          setCollegeCode(res.code);
+        })
         .catch(() => {});
     }
     analyticsService.getCollegeAnalytics(collegeId)
@@ -48,15 +52,6 @@ export const CollegeDashboard: React.FC = () => {
     { label: 'Interviews', value: analytics?.totalInterviews || 0, icon: <UserCheck className="w-4 h-4" />, color: 'green' as const },
   ];
 
-  const aiSummary = [
-    { icon: '🏢', text: '3 new companies added to the platform today' },
-    { icon: '✅', text: '126 students are eligible for 5 new jobs posted this week' },
-    { icon: '⏳', text: '74 applications are pending review from your side' },
-    { icon: '📅', text: '12 interviews are scheduled for tomorrow' },
-    { icon: '⚠️', text: '5 students have incomplete profiles and may miss deadlines' },
-    { icon: '🏆', text: 'CSE has the highest placement rate at 87% this year' },
-  ];
-
   const pendingActions = [
     { label: 'Review 74 pending applications', priority: 'high', action: '/college/applications' },
     { label: 'Schedule interviews for Infosys shortlist', priority: 'high', action: '/college/interviews' },
@@ -68,7 +63,7 @@ export const CollegeDashboard: React.FC = () => {
   return (
     <PageWrapper
       title={`${greeting}, ${firstName} 👋`}
-      subtitle={collegeName ? `${collegeName} — Placement Command Center` : "Here's your placement command center"}
+      subtitle={collegeName ? `${collegeName}${collegeCode ? ` · College code ${collegeCode}` : ''}` : "Here's your placement command center"}
       breadcrumbs={[{ label: collegeName || 'College' }, { label: 'Dashboard' }]}
     >
       {/* KPI Grid */}
@@ -191,41 +186,7 @@ export const CollegeDashboard: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* AI Placement Officer Summary */}
-        <Card className="p-6 border-ai-200 dark:border-ai-900/50">
-          <div className="flex items-start justify-between mb-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-ai-500 to-brand-500 rounded-2xl flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900 dark:text-slate-100">Today's AI Summary</h3>
-                <AIBadge />
-              </div>
-            </div>
-            <span className="text-xs text-slate-400">Updated 5 min ago</span>
-          </div>
-
-          <div className="space-y-2.5 mb-5">
-            {aiSummary.map((item, i) => (
-              <div key={i} className="flex items-start gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
-                <span className="text-base">{item.icon}</span>
-                <p className="text-sm text-slate-700 dark:text-slate-300">{item.text}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button variant="ai" className="flex-1" leftIcon={<Bot className="w-4 h-4" />} onClick={() => navigate('/college/ai-assistant')}>
-              Ask AI
-            </Button>
-            <Button variant="outline" className="flex-1" onClick={() => navigate('/college/applications')}>
-              View Actions
-            </Button>
-          </div>
-        </Card>
-
+      <div className="grid grid-cols-1 gap-6">
         {/* Pending Actions */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-5">

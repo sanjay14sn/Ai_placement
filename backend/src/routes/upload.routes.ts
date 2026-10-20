@@ -3,6 +3,8 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authenticate } from '../middleware/auth';
+import { uploadImageToCloudinary } from '../services/cloudinary.service';
+
 
 const router = Router();
 
@@ -27,28 +29,45 @@ const upload = multer({
   limits: { fileSize: 500 * 1024 * 1024 } // 500 MB max for videos
 });
 
-router.post('/', authenticate, upload.single('file'), (req: Request, res: Response) => {
+const handleFileUpload = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
-    
-    // In production, this would be an S3 URL. For now, it's a local static URL
-    const fileUrl = `/uploads/${req.file.filename}`;
-    
-    res.status(201).json({ 
-      success: true, 
+
+    const isImage = req.file.mimetype.startsWith('image/');
+    let fileUrl = `/uploads/${req.file.filename}`;
+
+    if (isImage) {
+      try {
+        fileUrl = await uploadImageToCloudinary(req.file.path);
+        fs.unlink(req.file.path, () => undefined);
+      } catch (cloudinaryErr: any) {
+        console.warn('Cloudinary upload error/timeout, using local storage fallback:', cloudinaryErr?.message || cloudinaryErr);
+        fileUrl = `/uploads/${req.file.filename}`;
+      }
+    }
+
+    res.status(201).json({
+      success: true,
       data: {
         url: fileUrl,
-        filename: req.file.filename,
+        filename: req.file.originalname,
         mimetype: req.file.mimetype,
         size: req.file.size
       }
     });
   } catch (error) {
+    if (req.file?.path) fs.unlink(req.file.path, () => undefined);
     console.error('Error in file upload:', error);
     res.status(500).json({ success: false, message: 'Failed to upload file' });
   }
-});
+};
+
+// Public upload for onboarding registrations (Aadhar cards, KYC docs)
+router.post('/public', upload.single('file'), handleFileUpload);
+
+// Authenticated upload for logged in users
+router.post('/', authenticate, upload.single('file'), handleFileUpload);
 
 export default router;

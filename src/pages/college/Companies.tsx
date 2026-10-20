@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Building2, Search, Plus, Filter, Globe, MapPin, Users, Briefcase,
-  DollarSign, CheckCircle, ShieldCheck, Eye, Edit3, Trash2,
-  ExternalLink, AlertTriangle, Calendar, Mail, Phone, UserCheck, Send
+  Building2, Search, Plus, MapPin, Users, Briefcase,
+  IndianRupee, CheckCircle, Eye, Trash2, Calendar, Send, X, RotateCcw
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
-import { StatCard, Card, Badge, Button, Input, Select, Modal, Skeleton, EmptyState, ConfirmDialog } from '../../components/ui';
+import { Card, Badge, Button, Input, Select, Modal, Skeleton, EmptyState, ConfirmDialog } from '../../components/ui';
 import { companyService, driveService, jobService } from '../../services';
 import { formatNumber } from '../../utils';
 import type { Company, Recruiter } from '../../types';
@@ -17,12 +16,16 @@ export const CollegeCompaniesPage: React.FC = () => {
   const { user } = useAuthStore();
 
   // Filters
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [industryFilter, setIndustryFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [stats, setStats] = useState<{ partners: number; hired: number; avg: string; highest: number } | null>(null);
+  const [industries, setIndustries] = useState<string[]>([]);
+  const [upcomingDrives, setUpcomingDrives] = useState<number | null>(null);
 
   // Modals state
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -66,20 +69,24 @@ export const CollegeCompaniesPage: React.FC = () => {
       const res = await companyService.getAll({
         search,
         type: typeFilter,
+        industry: industryFilter,
         status: 'all',
         page,
-        limit: 12,
+        limit: 10,
       });
 
-      let list = res.data as Company[];
-
-      if (industryFilter !== 'all') {
-        list = list.filter(c => c.industry.toLowerCase().includes(industryFilter.toLowerCase()));
-      }
-
-      setCompanies(list);
-      setTotalPages(res.totalPages);
+      setCompanies(res.data as Company[]);
+      setTotalPages(Math.max(1, res.totalPages));
       setTotalCount(res.total);
+      if (res.stats) {
+        setStats({
+          partners: Number(res.stats.totalPartnerCompanies ?? res.total),
+          hired: Number(res.stats.totalStudentsHired ?? 0),
+          avg: String(res.stats.avgPackage ?? '—').replace(/^₹|\s*LPA$/g, ''),
+          highest: Number(res.stats.highestPackage ?? 0),
+        });
+        if (Array.isArray(res.stats.industries)) setIndustries(res.stats.industries as string[]);
+      }
     } catch (err) {
       console.error('Error loading college companies', err);
     } finally {
@@ -90,6 +97,30 @@ export const CollegeCompaniesPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [search, industryFilter, typeFilter, page]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    driveService.getAll()
+      .then(drives => {
+        const mine = drives.filter(d =>
+          (!user?.tenantId || String((d as any).collegeId) === user.tenantId) &&
+          d.status === 'upcoming' &&
+          (!d.date || String(d.date).slice(0, 10) >= today)
+        );
+        setUpcomingDrives(mine.length);
+      })
+      .catch(() => setUpcomingDrives(0));
+  }, [user?.tenantId]);
+
+  const hasFilters = !!searchInput || industryFilter !== 'all' || typeFilter !== 'all';
 
   const handleOpenInvite = () => {
     setFormName('');
@@ -211,6 +242,7 @@ export const CollegeCompaniesPage: React.FC = () => {
   };
 
   const resetFilters = () => {
+    setSearchInput('');
     setSearch('');
     setIndustryFilter('all');
     setTypeFilter('all');
@@ -230,13 +262,7 @@ export const CollegeCompaniesPage: React.FC = () => {
   return (
     <PageWrapper
       title="Visiting Recruiter Companies"
-      subtitle="Manage corporate campus recruiting partners, HR contacts, salary packages, and placement drives"
       breadcrumbs={[{ label: 'College' }, { label: 'Companies' }]}
-      actions={
-        <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />} onClick={handleOpenInvite}>
-          Invite New Recruiter
-        </Button>
-      }
     >
       {/* Toast Notification */}
       {toastMessage && (
@@ -246,126 +272,231 @@ export const CollegeCompaniesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Top Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-        <StatCard title="Partner Companies" value={totalCount || 20} icon={<Building2 className="w-5 h-5" />} color="brand" />
-        <StatCard title="Upcoming Drives" value={5} icon={<Calendar className="w-5 h-5" />} color="green" />
-        <StatCard title="Total Students Hired" value="428" icon={<Users className="w-5 h-5" />} color="purple" />
-        <StatCard title="Highest Package" value="₹45.0 LPA" icon={<DollarSign className="w-5 h-5" />} color="amber" />
-        <StatCard title="Average CTC" value="₹8.6 LPA" icon={<Briefcase className="w-5 h-5" />} color="purple" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recruiter directory</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Companies that visit your campus, their packages and HR contacts
+          </p>
+        </div>
+        <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />} onClick={handleOpenInvite} className="w-full sm:w-auto">
+          Invite recruiter
+        </Button>
       </div>
 
-      {/* Filters & Navigation */}
-      <Card className="mb-6" padding={false}>
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3 w-full">
-            <div className="relative flex-1">
-              <Input
-                placeholder="Search company, industry, HR name..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                leftIcon={<Search className="w-4 h-4" />}
-              />
+      {/* Top Stat Cards */}
+      <Card className="mb-6 overflow-hidden" padding={false}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px bg-slate-100 dark:bg-slate-700/60">
+          {[
+            { label: 'Partner companies', value: stats ? formatNumber(stats.partners) : null, icon: Building2, tone: 'bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400' },
+            { label: 'Upcoming drives', value: upcomingDrives, icon: Calendar, tone: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' },
+            { label: 'Students hired', value: stats ? formatNumber(stats.hired) : null, icon: Users, tone: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },
+            { label: 'Highest CTC', value: stats ? `₹${stats.highest}` : null, suffix: 'LPA', icon: IndianRupee, tone: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' },
+            { label: 'Average CTC', value: stats ? `₹${stats.avg}` : null, suffix: 'LPA', icon: Briefcase, tone: 'bg-ai-50 text-ai-600 dark:bg-ai-900/30 dark:text-ai-400' },
+          ].map(({ label, value, suffix, icon: Icon, tone }, i) => (
+            <div
+              key={label}
+              className={`flex items-center gap-3 p-4 bg-white dark:bg-slate-800 ${i === 4 ? 'col-span-2 lg:col-span-1' : ''}`}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${tone}`}>
+                <Icon className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-tight">{label}</p>
+                {value === null || value === undefined ? (
+                  <Skeleton className="h-6 w-14 mt-1" />
+                ) : (
+                  <p className="text-xl font-bold text-slate-900 dark:text-slate-50 whitespace-nowrap">
+                    {value}
+                    {suffix && <span className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">{suffix}</span>}
+                  </p>
+                )}
+              </div>
             </div>
+          ))}
+        </div>
+      </Card>
 
-            <Select
-              options={[
-                { value: 'all', label: 'All Industries' },
-                { value: 'IT Services', label: 'IT Services' },
-                { value: 'Technology', label: 'Product & Tech' },
-                { value: 'FinTech', label: 'FinTech' },
-                { value: 'Consulting', label: 'Consulting' },
-                { value: 'E-Commerce', label: 'E-Commerce' },
-              ]}
-              value={industryFilter}
-              onChange={(e) => { setIndustryFilter(e.target.value); setPage(1); }}
-              className="w-40"
+      {/* Filters & Navigation */}
+      <Card className="mb-6 overflow-hidden" padding={false}>
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <Input
+              aria-label="Search companies"
+              placeholder="Search by company, industry, city or HR name"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              leftIcon={<Search className="w-4 h-4" />}
+              rightIcon={searchInput ? (
+                <button type="button" aria-label="Clear search" onClick={() => setSearchInput('')} className="hover:text-slate-600 dark:hover:text-slate-200">
+                  <X className="w-4 h-4" />
+                </button>
+              ) : undefined}
             />
           </div>
+          <div className="grid grid-cols-2 md:flex gap-3">
+            <div className="md:w-52 shrink-0">
+              <Select
+                aria-label="Filter by industry"
+                options={[{ value: 'all', label: 'All industries' }, ...industries.map(i => ({ value: i, label: i }))]}
+                value={industryFilter}
+                onChange={(e) => { setIndustryFilter(e.target.value); setPage(1); }}
+              />
+            </div>
+            <div className="md:w-40 shrink-0">
+              <Select
+                aria-label="Filter by company type"
+                options={[
+                  { value: 'all', label: 'All types' },
+                  { value: 'product', label: 'Product' },
+                  { value: 'service', label: 'IT Services' },
+                  { value: 'startup', label: 'Startup' },
+                  { value: 'mnc', label: 'MNC' },
+                  { value: 'psu', label: 'PSU' },
+                ]}
+                value={typeFilter}
+                onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+              />
+            </div>
+          </div>
+          {hasFilters && (
+            <Button variant="ghost" size="sm" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={resetFilters} className="self-start md:self-auto shrink-0">
+              Reset
+            </Button>
+          )}
         </div>
 
         {/* Main Content Area */}
         {loading ? (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-52 rounded-2xl" />)}
+          <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-6 py-4">
+                <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="hidden md:block h-5 w-20 rounded-full" />
+                <Skeleton className="hidden lg:block h-4 w-28" />
+                <Skeleton className="hidden md:block h-4 w-24" />
+                <Skeleton className="h-8 w-28 rounded-xl" />
+              </div>
+            ))}
           </div>
         ) : companies.length === 0 ? (
           /* EMPTY DATA STATE */
           <EmptyState
             icon={<Building2 className="w-10 h-10 text-slate-400" />}
-            title="No Companies Found"
-            description="No recruiting companies match your active search terms or category filters."
-            action={{ label: "Reset All Filters", onClick: resetFilters }}
+            title={hasFilters ? 'No matching companies' : 'No recruiters yet'}
+            description={hasFilters
+              ? `Nothing matches${search ? ` "${search}"` : ''} with the selected filters.`
+              : 'Invite your first recruiter to start scheduling campus drives.'}
+            action={hasFilters
+              ? { label: 'Reset filters', onClick: resetFilters }
+              : { label: 'Invite recruiter', onClick: handleOpenInvite }}
             className="py-16"
           />
         ) : (
           /* TABLE VIEW */
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full min-w-[760px] text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/60 text-xs font-semibold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-700">
-                  <th className="py-3.5 px-6">Company Name</th>
-                  <th className="py-3.5 px-4">Industry</th>
-                  <th className="py-3.5 px-4">Type</th>
-                  <th className="py-3.5 px-4">HR Recruiter Contact</th>
-                  <th className="py-3.5 px-4">Avg CTC</th>
-                  <th className="py-3.5 px-4">Highest CTC</th>
-                  <th className="py-3.5 px-4">Partnership</th>
-                  <th className="py-3.5 px-6 text-right">Actions</th>
+                <tr className="bg-slate-50 dark:bg-slate-800/60 text-[11px] font-semibold tracking-wide text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-700">
+                  <th className="py-3 px-6">Company</th>
+                  <th className="py-3 px-4">HR contact</th>
+                  <th className="py-3 px-4" title="Average / highest CTC">Package</th>
+                  <th className="py-3 px-4">Partnership</th>
+                  <th className="py-3 pl-2 pr-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 text-sm">
                 {companies.map((comp) => {
                   const hr = comp.recruiters && comp.recruiters.length > 0 ? comp.recruiters[0] : null;
 
                   return (
-                    <tr key={comp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <tr key={comp.id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 font-bold text-xs flex items-center justify-center flex-shrink-0 border border-brand-200">
-                            {comp.name.substring(0, 2).toUpperCase()}
+                        <button
+                          type="button"
+                          onClick={() => { setSelectedCompany(comp); setIsDetailModalOpen(true); }}
+                          className="flex items-center gap-3 text-left min-w-0"
+                        >
+                          {comp.logo ? (
+                            <img src={comp.logo} alt="" className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-900/40 dark:to-brand-800/30 text-brand-700 dark:text-brand-300 font-bold text-sm flex items-center justify-center shrink-0 ring-1 ring-brand-200/70 dark:ring-brand-800">
+                              {comp.name.substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0 max-w-[280px]">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">{comp.name}</p>
+                              <span className="shrink-0">{getTypeBadge(comp.type)}</span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              {comp.industry}
+                              {comp.hq && (
+                                <span className="inline-flex items-center gap-0.5 ml-1.5">
+                                  <MapPin className="w-3 h-3" />{comp.hq}
+                                </span>
+                              )}
+                            </p>
                           </div>
-                          <div>
-                            <p className="font-semibold text-slate-900 dark:text-slate-100">{comp.name}</p>
-                            <p className="text-xs text-slate-400">{comp.hq}</p>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-4 text-xs font-medium text-slate-700 dark:text-slate-300">{comp.industry}</td>
-                      <td className="py-4 px-4">{getTypeBadge(comp.type)}</td>
-
-                      <td className="py-4 px-4 text-xs">
-                        {hr ? (
-                          <div>
-                            <p className="font-semibold text-slate-800 dark:text-slate-200">{hr.name}</p>
-                            <p className="text-slate-400">{hr.email}</p>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 italic">No HR assigned</span>
-                        )}
-                      </td>
-
-                      <td className="py-4 px-4 font-semibold text-emerald-600 dark:text-emerald-400">₹{comp.avgPackage} LPA</td>
-                      <td className="py-4 px-4 font-semibold text-amber-600 dark:text-amber-400">₹{comp.highestPackage} LPA</td>
-
-                      <td className="py-4 px-4">
-                        <button onClick={() => handleToggleTiedStatus(comp)}>
-                          <Badge variant={comp.isTied ? 'green' : 'slate'} dot>{comp.isTied ? 'Campus Partner' : 'Standard'}</Badge>
                         </button>
                       </td>
 
-                      <td className="py-4 px-6 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button variant="secondary" size="sm" onClick={() => handleOpenScheduleDrive(comp)} leftIcon={<Calendar className="w-3.5 h-3.5" />}>
-                            Schedule
+                      <td className="py-4 px-4 text-xs">
+                        {hr ? (
+                          <div className="min-w-0">
+                            <p className="font-medium text-slate-800 dark:text-slate-200 truncate">{hr.name}</p>
+                            <p className="text-slate-500 dark:text-slate-400 truncate">{hr.email}</p>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">Not assigned</span>
+                        )}
+                      </td>
+
+                      <td className="py-4 px-4 whitespace-nowrap" title={`Average ₹${comp.avgPackage} LPA · Highest ₹${comp.highestPackage} LPA`}>
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">₹{comp.avgPackage}</span>
+                        <span className="text-slate-300 dark:text-slate-600 mx-1.5">/</span>
+                        <span className="font-semibold text-amber-600 dark:text-amber-400">₹{comp.highestPackage}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">LPA</span>
+                      </td>
+
+                      <td className="py-4 px-4 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTiedStatus(comp)}
+                          title={comp.isTied ? 'Click to mark as standard' : 'Click to mark as campus partner'}
+                          className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                        >
+                          <Badge variant={comp.isTied ? 'green' : 'slate'} dot>{comp.isTied ? 'Campus partner' : 'Standard'}</Badge>
+                        </button>
+                      </td>
+
+                      <td className="py-4 pl-2 pr-5">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="outline" size="sm" onClick={() => handleOpenScheduleDrive(comp)} leftIcon={<Calendar className="w-3.5 h-3.5" />} className="whitespace-nowrap">
+                            Schedule drive
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => { setSelectedCompany(comp); setIsDetailModalOpen(true); }}>
-                            Inspect
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => { setSelectedCompany(comp); setIsDeleteConfirmOpen(true); }}>
-                            <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                          </Button>
+                          <button
+                            type="button"
+                            aria-label={`View ${comp.name}`}
+                            title="View details"
+                            onClick={() => { setSelectedCompany(comp); setIsDetailModalOpen(true); }}
+                            className="p-2 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Remove ${comp.name}`}
+                            title="Remove company"
+                            onClick={() => { setSelectedCompany(comp); setIsDeleteConfirmOpen(true); }}
+                            className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -378,9 +509,9 @@ export const CollegeCompaniesPage: React.FC = () => {
 
         {/* Footer Pagination */}
         {!loading && companies.length > 0 && (
-          <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-sm">
-            <p className="text-slate-500">
-              Showing <span className="font-semibold text-slate-800 dark:text-slate-200">{companies.length}</span> of <span className="font-semibold text-slate-800 dark:text-slate-200">{totalCount}</span> partner companies
+          <div className="px-6 py-3.5 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+            <p className="text-slate-500 dark:text-slate-400">
+              Showing <span className="font-semibold text-slate-800 dark:text-slate-200">{companies.length}</span> of <span className="font-semibold text-slate-800 dark:text-slate-200">{totalCount}</span> {totalCount === 1 ? 'company' : 'companies'}
             </p>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>

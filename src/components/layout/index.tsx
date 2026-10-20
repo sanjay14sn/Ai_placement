@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Briefcase, GraduationCap, BookOpen,
   BarChart3, Settings, Bell, Bot, Calendar, FileText, FileCheck, Search, Sun, Moon,
-  ChevronLeft, ChevronRight, LogOut, User, Command, Shield, CreditCard,
+  ChevronLeft, ChevronRight, LogOut, User, Command, Shield, CreditCard, Menu, X,
   Activity, Layers, AlertCircle, UserCheck, TrendingUp, Zap, Target,
-  ClipboardList, MessageSquare, Star, Award, BookMarked, Lightbulb,
-  Building, ListChecks, Network, Video, Newspaper
+  ClipboardList, MessageSquare, Award, BookMarked, Lightbulb,
+  Building, ListChecks, Network, Video, Newspaper, Sparkles
 } from 'lucide-react';
 import { useAuthStore, useUIStore, useNotificationStore } from '../../store';
 import { Avatar, Badge } from '../ui';
@@ -43,6 +43,7 @@ const getSidebarNav = (role: Role): NavSection[] => {
           title: 'Management',
           items: [
             { label: 'Newsroom', icon: <Newspaper className="w-4 h-4" />, to: '/super-admin/newsroom' },
+            { label: 'CampusConnect', icon: <MessageSquare className="w-4 h-4" />, to: '/super-admin/campus-connect', badge: 'Feed' },
             { label: 'Video Programs', icon: <Video className="w-4 h-4" />, to: '/super-admin/programs' },
             { label: 'Colleges', icon: <Building2 className="w-4 h-4" />, to: '/super-admin/colleges' },
             { label: 'Companies', icon: <Building className="w-4 h-4" />, to: '/super-admin/companies' },
@@ -90,15 +91,14 @@ const getSidebarNav = (role: Role): NavSection[] => {
             { label: 'Applications', icon: <ClipboardList className="w-4 h-4" />, to: '/college/applications' },
             { label: 'Interviews', icon: <UserCheck className="w-4 h-4" />, to: '/college/interviews' },
             { label: 'Calendar', icon: <Calendar className="w-4 h-4" />, to: '/college/calendar' },
+            { label: 'Events', icon: <Calendar className="w-4 h-4" />, to: '/college/events' },
           ]
         },
         {
           title: 'Intelligence',
           items: [
             { label: 'Video Programs', icon: <Video className="w-4 h-4" />, to: '/college/programs' },
-            { label: 'Analytics', icon: <BarChart3 className="w-4 h-4" />, to: '/college/analytics' },
             { label: 'Reports', icon: <FileText className="w-4 h-4" />, to: '/college/reports' },
-            { label: 'AI Placement Officer', icon: <Bot className="w-4 h-4" />, to: '/college/ai-assistant' },
           ]
         },
         {
@@ -118,6 +118,17 @@ const getSidebarNav = (role: Role): NavSection[] => {
           ]
         },
         {
+          title: 'CampusConnect',
+          items: [
+            { label: 'Community / Feed', icon: <Activity className="w-4 h-4" />, to: '/student/community' },
+            { label: 'Explore Students', icon: <Search className="w-4 h-4" />, to: '/student/explore-students' },
+            { label: 'Connections', icon: <UserCheck className="w-4 h-4" />, to: '/student/connections' },
+            { label: 'Messages', icon: <MessageSquare className="w-4 h-4" />, to: '/student/messages' },
+            { label: 'Communities', icon: <Users className="w-4 h-4" />, to: '/student/communities' },
+            { label: 'Events', icon: <Calendar className="w-4 h-4" />, to: '/student/events' },
+          ]
+        },
+        {
           title: 'My Profile',
           items: [
             { label: 'Profile', icon: <User className="w-4 h-4" />, to: '/student/profile' },
@@ -127,7 +138,6 @@ const getSidebarNav = (role: Role): NavSection[] => {
         {
           title: 'Placements',
           items: [
-            { label: 'Recommended Jobs', icon: <Star className="w-4 h-4" />, to: '/student/jobs' },
             { label: 'Campus Drives', icon: <Target className="w-4 h-4" />, to: '/student/drives' },
             { label: 'Applications', icon: <ClipboardList className="w-4 h-4" />, to: '/student/applications' },
             { label: 'Interviews', icon: <UserCheck className="w-4 h-4" />, to: '/student/interviews' },
@@ -139,7 +149,6 @@ const getSidebarNav = (role: Role): NavSection[] => {
           items: [
             { label: 'Video Programs', icon: <Video className="w-4 h-4" />, to: '/student/programs' },
             { label: 'ATS Score Checker', icon: <FileCheck className="w-4 h-4" />, to: '/student/ats-checker' },
-            { label: 'Placement Readiness', icon: <Award className="w-4 h-4" />, to: '/student/readiness' },
             { label: 'Interview Prep', icon: <BookMarked className="w-4 h-4" />, to: '/student/interview-prep' },
             { label: 'AI Assistant', icon: <Bot className="w-4 h-4" />, to: '/student/ai-assistant' },
           ]
@@ -147,7 +156,6 @@ const getSidebarNav = (role: Role): NavSection[] => {
         {
           items: [
             { label: 'Notifications', icon: <Bell className="w-4 h-4" />, to: '/student/notifications' },
-            { label: 'Settings', icon: <Settings className="w-4 h-4" />, to: '/student/settings' },
           ]
         },
       ];
@@ -199,15 +207,115 @@ const getSidebarNav = (role: Role): NavSection[] => {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export const Sidebar: React.FC = () => {
-  const { user, logout } = useAuthStore();
-  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const { user, logout, updateUser } = useAuthStore();
+  const { sidebarCollapsed, toggleSidebar, mobileNavOpen, setMobileNavOpen } = useUIStore();
   const { unreadCount } = useNotificationStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [messageUnread, setMessageUnread] = useState(0);
+  const [pendingInvites, setPendingInvites] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
+
+  useEffect(() => {
+    if (!user?.tenantId || user.collegeCode) return;
+    if (user.role !== 'TPO' && user.role !== 'COLLEGE_ADMIN') return;
+    let cancelled = false;
+    import('../../services').then(({ collegeService }) => collegeService.getById(user.tenantId!))
+      .then((college) => {
+        if (!cancelled) updateUser({ collegeCode: college.code, collegeName: college.name });
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [user?.tenantId, user?.collegeCode, user?.role, updateUser]);
+
+  useEffect(() => {
+    if (!user || (user.role !== 'STUDENT' && user.role !== 'TPO' && user.role !== 'COLLEGE_ADMIN')) return;
+    let cancelled = false;
+    const loadNotices = () => {
+      import('../../services').then(({ getNoticeFeed }) => getNoticeFeed(user.role))
+        .then((items) => {
+          if (!cancelled) useNotificationStore.getState().setUnreadCount(items.filter((item) => !item.isRead).length);
+        })
+        .catch(() => undefined);
+    };
+    loadNotices();
+    window.addEventListener('notifications-updated', loadNotices);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('notifications-updated', loadNotices);
+    };
+  }, [user?.role, location.pathname]);
+
+  useEffect(() => {
+    if (user?.role !== 'STUDENT') return;
+    let cancelled = false;
+    const load = () => {
+      import('../../services').then(({ communityService }) => communityService.getUnreadCount())
+        .then((count) => { if (!cancelled) setMessageUnread(count); })
+        .catch(() => undefined);
+    };
+    load();
+    window.addEventListener('messages-unread', load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('messages-unread', load);
+    };
+  }, [user?.role, location.pathname]);
+
+  useEffect(() => {
+    if (user?.role !== 'STUDENT' || !user.id) return;
+    let cancelled = false;
+    const load = () => {
+      import('../../services').then(({ communityService }) => communityService.getConnections())
+        .then((rows) => {
+          if (cancelled) return;
+          const asId = (value: { _id?: string; id?: string } | string | null | undefined) =>
+            String((value && typeof value === 'object' ? value._id || value.id : value) || '');
+          const me = String(user.id);
+          const count = (rows || []).filter((row: { status?: string; requester?: { _id?: string; id?: string } | string; recipient?: { _id?: string; id?: string } | string }) =>
+            row.status === 'pending' && (asId(row.recipient) === me || asId(row.requester) === me)
+          ).length;
+          setPendingInvites(count);
+        })
+        .catch(() => undefined);
+    };
+    load();
+    window.addEventListener('connections-updated', load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('connections-updated', load);
+    };
+  }, [user?.role, user?.id, location.pathname]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setIsDesktop(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname, setMobileNavOpen]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const sync = () => {
+      document.body.style.overflow = mobileNavOpen && !mq.matches ? 'hidden' : '';
+    };
+    sync();
+    mq.addEventListener('change', sync);
+    return () => {
+      mq.removeEventListener('change', sync);
+      document.body.style.overflow = '';
+    };
+  }, [mobileNavOpen]);
 
   if (!user) return null;
 
   const navSections = getSidebarNav(user.role);
-  const collapsed = sidebarCollapsed;
+  const collapsed = isDesktop && sidebarCollapsed;
 
   const getRoleBadge = (role: Role) => {
     const map: Record<Role, { label: string; color: 'blue' | 'green' | 'purple' | 'amber' | 'indigo' }> = {
@@ -226,7 +334,7 @@ export const Sidebar: React.FC = () => {
     switch (role) {
       case 'SUPER_ADMIN': return { name: 'PlacementOS', sub: 'Admin Console' };
       case 'COLLEGE_ADMIN':
-      case 'TPO': return { name: 'PlacementOS', sub: 'TPO Dashboard' };
+      case 'TPO': return { name: 'PlacementOS', sub: user.collegeCode ? `College code ${user.collegeCode}` : 'TPO Dashboard' };
       case 'STUDENT': return { name: 'PlacementOS', sub: 'Student Portal' };
       case 'RECRUITER': return { name: 'PlacementOS', sub: 'Recruiter Portal' };
     }
@@ -236,8 +344,10 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside className={cn(
-      'fixed left-0 top-0 bottom-0 z-40 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300',
-      collapsed ? 'w-16' : 'w-[260px]'
+      'fixed left-0 top-0 bottom-0 z-40 flex w-[min(86vw,280px)] flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-transform duration-300 lg:transition-all',
+      mobileNavOpen ? 'translate-x-0' : '-translate-x-full',
+      'lg:translate-x-0',
+      collapsed ? 'lg:w-16' : 'lg:w-[260px]'
     )}>
       {/* Logo */}
       <div className={cn('flex items-center gap-3 px-4 h-16 border-b border-slate-100 dark:border-slate-800 flex-shrink-0', collapsed && 'justify-center px-0')}>
@@ -245,11 +355,19 @@ export const Sidebar: React.FC = () => {
           <Zap className="w-4 h-4 text-white" />
         </div>
         {!collapsed && (
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-50 leading-none">{branding.name}</p>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{branding.sub}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-50 leading-none truncate">{branding.name}</p>
+            <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 truncate">{branding.sub}</p>
           </div>
         )}
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen(false)}
+          className="lg:hidden ml-auto p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          aria-label="Close menu"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Nav */}
@@ -267,6 +385,7 @@ export const Sidebar: React.FC = () => {
                 key={item.to}
                 to={item.to}
                 end={item.end}
+                onClick={() => setMobileNavOpen(false)}
                 className={({ isActive }) => cn(
                   'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 group',
                   collapsed ? 'justify-center px-0 mx-auto w-10 h-10' : '',
@@ -275,15 +394,47 @@ export const Sidebar: React.FC = () => {
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
                 )}
               >
-                <span className="flex-shrink-0">{item.icon}</span>
+                <span className="relative flex-shrink-0">
+                  {item.icon}
+                  {collapsed && item.to === '/student/messages' && messageUnread > 0 && (
+                    <span className="absolute -right-2 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold tabular-nums text-white ring-2 ring-white dark:ring-slate-900">
+                      {messageUnread > 9 ? '9+' : messageUnread}
+                    </span>
+                  )}
+                  {collapsed && item.to === '/student/connections' && pendingInvites > 0 && (
+                    <span className="absolute -right-2 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold tabular-nums text-white ring-2 ring-white dark:ring-slate-900">
+                      {pendingInvites > 9 ? '9+' : pendingInvites}
+                    </span>
+                  )}
+                </span>
                 {!collapsed && (
                   <>
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.label === 'Notifications' && unreadCount > 0 && (
-                      <Badge variant="red" className="text-[10px]">{unreadCount}</Badge>
+                      <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold tabular-nums text-white shadow-sm shadow-rose-500/30">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
                     )}
-                    {item.badge !== undefined && (
-                      <Badge variant="slate" className="text-[10px]">{item.badge}</Badge>
+                    {item.to === '/student/messages' && messageUnread > 0 && (
+                      <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold tabular-nums text-white shadow-sm shadow-rose-500/30">
+                        {messageUnread > 9 ? '9+' : messageUnread}
+                      </span>
+                    )}
+                    {item.to === '/student/connections' && pendingInvites > 0 && (
+                      <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold tabular-nums text-white shadow-sm shadow-amber-500/30">
+                        {pendingInvites > 9 ? '9+' : pendingInvites}
+                      </span>
+                    )}
+                    {typeof item.badge === 'number' && (
+                      <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-[10px] font-bold tabular-nums text-white shadow-sm shadow-brand-600/30">
+                        {item.badge > 9 ? '9+' : item.badge}
+                      </span>
+                    )}
+                    {typeof item.badge === 'string' && (
+                      <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-emerald-800">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        {item.badge}
+                      </span>
                     )}
                   </>
                 )}
@@ -318,7 +469,7 @@ export const Sidebar: React.FC = () => {
       {/* Collapse toggle */}
       <button
         onClick={toggleSidebar}
-        className="absolute -right-3 top-20 w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+        className="hidden lg:flex absolute -right-3 top-20 w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full items-center justify-center shadow-sm hover:shadow-md transition-shadow text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
       >
         {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
       </button>
@@ -336,7 +487,7 @@ interface TopbarProps {
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ title, subtitle, breadcrumbs, actions }) => {
-  const { theme, toggleTheme, sidebarCollapsed, openCommandPalette } = useUIStore();
+  const { theme, toggleTheme, sidebarCollapsed, openCommandPalette, setMobileNavOpen } = useUIStore();
   const { unreadCount } = useNotificationStore();
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -344,13 +495,21 @@ export const Topbar: React.FC<TopbarProps> = ({ title, subtitle, breadcrumbs, ac
 
   return (
     <header className={cn(
-      'fixed top-0 right-0 h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 z-30 flex items-center gap-4 px-6 transition-all duration-300',
-      sidebarCollapsed ? 'left-16' : 'left-[260px]'
+      'fixed top-0 right-0 left-0 h-14 sm:h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-6 transition-all duration-300',
+      sidebarCollapsed ? 'lg:left-16' : 'lg:left-[260px]'
     )}>
+      <button
+        type="button"
+        onClick={() => setMobileNavOpen(true)}
+        className="lg:hidden w-9 h-9 shrink-0 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
+        aria-label="Open menu"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
       {/* Left: Title / Breadcrumbs */}
       <div className="flex-1 min-w-0">
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 mb-0.5">
+          <nav className="hidden sm:flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 mb-0.5 min-w-0 overflow-hidden">
             {breadcrumbs.map((crumb, i) => (
               <React.Fragment key={i}>
                 {i > 0 && <span>/</span>}
@@ -368,19 +527,19 @@ export const Topbar: React.FC<TopbarProps> = ({ title, subtitle, breadcrumbs, ac
         {title && (
           <div className="flex items-center gap-2">
             <h1 className="text-sm font-semibold text-slate-900 dark:text-slate-50 truncate">{title}</h1>
-            {subtitle && <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:block">— {subtitle}</span>}
+            {subtitle && <span className="text-xs text-slate-600 dark:text-slate-400 hidden sm:block">— {subtitle}</span>}
           </div>
         )}
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-1 flex-shrink-0">
+      <div className="flex items-center gap-1 shrink-0 max-w-[58%] sm:max-w-none overflow-x-auto hide-scrollbar">
         {actions}
 
         {/* Search/Command */}
         <button
           onClick={openCommandPalette}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+          className="flex items-center gap-2 px-2 sm:px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 shrink-0"
         >
           <Search className="w-3.5 h-3.5" />
           <span className="hidden sm:block">Search...</span>
@@ -409,7 +568,7 @@ export const Topbar: React.FC<TopbarProps> = ({ title, subtitle, breadcrumbs, ac
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full">
+            <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold tabular-nums text-white ring-2 ring-white dark:ring-slate-900">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -434,6 +593,9 @@ export const Topbar: React.FC<TopbarProps> = ({ title, subtitle, breadcrumbs, ac
                 <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{user?.name}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{user?.email}</p>
+                  {user?.collegeCode && (
+                    <p className="text-xs font-bold text-[#08546c] dark:text-cyan-400 mt-1">College code {user.collegeCode}</p>
+                  )}
                 </div>
                 <button
                   onClick={() => { setShowUserMenu(false); logout(); navigate('/login'); }}
@@ -484,8 +646,6 @@ export const CommandPalette: React.FC = () => {
     { id: '1', label: 'Student List', icon: <GraduationCap className="w-4 h-4" />, to: '/college/students', category: 'Navigation' },
     { id: '2', label: 'Job Listings', icon: <Briefcase className="w-4 h-4" />, to: '/college/jobs', category: 'Navigation' },
     { id: '3', label: 'Placement Drives', icon: <Target className="w-4 h-4" />, to: '/college/drives', category: 'Navigation' },
-    { id: '4', label: 'Analytics', icon: <BarChart3 className="w-4 h-4" />, to: '/college/analytics', category: 'Navigation' },
-    { id: '5', label: 'AI Placement Officer', icon: <Bot className="w-4 h-4" />, to: '/college/ai-assistant', category: 'AI Tools' },
     { id: '6', label: 'Reports', icon: <FileText className="w-4 h-4" />, to: '/college/reports', category: 'Navigation' },
     { id: '7', label: 'Companies', icon: <Building2 className="w-4 h-4" />, to: '/college/companies', category: 'Navigation' },
     { id: '8', label: 'Interviews', icon: <UserCheck className="w-4 h-4" />, to: '/college/interviews', category: 'Navigation' },

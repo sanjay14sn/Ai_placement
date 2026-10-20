@@ -8,12 +8,14 @@ import { College } from '../models/College';
 import { Application } from '../models/Application';
 import { Job } from '../models/Job';
 import { createError } from '../middleware/errorHandler';
+import { tokenService } from '../services/token.service';
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 export const updateStudentSchema = z.object({
   phone: z.string().optional(),
-  avatar: z.string().url().optional(),
+  avatar: z.string().optional(),
+  coverImage: z.string().optional(),
   skills: z.array(z.string()).optional(),
   linkedIn: z.string().url().optional(),
   github: z.string().url().optional(),
@@ -30,6 +32,7 @@ export const updateStudentSchema = z.object({
   projects: z.array(z.any()).optional(),
   education: z.array(z.any()).optional(),
   experience: z.array(z.any()).optional(),
+  isProfilePublic: z.boolean().optional(),
 }).partial();
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -58,11 +61,13 @@ const buildQuery = (req: Request) => {
   const { search, department, placementStatus, batch, isEligible } = req.query;
 
   if (search) {
+    const term = String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter['$or'] = [
-      { name: { $regex: search, $options: 'i' } },
-      { email: { $regex: search, $options: 'i' } },
-      { studentId: { $regex: search, $options: 'i' } },
-      { department: { $regex: search, $options: 'i' } },
+      { name: { $regex: term, $options: 'i' } },
+      { email: { $regex: term, $options: 'i' } },
+      { studentId: { $regex: term, $options: 'i' } },
+      { department: { $regex: term, $options: 'i' } },
+      { skills: { $regex: term, $options: 'i' } },
     ];
   }
   if (department) filter.department = { $regex: `^${department}$`, $options: 'i' };
@@ -83,13 +88,20 @@ const buildQuery = (req: Request) => {
 export const createStudent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const {
-      name, email, phone, studentId, collegeId, departmentId,
+      name, email, phone, studentId, collegeId, departmentId, password,
       department, batch, degree, cgpa = 0, gender = 'male',
-      skills = [],
-    } = req.body as Record<string, string | number | string[]>;
+      skills = [], aadharNumber, aadharCard, aadharFileUrl, aadharFileName,
+    } = req.body as Record<string, any>;
 
     if (!name || !email || !studentId || !collegeId || !department || !batch || !degree) {
       throw createError('Missing required fields: name, email, studentId, collegeId, department, batch, degree', 400);
+    }
+    if (!mongoose.Types.ObjectId.isValid(collegeId as string)) {
+      throw createError('Enter a valid college code so the institution can be loaded', 400);
+    }
+    const chosenPassword = String(password || '').trim();
+    if (!req.user && chosenPassword.length < 6) {
+      throw createError('Password must be at least 6 characters', 400);
     }
 
     // Check if email is already in use
@@ -110,7 +122,7 @@ export const createStudent = async (req: Request, res: Response, next: NextFunct
     }
 
     // Create a User account with default password (student can reset later)
-    const defaultPassword = 'Student@123';
+    const defaultPassword = chosenPassword || 'Student@123';
 
     const user = await User.create({
       email: (email as string).toLowerCase(),
@@ -142,8 +154,20 @@ export const createStudent = async (req: Request, res: Response, next: NextFunct
       isEligible: numericCgpa >= 6.5,
       placementStatus: 'not_placed',
       placementReadinessScore: 30,
-      profileCompletion: 35,
+      profileCompletion: (aadharCard || aadharFileUrl) ? 45 : 35,
       skills: Array.isArray(skills) ? skills : [],
+      aadharNumber: aadharNumber ? String(aadharNumber).trim() : undefined,
+      aadharCard: aadharCard ? {
+        fileUrl: aadharCard.fileUrl || aadharFileUrl || '',
+        fileName: aadharCard.fileName || aadharFileName || 'aadhar_card.pdf',
+        uploadedAt: aadharCard.uploadedAt || new Date(),
+        fileSize: aadharCard.fileSize || 0
+      } : (aadharFileUrl ? {
+        fileUrl: aadharFileUrl,
+        fileName: aadharFileName || 'aadhar_card.pdf',
+        uploadedAt: new Date(),
+        fileSize: 0
+      } : undefined),
       preferredLocations: [],
       preferredRoles: [],
       expectedSalary: 0,
@@ -166,10 +190,21 @@ export const createStudent = async (req: Request, res: Response, next: NextFunct
     });
 
     const doc = student.toObject();
+    const token = tokenService.generateToken(user._id.toString(), 'STUDENT', college._id.toString());
     res.status(201).json({
       success: true,
-      data: { ...doc, id: doc._id.toString() },
-      message: 'Student created successfully. Default password: Student@123',
+      data: { ...doc, id: doc._id.toString(), userId: user._id.toString() },
+      token,
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        tenantId: college._id.toString(),
+        isActive: true,
+        createdAt: user.createdAt,
+      },
+      message: chosenPassword ? 'Student registered successfully' : 'Student created successfully. Default password: Student@123',
     });
   } catch (error) {
     next(error);
@@ -261,6 +296,41 @@ export const getMyProfile = async (req: Request, res: Response, next: NextFuncti
   try {
     const student = await Student.findOne({ userId: req.user!.userId });
     if (!student) throw createError('Student profile not found', 404);
+
+    // Sync resume from SavedResume if student.resume is empty or missing fileUrl
+    if (!student.resume?.fileUrl && !student.resume?.fileName) {
+      try {
+        const { SavedResume } = await import('../models/SavedResume');
+        const latestSaved = await SavedResume.findOne({ userId: req.user!.userId }).sort({ createdAt: -1 });
+        if (latestSaved) {
+          student.resume = {
+            fileName: latestSaved.fileName,
+            fileUrl: (latestSaved as any).fileUrl || '',
+            uploadedAt: latestSaved.createdAt,
+            atsScore: (latestSaved as any).atsScore || 78,
+            overallScore: (latestSaved as any).overallScore || 82,
+          };
+        }
+      } catch (e) {}
+    }
+
+    // Recalculate profile completion score (max 100)
+    let completion = 20; // Base: name, email, rollNo, college
+    if (student.avatar) completion += 10; // Profile photo (+10)
+    if (student.phone) completion += 5; // Phone (+5)
+    if (student.linkedIn) completion += 5; // LinkedIn (+5)
+    if (student.skills && student.skills.length >= 3) completion += 10; // 3+ skills (+10)
+    if (student.education && student.education.length > 0) completion += 10; // Education (+10)
+    if (student.projects && student.projects.length > 0) completion += 15; // Projects (+15)
+    if (student.certifications && student.certifications.length > 0) completion += 10; // Certifications (+10)
+    if (student.resume?.fileUrl || student.resume?.fileName) completion += 15; // ATS Resume (+15)
+    completion = Math.min(completion, 100);
+
+    if (student.profileCompletion !== completion) {
+      student.profileCompletion = completion;
+      await student.save();
+    }
+
     res.json({ success: true, data: student });
   } catch (error) {
     next(error);
@@ -372,7 +442,60 @@ export const getStudentDashboardData = async (req: Request, res: Response, next:
  */
 export const getStudentById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const student = await Student.findById(req.params.id);
+    const paramId = String(req.params.id || '').trim();
+    let student = null;
+
+    if (mongoose.isValidObjectId(paramId)) {
+      student = await Student.findById(paramId)
+        .populate('userId', 'name email avatar')
+        .populate('collegeId', 'name city');
+      if (!student) {
+        student = await Student.findOne({ userId: paramId })
+          .populate('userId', 'name email avatar')
+          .populate('collegeId', 'name city');
+      }
+    }
+
+    if (!student) {
+      // Alias lookup for legacy mock IDs
+      const aliasMap: Record<string, string> = {
+        'c1': 'arjun.k@rvce.edu.in',
+        '1': 'arjun.k@rvce.edu.in',
+        'c2': 'priya.sharma@vit.ac.in',
+        '2': 'priya.sharma@vit.ac.in',
+        'c3': 'rohit.menon@bmsce.ac.in',
+        '3': 'rohit.menon@bmsce.ac.in',
+        'c4': 'sneha.reddy@pes.edu',
+        '4': 'sneha.reddy@pes.edu',
+        'c5': 'vikram.s@msrit.edu',
+        '5': 'vikram.s@msrit.edu',
+        'c6': 'ananya.d@vjti.ac.in',
+        '6': 'ananya.d@vjti.ac.in',
+        'c7': 'karthik.raja@srmist.edu.in',
+        '7': 'karthik.raja@srmist.edu.in',
+        'c8': 'divya.s@ssn.edu.in',
+        '8': 'divya.s@ssn.edu.in',
+        'c9': 'aditya.verma@iitdh.ac.in',
+        '9': 'aditya.verma@iitdh.ac.in',
+        'c10': 'rahul.g@rvce.edu.in',
+        '10': 'rahul.g@rvce.edu.in',
+        'rahul-gowda': 'rahul.g@rvce.edu.in',
+      };
+
+      const resolvedEmail = aliasMap[paramId.toLowerCase()];
+
+      student = await Student.findOne({
+        $or: [
+          ...(resolvedEmail ? [{ email: resolvedEmail }] : []),
+          { studentId: { $regex: new RegExp(`^${paramId}$`, 'i') } },
+          { email: { $regex: new RegExp(`^${paramId}$`, 'i') } },
+          { name: { $regex: new RegExp(`^${paramId.replace(/-/g, ' ')}$`, 'i') } },
+        ]
+      })
+      .populate('userId', 'name email avatar')
+      .populate('collegeId', 'name city');
+    }
+
     if (!student) throw createError('Student not found', 404);
     res.json({ success: true, data: student });
   } catch (error) {
@@ -400,19 +523,23 @@ export const updateStudent = async (req: Request, res: Response, next: NextFunct
     const updates = req.body;
     Object.assign(student, updates);
 
-    // Recalculate profile completion
-    let completion = 30;
+    // Recalculate profile completion (max 100)
+    let completion = 20;
+    if (student.avatar) completion += 10;
     if (student.phone) completion += 5;
-    if (student.skills.length >= 3) completion += 10;
-    if (student.education.length > 0) completion += 10;
-    if (student.projects.length > 0) completion += 15;
-    if (student.certifications.length > 0) completion += 10;
-    if (student.resume?.fileUrl) completion += 15;
     if (student.linkedIn) completion += 5;
+    if (student.skills && student.skills.length >= 3) completion += 10;
+    if (student.education && student.education.length > 0) completion += 10;
+    if (student.projects && student.projects.length > 0) completion += 15;
+    if (student.certifications && student.certifications.length > 0) completion += 10;
+    if (student.resume?.fileUrl || student.resume?.fileName) completion += 15;
     completion = Math.min(completion, 100);
     student.profileCompletion = completion;
 
     await student.save();
+    if (updates.avatar) {
+      await User.findByIdAndUpdate(student.userId, { avatar: updates.avatar });
+    }
     res.json({ success: true, data: student, message: 'Profile updated successfully' });
   } catch (error) {
     next(error);

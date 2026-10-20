@@ -5,7 +5,9 @@ import {
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Progress, ProgressRing, AIBadge, Select, Tabs } from '../../components/ui';
-import { aiService } from '../../services';
+import { aiService, jobService, normalizeResumeAnalysis } from '../../services';
+import type { SavedResume } from '../../types';
+import { timeAgo } from '../../utils';
 import { toast } from 'sonner';
 
 type AnalysisData = Awaited<ReturnType<typeof aiService.analyzeResume>>;
@@ -24,12 +26,42 @@ export const StudentATSCheckerPage: React.FC = () => {
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [recentAnalyses, setRecentAnalyses] = useState<AnalysisData[]>([]);
+  const [savedResumes, setSavedResumes] = useState<SavedResume[]>([]);
+  const [loadingResumes, setLoadingResumes] = useState(true);
+  const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
+  const [loadingResumeId, setLoadingResumeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    jobService.getSavedResumes()
+      .then(setSavedResumes)
+      .catch(() => setSavedResumes([]))
+      .finally(() => setLoadingResumes(false));
+  }, []);
+
+  const handleSelectSavedResume = async (resume: SavedResume) => {
+    setLoadingResumeId(resume.id);
+    try {
+      const resumeFile = await jobService.getSavedResumeFile(resume);
+      setFile(resumeFile);
+      setSampleName(null);
+      setSelectedResumeId(resume.id);
+      setSavedToProfile(false);
+      setAnalysisError(null);
+      const previous = recentAnalyses.find(r => r.fileName === resume.fileName && r.targetRole === targetRole);
+      setAnalysis(previous || null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not load this resume');
+    } finally {
+      setLoadingResumeId(null);
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem('atsRecentAnalyses');
     if (saved) {
       try {
-        setRecentAnalyses(JSON.parse(saved));
+        const parsed: unknown = JSON.parse(saved);
+        setRecentAnalyses(Array.isArray(parsed) ? parsed.map(item => normalizeResumeAnalysis(item)) : []);
       } catch (e) {
         console.error("Failed to parse recent analyses", e);
       }
@@ -41,6 +73,7 @@ export const StudentATSCheckerPage: React.FC = () => {
     setTargetRole(recent.targetRole);
     setSampleName(recent.fileName);
     setFile(null);
+    setSelectedResumeId(null);
     setSavedToProfile(false);
     setAnalysisError(null);
   };
@@ -67,6 +100,7 @@ export const StudentATSCheckerPage: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
       setSampleName(null);
+      setSelectedResumeId(null);
       setSavedToProfile(false);
     }
   };
@@ -118,6 +152,15 @@ export const StudentATSCheckerPage: React.FC = () => {
           return updated;
         });
       }, 400);
+
+      if (file && !selectedResumeId && file.name.toLowerCase().endsWith('.pdf')) {
+        jobService.uploadSavedResume(file)
+          .then(saved => {
+            setSavedResumes(prev => [saved, ...prev.filter(r => r.id !== saved.id)].slice(0, 5));
+            setSelectedResumeId(saved.id);
+          })
+          .catch(() => undefined);
+      }
     } catch (error: any) {
       const msg = error.message || 'Failed to analyze resume';
       toast.error(msg);
@@ -248,11 +291,69 @@ ${analysis.certificationRecommendations.join(', ')}
             )}
 
 
-            {/* Recent Analyses Area */}
-            <div className="w-full pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
-              <span className="text-[11px] font-semibold text-slate-400 block mb-2">Recent Checks:</span>
-              
-              {recentAnalyses.length > 0 ? (
+            <div className="w-full pt-3 border-t border-slate-100 dark:border-slate-800 text-left">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Your uploaded resumes</span>
+                {savedResumes.length > 0 && <span className="text-[10px] text-slate-400">Pick one to score</span>}
+              </div>
+
+              {loadingResumes ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="h-12 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                  ))}
+                </div>
+              ) : savedResumes.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {savedResumes.map(resume => {
+                    const lastResult = recentAnalyses.find(r => r.fileName === resume.fileName);
+                    const isSelected = selectedResumeId === resume.id;
+                    return (
+                      <button
+                        key={resume.id}
+                        type="button"
+                        onClick={() => handleSelectSavedResume(resume)}
+                        disabled={loadingResumeId === resume.id}
+                        className={`flex items-center gap-2.5 text-left text-xs p-2.5 rounded-xl border transition-all ${
+                          isSelected
+                            ? 'border-brand-500 bg-brand-50/70 dark:bg-brand-950/60'
+                            : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          isSelected ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300'
+                        }`}>
+                          {loadingResumeId === resume.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`truncate font-semibold ${isSelected ? 'text-brand-700 dark:text-brand-300' : 'text-slate-800 dark:text-slate-200'}`}>
+                            {resume.fileName}
+                          </p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                            {(resume.size / 1024).toFixed(0)} KB · uploaded {timeAgo(resume.uploadedAt)}
+                          </p>
+                        </div>
+                        {lastResult ? (
+                          <Badge variant={lastResult.overallScore >= 80 ? 'green' : lastResult.overallScore >= 70 ? 'indigo' : 'amber'} className="text-[9px] flex-shrink-0">
+                            {lastResult.overallScore}%
+                          </Badge>
+                        ) : (
+                          <span className="text-[9px] font-medium text-slate-400 flex-shrink-0">Not scored</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 p-3 text-center border border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+                  No resumes uploaded yet. Choose a PDF above. It will be saved here and on your Resume and Profile pages.
+                </div>
+              )}
+            </div>
+
+            {recentAnalyses.length > 0 && (
+            <div className="w-full pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 text-left">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 block mb-2">Recent ATS results</span>
                 <div className="flex flex-col gap-2">
                   {recentAnalyses.map((recent, i) => (
                     <button
@@ -281,12 +382,8 @@ ${analysis.certificationRecommendations.join(', ')}
                     </button>
                   ))}
                 </div>
-              ) : (
-                <div className="text-[10px] text-slate-400 p-2 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
-                  No recent checks found. Upload a resume to see history here!
-                </div>
-              )}
             </div>
+            )}
 
             <Button
               className="w-full mt-5"
@@ -320,7 +417,7 @@ ${analysis.certificationRecommendations.join(', ')}
                 {analysisError ? 'Validation Error' : 'No Analysis Generated Yet'}
               </h3>
               <p className={`text-xs max-w-xs mb-4 ${analysisError ? 'text-red-600 dark:text-red-300 font-medium' : 'text-slate-400'}`}>
-                {analysisError || <>Upload your resume PDF or select a sample resume on the left, then click <strong>Calculate ATS Score</strong>.</>}
+                {analysisError || <>Upload a resume PDF or pick one of your uploaded resumes on the left, then click <strong>Calculate ATS Score</strong>.</>}
               </p>
             </Card>
           ) : (
@@ -454,7 +551,7 @@ ${analysis.certificationRecommendations.join(', ')}
                       <AIBadge label="AI Audit" />
                     </div>
                     <div className="space-y-3">
-                      {Object.entries(analysis.sections).map(([sec, score]) => (
+                      {(Object.entries(analysis.sections) as [string, number][]).map(([sec, score]) => (
                         <div key={sec}>
                           <div className="flex justify-between items-center text-xs mb-1">
                             <span className="capitalize text-slate-600 dark:text-slate-400">{sec.replace(/([A-Z])/g, ' $1')}</span>

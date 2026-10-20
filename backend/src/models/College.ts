@@ -19,6 +19,13 @@ export interface ICollege extends Document {
   tpoName: string;
   tpoEmail: string;
   tpoPhone?: string;
+  settings?: {
+    minCgpa: number;
+    maxBacklogs: number;
+    driveAlerts: boolean;
+    applicationAlerts: boolean;
+    interviewReminders: boolean;
+  };
   subscription: {
     plan: 'starter' | 'professional' | 'enterprise';
     status: 'active' | 'trial' | 'expired' | 'cancelled';
@@ -77,6 +84,13 @@ const collegeSchema = new Schema<ICollege>(
     tpoName: { type: String, default: '' },
     tpoEmail: { type: String, default: '' },
     tpoPhone: { type: String, default: '' },
+    settings: {
+      minCgpa: { type: Number, default: 6, min: 0, max: 10 },
+      maxBacklogs: { type: Number, default: 0, min: 0 },
+      driveAlerts: { type: Boolean, default: true },
+      applicationAlerts: { type: Boolean, default: true },
+      interviewReminders: { type: Boolean, default: true },
+    },
     subscription: { type: subscriptionSchema, required: true },
     isActive: { type: Boolean, default: true },
   },

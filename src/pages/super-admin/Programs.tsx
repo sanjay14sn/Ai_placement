@@ -10,6 +10,7 @@ import { useProgramStore } from '../../store/programStore';
 import type { Program, ProgramVideo, TargetAudience, VideoResource } from '../../types';
 import { uploadService } from '../../services';
 import { toast } from 'sonner';
+import { getMediaUrl } from '../../config/api';
 
 // Helper to convert standard YouTube links to embed format
 const formatVideoEmbedUrl = (url: string): string => {
@@ -74,9 +75,7 @@ export const SuperAdminProgramsPage: React.FC = () => {
       try {
         setIsUploading(true);
         const res = await uploadService.uploadFile(e.target.files[0]);
-        const fullUrl = import.meta.env.VITE_API_URL 
-          ? import.meta.env.VITE_API_URL.replace('/api', '') + res.url 
-          : 'http://localhost:5001' + res.url;
+        const fullUrl = getMediaUrl(res.url);
         callback(fullUrl);
         toast.success('File uploaded successfully!');
       } catch (err: any) {

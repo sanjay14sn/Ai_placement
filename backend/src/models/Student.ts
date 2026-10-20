@@ -10,6 +10,7 @@ export interface IStudent extends Document {
   email: string;
   phone: string;
   avatar?: string;
+  coverImage?: string;
   department: string;
   batch: string;
   degree: string;
@@ -71,6 +72,13 @@ export interface IStudent extends Document {
     atsScore: number;
     overallScore: number;
   };
+  aadharNumber?: string;
+  aadharCard?: {
+    fileUrl: string;
+    fileName: string;
+    uploadedAt: Date;
+    fileSize?: number;
+  };
   profileCompletion: number;
   placementStatus: 'not_placed' | 'placed' | 'not_eligible' | 'opted_out';
   isEligible: boolean;
@@ -87,6 +95,7 @@ export interface IStudent extends Document {
     connected: boolean;
     portalId?: string;
   }[];
+  isProfilePublic?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -101,6 +110,7 @@ const studentSchema = new Schema<IStudent>(
     email: { type: String, required: true, lowercase: true, trim: true, index: true },
     phone: { type: String, default: '' },
     avatar: { type: String },
+    coverImage: { type: String },
     department: { type: String, required: true },
     batch: { type: String, required: true },
     degree: { type: String, required: true },
@@ -125,6 +135,13 @@ const studentSchema = new Schema<IStudent>(
       atsScore: { type: Number, default: 0 },
       overallScore: { type: Number, default: 0 },
     },
+    aadharNumber: { type: String, trim: true },
+    aadharCard: {
+      fileUrl: String,
+      fileName: String,
+      uploadedAt: { type: Date, default: Date.now },
+      fileSize: Number,
+    },
     profileCompletion: { type: Number, default: 30 },
     placementStatus: {
       type: String,
@@ -148,6 +165,7 @@ const studentSchema = new Schema<IStudent>(
         _id: false,
       }
     ],
+    isProfilePublic: { type: Boolean, default: true },
   },
   {
     timestamps: true,

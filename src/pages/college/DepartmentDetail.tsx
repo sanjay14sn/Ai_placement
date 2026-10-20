@@ -218,12 +218,6 @@ export const DepartmentDetail: React.FC = () => {
               >
                 View Targeted Jobs
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate(`/college/analytics?department=${department.code}`)}
-              >
-                View Deep Analytics
-              </Button>
             </div>
           </div>
         </Card>

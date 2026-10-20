@@ -8,6 +8,7 @@ import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
+router.post('/register', createStudent);
 router.use(authenticate);
 
 router.get('/stats', getStudentStats);

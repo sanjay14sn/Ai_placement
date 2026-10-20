@@ -27,6 +27,7 @@ import {
   BarChart3,
   ArrowUpRight,
   Check,
+  Menu,
   X
 } from 'lucide-react';
 import { Button } from '../../components/ui';
@@ -36,6 +37,7 @@ export const LandingPage: React.FC = () => {
 
   // Active state for FAQ
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [menuOpen, setMenuOpen] = useState(false);
 
 
 
@@ -118,7 +120,7 @@ export const LandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased selection:bg-amber-500 selection:text-white pt-20">
+    <div className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-900 font-sans antialiased selection:bg-amber-500 selection:text-white pt-20">
       
       {/* Top Navbar - Fixed Header */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-md text-slate-900">
@@ -139,6 +141,14 @@ export const LandingPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              className="lg:hidden p-2 rounded-lg text-slate-700 hover:bg-slate-100"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -156,6 +166,14 @@ export const LandingPage: React.FC = () => {
             </Button>
           </div>
         </div>
+        {menuOpen && (
+          <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 flex flex-col gap-3 text-sm font-semibold text-slate-700">
+            <a href="#student-benefits" onClick={() => setMenuOpen(false)}>Student Benefits</a>
+            <a href="#features" onClick={() => setMenuOpen(false)}>AI Features</a>
+            <a href="#testimonials" onClick={() => setMenuOpen(false)}>Testimonials</a>
+            <a href="#faq" onClick={() => setMenuOpen(false)}>FAQ</a>
+          </div>
+        )}
       </nav>
 
       {/* ─────────────────────────────────────────────────────────────────────────

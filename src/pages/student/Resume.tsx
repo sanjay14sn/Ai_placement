@@ -1,74 +1,116 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Upload, FileText, CheckCircle2, Bot, Sparkles, RefreshCw,
-  Briefcase, MapPin, Building2, Clock, ArrowUpRight, Check, Zap, Star
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Upload, Sparkles, FileText, Eye, Trash2, Search } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
-import { Card, Button, Badge, Progress, AIBadge, Skeleton } from '../../components/ui';
-import { jobService, applicationService } from '../../services';
+import { Card, Button, Badge, Skeleton, ConfirmDialog } from '../../components/ui';
+import { jobService } from '../../services';
+import { timeAgo } from '../../utils';
+import type { SavedResume } from '../../types';
 import { toast } from 'sonner';
-import type { Job } from '../../types';
 
-interface MatchedJob extends Job {
-  matchScore?: number;
-  aiExplanation?: string;
+const formatSize = (bytes: number) =>
+  bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+interface GoogleJob {
+  id: string;
+  title: string;
+  companyName: string;
+  location: string;
+  via: string;
+  description: string;
+  schedule: string;
+  postedAt: string;
+  applyLink: string;
+  ratings: { source: string; rating: number | null; reviews: number | null; link: string }[];
 }
 
 export const StudentResumePage: React.FC = () => {
-  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [matchedJobs, setMatchedJobs] = useState<MatchedJob[]>([]);
-  const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
-
-  const fetchDefaultJobs = async () => {
-    try {
-      const jobs = await jobService.getRecommendedForStudent();
-      setMatchedJobs(jobs as MatchedJob[]);
-    } catch {
-      toast.error('Failed to load job matches');
-    }
-  };
+  const [googleJobs, setGoogleJobs] = useState<GoogleJob[]>([]);
+  const [googleQuery, setGoogleQuery] = useState('');
+  const [matchError, setMatchError] = useState('');
+  const [savedResumes, setSavedResumes] = useState<SavedResume[]>([]);
+  const [loadingResumes, setLoadingResumes] = useState(true);
+  const [activeResumeId, setActiveResumeId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SavedResume | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetchDefaultJobs();
+    jobService.getSavedResumes()
+      .then(setSavedResumes)
+      .catch(() => setSavedResumes([]))
+      .finally(() => setLoadingResumes(false));
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
+    e.target.value = '';
   };
 
-  const handleMatchJobs = async () => {
-    if (!file) {
-      toast.error('Please upload a resume file first');
-      return;
-    }
+  const runMatch = async (source: File | SavedResume) => {
     setAnalyzing(true);
+    setMatchError('');
+    setActiveResumeId(source instanceof File ? null : source.id);
     try {
-      const jobs = await jobService.getRecommendedForStudent();
-      setMatchedJobs(jobs as MatchedJob[]);
+      const result = await jobService.searchGoogleJobs(source instanceof File ? source : { resumeId: source.id });
+      setGoogleJobs(result.jobs);
+      setGoogleQuery(result.query);
       setHasSearched(true);
-      toast.success('Resume parsed & matching job opportunities loaded!');
-    } catch {
-      toast.error('Failed to parse resume');
+      if (result.resume) {
+        const saved = result.resume;
+        setActiveResumeId(saved.id);
+        setSavedResumes(prev => [saved, ...prev.filter(r => r.id !== saved.id)].slice(0, 5));
+        if (source instanceof File) setFile(null);
+      }
+      toast.success(result.jobs.length ? 'Google job listings loaded for your resume.' : 'No Google jobs matched this resume.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load Google jobs';
+      setGoogleJobs([]);
+      setGoogleQuery('');
+      setHasSearched(false);
+      setMatchError(message);
+      toast.error(message);
     } finally {
       setAnalyzing(false);
     }
   };
 
-  const handleApply = async (job: MatchedJob) => {
+  const handleMatchJobs = () => {
+    if (!file || file.size === 0) {
+      toast.error('Upload a resume PDF first');
+      return;
+    }
+    runMatch(file);
+  };
+
+  const handleOpenResume = async (resume: SavedResume) => {
     try {
-      await applicationService.apply(job.id);
-      setAppliedJobs(prev => [...prev, job.id]);
-      toast.success(`Applied to ${job.title} at ${job.company.name}!`);
-    } catch {
-      toast.error('Failed to submit application');
+      await jobService.openSavedResume(resume.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not open this resume');
     }
   };
+
+  const handleDeleteResume = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await jobService.deleteSavedResume(deleteTarget.id);
+      setSavedResumes(prev => prev.filter(r => r.id !== deleteTarget.id));
+      if (activeResumeId === deleteTarget.id) setActiveResumeId(null);
+      toast.success(`${deleteTarget.fileName} removed`);
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not remove this resume');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const activeResume = savedResumes.find(r => r.id === activeResumeId);
 
   return (
     <PageWrapper
@@ -106,7 +148,7 @@ export const StudentResumePage: React.FC = () => {
               </label>
 
               <Button
-                disabled={analyzing}
+                disabled={analyzing || !file || file.size === 0}
                 loading={analyzing}
                 onClick={handleMatchJobs}
                 variant="ai"
@@ -116,38 +158,104 @@ export const StudentResumePage: React.FC = () => {
                 Find Matching Jobs
               </Button>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recent Resumes</span>
-              <select 
-                className="text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:ring-brand-500 cursor-pointer shadow-sm w-48"
-                onChange={(e) => {
-                  if (e.target.value) {
-                    toast.success(`Selected recent resume: ${e.target.value}`);
-                    // Optionally set a mock file object here to light up the UI
-                    const mockFile = new File([""], e.target.value, { type: "application/pdf" });
-                    setFile(mockFile as any);
-                  }
-                }}
-              >
-                <option value="">Select recent...</option>
-                <option value="Arjun_Sharma_SDE_Resume_v2.pdf">Arjun_Sharma_SDE_Resume_v2.pdf</option>
-                <option value="Arjun_Frontend_Final.pdf">Arjun_Frontend_Final.pdf</option>
-                <option value="SDE_2026_ATS_Optimized.pdf">SDE_2026_ATS_Optimized.pdf</option>
-              </select>
-            </div>
           </div>
         </div>
       </Card>
 
-      {/* MATCHED JOBS LIST */}
+      <Card className="mb-6 overflow-hidden" padding={false}>
+        <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+          <h3 className="font-semibold text-sm text-slate-900 dark:text-white">Recent resumes</h3>
+          {!loadingResumes && savedResumes.length > 0 && (
+            <span className="text-xs text-slate-500 dark:text-slate-400">{savedResumes.length} of 5 saved</span>
+          )}
+        </div>
+        {loadingResumes ? (
+          <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                <Skeleton className="w-9 h-9 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3.5 w-48" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+                <Skeleton className="h-8 w-24 rounded-xl" />
+              </div>
+            ))}
+          </div>
+        ) : savedResumes.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-slate-500 dark:text-slate-400">
+            Resumes you upload are saved here, so you can find matching jobs again without re-uploading.
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate-100 dark:divide-slate-700/60">
+            {savedResumes.map(resume => {
+              const isActive = resume.id === activeResumeId;
+              return (
+                <li
+                  key={resume.id}
+                  className={`flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-3.5 transition-colors ${isActive ? 'bg-brand-50/60 dark:bg-brand-900/20' : ''}`}
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{resume.fileName}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {formatSize(resume.size)} · used {timeAgo(resume.lastUsedAt)}
+                        {resume.lastQuery && <> · <span className="italic">“{resume.lastQuery}”</span></>}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      size="sm"
+                      variant={isActive ? 'primary' : 'outline'}
+                      leftIcon={<Search className="w-3.5 h-3.5" />}
+                      loading={analyzing && isActive}
+                      disabled={analyzing}
+                      onClick={() => runMatch(resume)}
+                      className="text-xs whitespace-nowrap"
+                    >
+                      Find jobs
+                    </Button>
+                    <button
+                      type="button"
+                      aria-label={`Open ${resume.fileName}`}
+                      title="Open PDF"
+                      onClick={() => handleOpenResume(resume)}
+                      className="p-2 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${resume.fileName}`}
+                      title="Remove"
+                      onClick={() => setDeleteTarget(resume)}
+                      className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
+
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-ai-500" />
-            Matched Campus Opportunities ({matchedJobs.length})
+            Google Jobs ({googleJobs.length})
           </h3>
-          <AIBadge label="AI Resume Rank" />
+          {googleQuery && (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">
+              {googleQuery}{activeResume ? ` · ${activeResume.fileName}` : ''}
+            </span>
+          )}
         </div>
 
         {analyzing ? (
@@ -156,75 +264,76 @@ export const StudentResumePage: React.FC = () => {
               <Card key={i} className="h-32"><Skeleton className="h-full w-full rounded-2xl" /></Card>
             ))}
           </div>
+        ) : googleJobs.length === 0 ? (
+          <Card className="p-6 text-sm text-slate-500 dark:text-slate-400">
+            {matchError
+              || (hasSearched
+                ? 'No live Google listings came back for this resume.'
+                : 'Upload a resume and choose Find Matching Jobs to load live Google listings and company ratings.')}
+          </Card>
         ) : (
           <div className="space-y-4">
-            {matchedJobs.map(job => {
-              const isApplied = appliedJobs.includes(job.id);
-              const matchScore = job.matchScore || 92;
-
-              return (
-                <Card key={job.id} hover className="p-6 transition-all duration-200 border-slate-200 dark:border-slate-700">
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-ai-600 text-white font-black text-lg flex items-center justify-center shadow-md flex-shrink-0">
-                        {job.company.name[0]}
+            {googleJobs.map(job => (
+              <Card key={job.id} hover className="p-6 border-slate-200 dark:border-slate-700">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="flex items-start gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-ai-600 text-white font-black text-lg flex items-center justify-center shadow-md flex-shrink-0">
+                      {(job.companyName || 'G')[0]}
+                    </div>
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-bold text-base text-slate-900 dark:text-white leading-snug">{job.title}</h3>
+                        <Badge variant="blue" className="text-[10px]">Google Jobs</Badge>
                       </div>
-
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-bold text-base text-slate-900 dark:text-white leading-snug">
-                            {job.title}
-                          </h3>
-                          <Badge variant="green" className="text-[10px]">
-                            {matchScore}% Resume Match
-                          </Badge>
-                        </div>
-
-                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                          <strong className="text-slate-700 dark:text-slate-300 font-semibold">{job.company.name}</strong>
-                          <span>·</span>
-                          <span>{job.location}</span>
-                          <span>·</span>
-                          <span>Package: ₹{job.salaryMin} - ₹{job.salaryMax} LPA</span>
-                        </p>
-
-                        {job.aiExplanation && (
-                          <p className="text-xs text-brand-600 dark:text-brand-400 bg-brand-50/50 dark:bg-brand-950/30 p-2.5 rounded-xl border border-brand-100 dark:border-brand-900/40 mt-2">
-                            ✨ {job.aiExplanation}
-                          </p>
-                        )}
-
+                      <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-2">
+                        <strong className="text-slate-700 dark:text-slate-300 font-semibold">{job.companyName}</strong>
+                        <span>·</span>
+                        <span>{job.location}</span>
+                        {job.schedule && <><span>·</span><span>{job.schedule}</span></>}
+                        {job.postedAt && <><span>·</span><span>{job.postedAt}</span></>}
+                        {job.via && <><span>·</span><span>{job.via}</span></>}
+                      </p>
+                      {job.description && (
+                        <p className="text-xs text-slate-600 dark:text-slate-300 pt-1 line-clamp-3">{job.description}</p>
+                      )}
+                      {job.ratings.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 pt-2">
-                          {job.skills.map(skill => (
-                            <Badge key={skill} variant="slate" className="text-[10px]">{skill}</Badge>
+                          {job.ratings.map(rating => (
+                            <Badge key={`${job.id}-${rating.source}`} variant="slate" className="text-[10px]">
+                              {rating.source}{rating.rating != null ? ` ${rating.rating}` : ''}{rating.reviews != null ? ` · ${rating.reviews} reviews` : ''}
+                            </Badge>
                           ))}
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-3 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center gap-2">
-                        {isApplied ? (
-                          <Button variant="secondary" size="sm" disabled className="text-xs text-emerald-600 font-bold" leftIcon={<Check className="w-3.5 h-3.5 text-emerald-500" />}>
-                            Applied
-                          </Button>
-                        ) : (
-                          <Button size="sm" className="text-xs" onClick={() => handleApply(job)}>
-                            Apply Now
-                          </Button>
-                        )}
-                        <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate('/student/jobs')}>
-                          View Job
-                        </Button>
-                      </div>
+                      )}
                     </div>
                   </div>
-                </Card>
-              );
-            })}
+                  <div className="flex items-center gap-2 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
+                    <Button
+                      size="sm"
+                      className="text-xs"
+                      disabled={!job.applyLink}
+                      onClick={() => window.open(job.applyLink, '_blank', 'noopener,noreferrer')}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteResume}
+        title="Remove resume?"
+        message={`Are you sure you want to remove ${deleteTarget?.fileName ?? 'this resume'} from your recent resumes?`}
+        confirmLabel="Remove"
+        confirmVariant="danger"
+        loading={deleting}
+      />
     </PageWrapper>
   );
 };

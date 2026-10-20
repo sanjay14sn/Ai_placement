@@ -147,18 +147,26 @@ export const CollegeInterviewsPage: React.FC = () => {
   return (
     <PageWrapper
       title="Interviews"
-      subtitle={`${filteredInterviews.length} interviews scheduled`}
       breadcrumbs={[{ label: 'College' }, { label: 'Interviews' }]}
-      actions={
-        <Button size="sm" leftIcon={<Plus className="w-4 h-4" />} onClick={() => setIsModalOpen(true)}>
-          Schedule Interview
-        </Button>
-      }
     >
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Interview schedule</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {loading
+              ? 'Loading interviews…'
+              : `${interviews.filter(i => i.status === 'scheduled').length} upcoming · ${interviews.length} total`}
+          </p>
+        </div>
+        <Button leftIcon={<Plus className="w-4 h-4" />} onClick={() => setIsModalOpen(true)} className="w-full sm:w-auto">
+          Schedule interview
+        </Button>
+      </div>
+
       {/* Filters */}
       <Card className="p-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
+        <div className="flex flex-col lg:flex-row gap-3">
+          <div className="flex-1 min-w-0">
             <Input
               placeholder="Search by student name or company name..."
               value={search}
@@ -196,9 +204,13 @@ export const CollegeInterviewsPage: React.FC = () => {
       ) : filteredInterviews.length === 0 ? (
         <EmptyState
           icon={<Calendar className="w-6 h-6" />}
-          title="No interviews found"
-          description="Try adjusting your search or filters to see results."
-          action={{ label: 'Schedule Interview', onClick: () => setIsModalOpen(true) }}
+          title={interviews.length === 0 ? 'No interviews yet' : 'No interviews found'}
+          description={interviews.length === 0
+            ? 'Schedule an interview for a shortlisted student to see it here.'
+            : 'Try adjusting your search or filters to see results.'}
+          action={interviews.length === 0
+            ? { label: 'Schedule interview', onClick: () => setIsModalOpen(true) }
+            : { label: 'Clear filters', onClick: () => { setSearch(''); setStatusFilter('all'); } }}
         />
       ) : (
         <Card className="overflow-hidden border border-slate-200/60 dark:border-slate-700/60 shadow-sm">

@@ -9,6 +9,7 @@ import { Company } from '../models/Company';
 import { Job } from '../models/Job';
 import { Program } from '../models/Program';
 import { Interview } from '../models/Interview';
+import { seedRichStudents } from './seed_rich_students';
 
 const DEMO_PASSWORD = 'password123';
 
@@ -269,7 +270,7 @@ const seed = async () => {
     { name: 'Suresh Kumar', email: 'suresh.k@rvce.edu.in', cgpa: 8.5, dept: 'EEE', deptId: eee._id },
     { name: 'Divya M', email: 'divya.m@rvce.edu.in', cgpa: 7.8, dept: 'EEE', deptId: eee._id },
     { name: 'Manoj Sharma', email: 'manoj.s@rvce.edu.in', cgpa: 8.1, dept: 'ME', deptId: me._id },
-    { name: 'Rahul Gowda', email: 'rahul.g@rvce.edu.in', cgpa: 7.4, dept: 'ME', deptId: me._id },
+    { name: 'Rahul Gowda', email: 'rahul.g@rvce.edu.in', cgpa: 7.4, dept: 'ME', deptId: me._id, isPrivate: true },
   ];
 
   for (const s of studentNames) {
@@ -309,8 +310,12 @@ const seed = async () => {
       preferredLocations: ['Bengaluru'],
       preferredRoles: ['Software Engineer'],
       expectedSalary: 800000,
+      isProfilePublic: !(s as any).isPrivate,
     });
   }
+
+  // ─── 3b. Seed Rich Student Profiles ───────────────────────────────────
+  await seedRichStudents();
 
   // ─── 4. Create Companies ────────────────────────────────────────────────
 

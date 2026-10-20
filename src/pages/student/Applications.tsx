@@ -108,8 +108,8 @@ export const StudentApplicationsPage: React.FC = () => {
       subtitle="Track your campus recruitment drive submissions, pipeline progress, and job offers."
       breadcrumbs={[{ label: 'Student' }, { label: 'Applications' }]}
       actions={
-        <Button size="sm" onClick={() => navigate('/student/jobs')}>
-          Browse More Jobs
+        <Button size="sm" onClick={() => navigate('/student/drives')}>
+          Browse Campus Drives
         </Button>
       }
     >
@@ -203,7 +203,7 @@ export const StudentApplicationsPage: React.FC = () => {
           icon={<ClipboardList className="w-8 h-8 text-slate-400" />}
           title="No applications found"
           description={search ? `No applications match "${search}"` : "You haven't submitted applications under this category yet."}
-          action={{ label: 'Explore Recommended Jobs', onClick: () => navigate('/student/jobs') }}
+          action={{ label: 'Browse Campus Drives', onClick: () => navigate('/student/drives') }}
         />
       ) : (
         <div className="space-y-4 mb-6">

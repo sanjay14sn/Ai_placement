@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Bot, Send, User, Zap, BookOpen, Users, FileText, TrendingUp, RefreshCw } from 'lucide-react';
+import { Bot, Send, User, Zap, BookOpen, Users, FileText, TrendingUp } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
-import { Card, Button, Input, AIBadge, Badge } from '../../components/ui';
+import { Card, Button, Input, AIBadge } from '../../components/ui';
 import { aiService } from '../../services';
-import { useAuthStore } from '../../store';
 import { cn } from '../../utils';
 import type { ChatMessage } from '../../types';
 
@@ -24,44 +23,88 @@ const STUDENT_SUGGESTIONS = [
   'What should I learn for a data analyst role?',
 ];
 
-// Simple markdown-like renderer
-const MessageContent: React.FC<{ content: string }> = ({ content }) => {
-  const lines = content.split('\n');
-  return (
-    <div className="text-sm leading-relaxed space-y-2">
-      {lines.map((line, i) => {
-        if (line.startsWith('**') && line.endsWith('**')) {
-          return <p key={i} className="font-semibold">{line.slice(2, -2)}</p>;
-        }
-        if (line.startsWith('# ')) {
-          return <h3 key={i} className="font-bold text-base">{line.slice(2)}</h3>;
-        }
-        if (line.startsWith('## ')) {
-          return <h4 key={i} className="font-semibold">{line.slice(3)}</h4>;
-        }
-        if (line.startsWith('- ') || line.startsWith('* ')) {
-          return <div key={i} className="flex items-start gap-2"><span className="text-brand-500 mt-1">•</span><span>{line.slice(2)}</span></div>;
-        }
-        if (line.match(/^\d+\./)) {
-          return <div key={i} className="flex items-start gap-2"><span className="text-brand-500 font-medium">{line.match(/^\d+/)?.[0]}.</span><span>{line.replace(/^\d+\.\s*/, '')}</span></div>;
-        }
-        if (line.includes('|') && line.includes('|', line.indexOf('|') + 1)) {
-          const cells = line.split('|').filter(c => c.trim());
-          return (
-            <div key={i} className="flex gap-4 py-1 border-b border-slate-100 dark:border-slate-700">
-              {cells.map((cell, j) => <span key={j} className={cn('text-xs', j === 0 ? 'font-medium w-28' : 'text-slate-600 dark:text-slate-400')}>{cell.trim()}</span>)}
-            </div>
-          );
-        }
-        if (line.trim() === '---' || line.match(/^\|---/)) return <hr key={i} className="border-slate-200 dark:border-slate-700" />;
-        if (line.trim() === '') return <div key={i} className="h-1" />;
-        // Bold inline
-        const boldified = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        return <p key={i} dangerouslySetInnerHTML={{ __html: boldified }} />;
-      })}
-    </div>
-  );
+const renderInline = (text: string) => {
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g).filter(Boolean);
+  return parts.map((part, index) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code key={index} className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[12px] text-slate-800 dark:bg-slate-700 dark:text-slate-100">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index} className="font-semibold text-slate-900 dark:text-white">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
 };
+
+type AnswerBlock =
+  | { type: 'paragraph'; text: string }
+  | { type: 'heading'; text: string }
+  | { type: 'list'; items: { depth: number; text: string }[] };
+
+const parseAnswer = (content: string): AnswerBlock[] => {
+  const blocks: AnswerBlock[] = [];
+  let list: { depth: number; text: string }[] | null = null;
+  const flushList = () => {
+    if (list?.length) blocks.push({ type: 'list', items: list });
+    list = null;
+  };
+
+  content.split('\n').forEach((raw) => {
+    const line = raw.replace(/\t/g, '  ');
+    if (!line.trim() || line.trim() === '---') {
+      flushList();
+      return;
+    }
+    const heading = line.match(/^#{1,3}\s+(.*)$/);
+    const section = line.trim().match(/^\*\*(.+?)\*\*:?$/);
+    if (heading || section) {
+      flushList();
+      blocks.push({ type: 'heading', text: (heading?.[1] || section?.[1] || '').replace(/:$/, '') });
+      return;
+    }
+    const bullet = line.match(/^(\s*)(?:[-*]|\d+\.)\s+(.*)$/);
+    if (bullet) {
+      if (!list) list = [];
+      list.push({ depth: Math.min(3, Math.floor(bullet[1].length / 2)), text: bullet[2] });
+      return;
+    }
+    flushList();
+    blocks.push({ type: 'paragraph', text: line.trim() });
+  });
+  flushList();
+  return blocks;
+};
+
+const MessageContent: React.FC<{ content: string }> = ({ content }) => (
+  <div className="space-y-2.5 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+    {parseAnswer(content).map((block, index) => {
+      if (block.type === 'heading') {
+        return (
+          <h4 key={index} className="pt-1 text-[13px] font-semibold text-slate-950 dark:text-white">
+            {block.text}
+          </h4>
+        );
+      }
+      if (block.type === 'list') {
+        return (
+          <ul key={index} className="space-y-1.5">
+            {block.items.map((item, itemIndex) => (
+              <li key={itemIndex} className="flex items-start gap-2" style={{ marginLeft: item.depth * 16 }}>
+                <span className={cn('mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full', item.depth ? 'bg-slate-300 dark:bg-slate-500' : 'bg-brand-500')} />
+                <span>{renderInline(item.text)}</span>
+              </li>
+            ))}
+          </ul>
+        );
+      }
+      return <p key={index}>{renderInline(block.text)}</p>;
+    })}
+  </div>
+);
 
 interface AIAssistantPageProps {
   mode?: 'college' | 'student' | 'recruiter';
@@ -85,6 +128,21 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ mode = 'colleg
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    aiService.getChat(mode).then((data) => {
+      if (cancelled || !data?.messages?.length) return;
+      setMessages((prev) => {
+        const welcome = prev.filter((item) => item.id === 'welcome');
+        const local = prev.filter((item) => item.id !== 'welcome');
+        const saved = data.messages;
+        const extra = local.filter((item) => !saved.some((entry) => entry.role === item.role && entry.content === item.content));
+        return [...welcome, ...saved, ...extra];
+      });
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [mode]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, thinking]);
 
@@ -103,7 +161,11 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ mode = 'colleg
     setThinking(true);
 
     try {
-      const response = await aiService.chat(text, mode);
+      const history = messages
+        .filter(item => item.id !== 'welcome')
+        .slice(-8)
+        .map(item => ({ role: item.role, content: item.content }));
+      const response = await aiService.chat(text, mode, history);
       const aiMsg: ChatMessage = {
         id: `msg-${Date.now()}-ai`,
         role: 'assistant',
@@ -111,6 +173,13 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ mode = 'colleg
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, aiMsg]);
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        id: `msg-${Date.now()}-ai`,
+        role: 'assistant',
+        content: err instanceof Error ? err.message : 'Gemini could not answer that.',
+        timestamp: new Date().toISOString(),
+      }]);
     } finally {
       setThinking(false);
     }
@@ -140,7 +209,7 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ mode = 'colleg
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                   <span className="text-xs text-emerald-600 dark:text-emerald-400">Online</span>
-                  <AIBadge label="GPT-4o" className="ml-1" />
+                  <AIBadge label="Campus" className="ml-1" />
                 </div>
               </div>
             </div>
@@ -161,24 +230,15 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ mode = 'colleg
                     }
                   </div>
                   <div className={cn(
-                    'max-w-[75%] rounded-2xl px-4 py-3',
+                    'rounded-2xl px-4 py-3',
                     msg.role === 'assistant'
-                      ? 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
-                      : 'bg-brand-600 text-white'
+                      ? 'max-w-[min(42rem,92%)] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                      : 'max-w-[75%] bg-brand-600 text-white'
                   )}>
                     {msg.role === 'assistant' ? (
                       <MessageContent content={msg.content} />
                     ) : (
                       <p className="text-sm">{msg.content}</p>
-                    )}
-                    {/* Action buttons for AI responses */}
-                    {msg.role === 'assistant' && msg.id !== 'welcome' && (
-                      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <Button variant="outline" size="sm" className="text-xs">View Details</Button>
-                        {msg.content.includes('student') && (
-                          <Button size="sm" className="text-xs">Send Reminder</Button>
-                        )}
-                      </div>
                     )}
                   </div>
                 </div>

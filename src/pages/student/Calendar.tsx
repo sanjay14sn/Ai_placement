@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, Video,
-  Building2, CheckCircle2, AlertCircle, Plus, Filter, ArrowUpRight,
+  Calendar as CalendarIcon, CalendarDays, ChevronLeft, ChevronRight, Clock, Video,
+  Building2, AlarmClock, CheckCircle2, AlertCircle, Plus, Filter, ArrowUpRight,
   Sparkles, ExternalLink, MapPin, Search, List, Grid
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Modal, AIBadge, Input } from '../../components/ui';
-import { interviewService, driveService } from '../../services';
-import { formatDate, formatTime } from '../../utils';
+import { interviewService, driveService, jobService, communityService } from '../../services';
+import { formatDate, formatTime, toDateKey } from '../../utils';
 import { toast } from 'sonner';
 
 interface CalendarEvent {
   id: string;
   title: string;
-  type: 'interview' | 'drive' | 'deadline' | 'assessment';
+  type: 'interview' | 'drive' | 'deadline' | 'assessment' | 'event';
   companyName: string;
   companyLogo?: string;
   date: string; // YYYY-MM-DD
@@ -40,9 +40,11 @@ export const StudentCalendarPage: React.FC = () => {
     const loadEvents = async () => {
       setLoading(true);
       try {
-        const [interviewsRes, drivesRes] = await Promise.all([
+        const [interviewsRes, drivesRes, jobsRes, posted] = await Promise.all([
           interviewService.getAll({ limit: 50 }),
           driveService.getAll({ status: 'upcoming' }),
+          jobService.getAll({ limit: 100, status: 'active' }).catch(() => ({ data: [] })),
+          communityService.getEvents().catch(() => []),
         ]);
 
         const mappedInterviews: CalendarEvent[] = interviewsRes.data.map(i => ({
@@ -50,8 +52,8 @@ export const StudentCalendarPage: React.FC = () => {
           title: `Round ${i.round}: ${i.type.toUpperCase()} Interview`,
           type: 'interview',
           companyName: i.company?.name || 'Unknown Company',
-          date: i.date,
-          time: i.time,
+          date: toDateKey(i.date),
+          time: (i.time || '').slice(0, 5),
           meetingLink: i.meetingLink,
           venue: i.venue || 'Online / Google Meet',
           status: i.status,
@@ -63,39 +65,38 @@ export const StudentCalendarPage: React.FC = () => {
           title: d.title,
           type: 'drive',
           companyName: d.company?.name || 'Unknown Company',
-          date: d.date,
+          date: toDateKey(d.date),
           time: '09:30',
           venue: d.venue,
           status: d.status,
           description: `Placement Drive for ${d.company?.name || 'Unknown Company'} at ${d.venue || 'TBA'}`,
         }));
 
-        // Mock application deadlines
-        const today = new Date();
-        const y = today.getFullYear();
-        const m = String(today.getMonth() + 1).padStart(2, '0');
-        const deadlines: CalendarEvent[] = [
-          {
-            id: 'dead-1',
-            title: 'Google SDE Application Closes',
-            type: 'deadline',
-            companyName: 'Google India',
-            date: `${y}-${m}-15`,
-            time: '23:59',
-            description: 'Last date to submit ATS resume for Google campus drive.',
-          },
-          {
-            id: 'dead-2',
-            title: 'Amazon Online Assessment Deadline',
-            type: 'assessment',
-            companyName: 'Amazon India',
-            date: `${y}-${m}-22`,
-            time: '18:00',
-            description: '90-minute coding test link on HackerRank platform.',
-          },
-        ];
+        const deadlines: CalendarEvent[] = (jobsRes.data || []).filter(job => job.applicationDeadline).map(job => {
+          const when = new Date(job.applicationDeadline);
+          return {
+            id: `deadline-${job.id}`,
+            title: `${job.title} closes`,
+            type: 'deadline' as const,
+            companyName: job.company?.name || 'Company',
+            date: toDateKey(when),
+            time: `${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`,
+            description: `Last date to apply for ${job.title}.`,
+          };
+        });
 
-        setEvents([...mappedInterviews, ...mappedDrives, ...deadlines]);
+        const postedEvents: CalendarEvent[] = posted.map((event: { id: string; title: string; date: string; startTime?: string; location?: string; speaker?: string; type?: string; description?: string }) => ({
+          id: `campus-${event.id}`,
+          title: event.title,
+          type: 'event' as const,
+          companyName: event.speaker || 'Campus',
+          date: toDateKey(event.date),
+          time: (event.startTime || '').slice(0, 5),
+          venue: event.location,
+          description: event.description || `${event.type || 'Event'} posted by the placement office.`,
+        }));
+
+        setEvents([...mappedInterviews, ...mappedDrives, ...deadlines, ...postedEvents]);
       } catch (err: any) {
         console.error('Failed to load events:', err);
         toast.error(err.message || 'Failed to load calendar events');
@@ -153,6 +154,7 @@ export const StudentCalendarPage: React.FC = () => {
       case 'drive': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
       case 'deadline': return 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border-red-200 dark:border-red-800';
       case 'assessment': return 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+      case 'event': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
     }
   };
 
@@ -162,6 +164,7 @@ export const StudentCalendarPage: React.FC = () => {
       case 'drive': return 'bg-emerald-500';
       case 'deadline': return 'bg-red-500';
       case 'assessment': return 'bg-amber-500';
+      case 'event': return 'bg-emerald-500';
     }
   };
 
@@ -216,20 +219,21 @@ export const StudentCalendarPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2">
             {[
-              { type: 'all', label: 'All Events' },
-              { type: 'interview', label: 'Interviews 🎯' },
-              { type: 'drive', label: 'Drives 🏢' },
-              { type: 'deadline', label: 'Deadlines ⏰' },
+              { type: "all" as const, label: "All Events", icon: CalendarDays },
+              { type: "interview" as const, label: "Interviews", icon: Video },
+              { type: "drive" as const, label: "Drives", icon: Building2 },
+              { type: "deadline" as const, label: "Deadlines", icon: AlarmClock },
             ].map(f => (
               <button
                 key={f.type}
-                onClick={() => setFilterType(f.type as typeof filterType)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                onClick={() => setFilterType(f.type)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
                   filterType === f.type
-                    ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
-                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                    ? "bg-brand-600 text-white border-brand-600 shadow-sm"
+                    : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
                 }`}
               >
+                <f.icon className="w-3.5 h-3.5" />
                 {f.label}
               </button>
             ))}
@@ -241,7 +245,7 @@ export const StudentCalendarPage: React.FC = () => {
       {viewMode === 'month' && (
         <Card padding={false} className="overflow-hidden mb-6 border-slate-200 dark:border-slate-700">
           {/* Day Names Header */}
-          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-center font-bold text-xs text-slate-500 dark:text-slate-400 py-3">
+          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-center font-bold text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 py-2 sm:py-3">
             <div>Sun</div>
             <div>Mon</div>
             <div>Tue</div>
@@ -257,7 +261,7 @@ export const StudentCalendarPage: React.FC = () => {
             {Array.from({ length: firstDayOfMonth }).map((_, i) => {
               const dayNum = prevMonthDays - firstDayOfMonth + i + 1;
               return (
-                <div key={`prev-${i}`} className="min-h-[110px] p-2 bg-slate-50/50 dark:bg-slate-900/40 opacity-40">
+                <div key={`prev-${i}`} className="min-h-[4.25rem] sm:min-h-[110px] p-1 sm:p-2 bg-slate-50/50 dark:bg-slate-900/40 opacity-40">
                   <span className="text-xs font-medium text-slate-400">{dayNum}</span>
                 </div>
               );
@@ -275,7 +279,7 @@ export const StudentCalendarPage: React.FC = () => {
               return (
                 <div
                   key={`day-${dayNum}`}
-                  className={`min-h-[110px] p-2 transition-colors relative flex flex-col justify-between group ${
+                  className={`min-h-[4.25rem] sm:min-h-[110px] p-1 sm:p-2 transition-colors relative flex flex-col justify-between group ${
                     isToday ? 'bg-brand-50/30 dark:bg-brand-950/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                   }`}
                 >

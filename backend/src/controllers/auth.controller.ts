@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { User } from '../models/User';
 import { Student } from '../models/Student';
 import { College } from '../models/College';
+import { ensureCollegeCodes } from './college.controller';
 import { Department } from '../models/Department';
 import { tokenService } from '../services/token.service';
 import { otpService, generateOtp, getOtpExpiry } from '../services/otp.service';
@@ -14,7 +15,7 @@ import { env } from '../config/env';
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address').toLowerCase(),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 export const registerStudentSchema = z.object({
@@ -125,10 +126,19 @@ export const login = async (
       user.tenantId?.toString()
     );
 
+    const payload = buildUserResponse(user, token);
+    if (user.tenantId && (user.role === 'TPO' || user.role === 'COLLEGE_ADMIN')) {
+      await ensureCollegeCodes();
+      const college = await College.findById(user.tenantId).select('name code');
+      if (college) {
+        Object.assign(payload.user, { collegeCode: college.code, collegeName: college.name });
+      }
+    }
+
     res.json({
       success: true,
       message: 'Login successful',
-      data: buildUserResponse(user, token),
+      data: payload,
     });
   } catch (error) {
     next(error);

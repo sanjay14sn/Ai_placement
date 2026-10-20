@@ -23,6 +23,7 @@ import { SuperAdminAuditLogsPage } from '../pages/super-admin/AuditLogs';
 import { SuperAdminSettingsPage } from '../pages/super-admin/Settings';
 import { SuperAdminProgramsPage } from '../pages/super-admin/Programs';
 import { SuperAdminNewsroomPage } from '../pages/super-admin/Newsroom';
+import { SuperAdminCampusConnectPage } from '../pages/super-admin/CampusConnect';
 
 // College
 import { CollegeDashboard } from '../pages/college/Dashboard';
@@ -38,10 +39,10 @@ import { CollegeApplicationsPage } from '../pages/college/Applications';
 import { CollegeInterviewsPage } from '../pages/college/Interviews';
 import { CollegeCalendarPage } from '../pages/college/Calendar';
 import { CollegeNotificationsPage } from '../pages/college/Notifications';
-import { CollegeAnalyticsPage } from '../pages/college/Analytics';
 import { CollegeReportsPage } from '../pages/college/Reports';
 import { CollegeSettingsPage } from '../pages/college/Settings';
 import { CollegeProgramsPage } from '../pages/college/Programs';
+import { CollegeEventsPage } from '../pages/college/Events';
 import { AIAssistantPage } from '../pages/shared/AIAssistant';
 
 // Student
@@ -49,17 +50,24 @@ import { StudentDashboard } from '../pages/student/Dashboard';
 import { StudentProfilePage } from '../pages/student/Profile';
 import { StudentResumePage } from '../pages/student/Resume';
 import { StudentATSCheckerPage } from '../pages/student/ATSChecker';
-import { StudentJobsPage } from '../pages/student/Jobs';
 import { StudentApplicationsPage } from '../pages/student/Applications';
 import { StudentInterviewsPage } from '../pages/student/Interviews';
 import { StudentCalendarPage } from '../pages/student/Calendar';
-import { StudentReadinessPage } from '../pages/student/Readiness';
 import { StudentInterviewPrepPage } from '../pages/student/InterviewPrep';
 import { StudentNotificationsPage } from '../pages/student/Notifications';
-import { StudentSettingsPage } from '../pages/student/Settings';
 import { StudentProgramsPage } from '../pages/student/Programs';
 import { StudentNewsroomPage } from '../pages/student/Newsroom';
 import { StudentCampusDrivesPage } from '../pages/student/CampusDrives';
+import { CommunityFeedPage } from '../pages/student/CommunityFeed';
+import { ExploreStudentsPage } from '../pages/student/ExploreStudents';
+import { StudentDetailViewPage } from '../pages/student/StudentDetailView';
+import { ConnectionsPage } from '../pages/student/Connections';
+import { MessagesPage } from '../pages/student/Messages';
+import { CommunitiesPage } from '../pages/student/Communities';
+import { CommunityDetailPage } from '../pages/student/CommunityDetail';
+import { EventsPage } from '../pages/student/Events';
+import { MentorshipPage } from '../pages/student/Mentorship';
+import { AINetworkingPage } from '../pages/student/AINetworking';
 
 // Recruiter
 import { RecruiterDashboard } from '../pages/recruiter/Dashboard';
@@ -98,6 +106,7 @@ export const AppRouter: React.FC = () => {
             <Route path="/super-admin" element={<Navigate to="/super-admin/overview" replace />} />
             <Route path="/super-admin/overview" element={<SuperAdminOverview />} />
             <Route path="/super-admin/newsroom" element={<SuperAdminNewsroomPage />} />
+            <Route path="/super-admin/campus-connect" element={<SuperAdminCampusConnectPage />} />
             <Route path="/super-admin/programs" element={<SuperAdminProgramsPage />} />
             <Route path="/super-admin/colleges" element={<SuperAdminCollegesPage />} />
             <Route path="/super-admin/colleges/:id" element={<SuperAdminCollegeDetailsPage />} />
@@ -127,11 +136,10 @@ export const AppRouter: React.FC = () => {
             <Route path="/college/applications" element={<CollegeApplicationsPage />} />
             <Route path="/college/interviews" element={<CollegeInterviewsPage />} />
             <Route path="/college/calendar" element={<CollegeCalendarPage />} />
+            <Route path="/college/events" element={<CollegeEventsPage />} />
             <Route path="/college/notifications" element={<CollegeNotificationsPage />} />
-            <Route path="/college/analytics" element={<CollegeAnalyticsPage />} />
             <Route path="/college/reports" element={<CollegeReportsPage />} />
             <Route path="/college/settings" element={<CollegeSettingsPage />} />
-            <Route path="/college/ai-assistant" element={<AIAssistantPage mode="college" />} />
           </Route>
 
           {/* Student Routes */}
@@ -143,16 +151,28 @@ export const AppRouter: React.FC = () => {
             <Route path="/student/profile" element={<StudentProfilePage />} />
             <Route path="/student/resume" element={<StudentResumePage />} />
             <Route path="/student/ats-checker" element={<StudentATSCheckerPage />} />
-            <Route path="/student/jobs" element={<StudentJobsPage />} />
             <Route path="/student/drives" element={<StudentCampusDrivesPage />} />
             <Route path="/student/applications" element={<StudentApplicationsPage />} />
             <Route path="/student/interviews" element={<StudentInterviewsPage />} />
             <Route path="/student/calendar" element={<StudentCalendarPage />} />
-            <Route path="/student/readiness" element={<StudentReadinessPage />} />
+            <Route path="/student/readiness" element={<Navigate to="/student/dashboard" replace />} />
             <Route path="/student/interview-prep" element={<StudentInterviewPrepPage />} />
             <Route path="/student/ai-assistant" element={<AIAssistantPage mode="student" />} />
             <Route path="/student/notifications" element={<StudentNotificationsPage />} />
-            <Route path="/student/settings" element={<StudentSettingsPage />} />
+          </Route>
+
+          {/* CampusConnect Routes (Student & Super Admin Moderation) */}
+          <Route element={<DashboardLayout allowedRoles={['STUDENT', 'SUPER_ADMIN']} />}>
+            <Route path="/student/community" element={<CommunityFeedPage />} />
+            <Route path="/student/explore-students" element={<ExploreStudentsPage />} />
+            <Route path="/student/explore-students/:id" element={<StudentDetailViewPage />} />
+            <Route path="/student/connections" element={<ConnectionsPage />} />
+            <Route path="/student/messages" element={<MessagesPage />} />
+            <Route path="/student/communities" element={<CommunitiesPage />} />
+            <Route path="/student/communities/:id" element={<CommunityDetailPage />} />
+            <Route path="/student/events" element={<EventsPage />} />
+            <Route path="/student/mentorship" element={<MentorshipPage />} />
+            <Route path="/student/ai-networking" element={<AINetworkingPage />} />
           </Route>
 
           {/* Recruiter Routes */}

@@ -18,6 +18,7 @@ export const CollegeDriveCandidatesPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [driveState, setDriveState] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading');
   
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -26,19 +27,23 @@ export const CollegeDriveCandidatesPage: React.FC = () => {
 
   useEffect(() => {
     if (!id) return;
+    setDriveState('loading');
     driveService.getById(id)
-      .then(res => setDrive(res))
-      .catch(() => toast.error('Failed to load drive details'));
+      .then(res => { setDrive(res); setDriveState('ready'); })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : '';
+        setDriveState(/not found/i.test(message) ? 'missing' : 'error');
+      });
   }, [id]);
 
   const fetchApplications = async () => {
-    if (!id) return;
+    if (!id || driveState !== 'ready') return;
     setLoading(true);
     try {
       const res = await applicationService.getAll({
         search,
         status: status || undefined,
-        jobId: id,
+        driveId: id,
         page,
         limit: LIMIT,
       });
@@ -54,7 +59,7 @@ export const CollegeDriveCandidatesPage: React.FC = () => {
 
   useEffect(() => {
     fetchApplications();
-  }, [search, status, id, page]);
+  }, [search, status, id, page, driveState]);
 
   const handleStatusUpdate = async (appId: string, newStatus: string) => {
     try {
@@ -77,44 +82,80 @@ export const CollegeDriveCandidatesPage: React.FC = () => {
     }
   };
 
+  const breadcrumbs = [
+    { label: 'College' },
+    { label: 'Drives', to: '/college/drives' },
+    { label: 'Candidates' },
+  ];
+
+  if (driveState === 'missing' || driveState === 'error') {
+    return (
+      <PageWrapper title="Manage Candidates" breadcrumbs={breadcrumbs}>
+        <Card>
+          <EmptyState
+            icon={<Layers className="w-6 h-6" />}
+            title={driveState === 'missing' ? 'This drive no longer exists' : 'Could not load this drive'}
+            description={driveState === 'missing'
+              ? 'It may have been deleted. Its candidates were removed along with it.'
+              : 'Check your connection and try again.'}
+            action={driveState === 'missing'
+              ? { label: 'Back to drives', onClick: () => navigate('/college/drives') }
+              : { label: 'Try again', onClick: () => navigate(0) }}
+          />
+        </Card>
+      </PageWrapper>
+    );
+  }
+
   return (
-    <PageWrapper
-      title={drive ? drive.title : "Manage Candidates"}
-      subtitle={drive ? `${drive.company?.name} • ${total} Candidates` : "Loading..."}
-      breadcrumbs={[
-        { label: 'College' }, 
-        { label: 'Drives', to: '/college/drives' },
-        { label: 'Candidates' }
-      ]}
-      actions={
-        <Button variant="outline" size="sm" onClick={() => navigate('/college/drives')} leftIcon={<ArrowLeft className="w-4 h-4" />}>
-          Back to Drives
+    <PageWrapper title="Manage Candidates" breadcrumbs={breadcrumbs}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <div className="min-w-0">
+          {drive ? (
+            <>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">{drive.title}</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                {drive.company?.name || 'Company removed'} · {formatDate(drive.date)} · {total} {total === 1 ? 'candidate' : 'candidates'}
+              </p>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-56" />
+              <Skeleton className="h-4 w-72" />
+            </div>
+          )}
+        </div>
+        <Button variant="outline" onClick={() => navigate('/college/drives')} leftIcon={<ArrowLeft className="w-4 h-4" />} className="w-full sm:w-auto shrink-0">
+          Back to drives
         </Button>
-      }
-    >
+      </div>
+
       <Card className="p-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <Input
+              aria-label="Search candidates"
               placeholder="Search by student name or ID..."
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
               leftIcon={<Search className="w-4 h-4" />}
             />
           </div>
-          <Select
-            value={status}
-            onChange={e => { setStatus(e.target.value); setPage(1); }}
-            placeholder="All Stages"
-            options={[
-              { value: 'applied', label: 'Applied' },
-              { value: 'under_review', label: 'Under Review' },
-              { value: 'shortlisted', label: 'Shortlisted' },
-              { value: 'selected', label: 'Selected' },
-              { value: 'rejected', label: 'Rejected' },
-            ]}
-            className="sm:w-44"
-          />
+          <div className="sm:w-44 shrink-0">
+            <Select
+              aria-label="Filter by stage"
+              value={status}
+              onChange={e => { setStatus(e.target.value); setPage(1); }}
+              placeholder="All Stages"
+              options={[
+                { value: 'applied', label: 'Applied' },
+                { value: 'under_review', label: 'Under Review' },
+                { value: 'shortlisted', label: 'Shortlisted' },
+                { value: 'selected', label: 'Selected' },
+                { value: 'rejected', label: 'Rejected' },
+              ]}
+            />
+          </div>
         </div>
       </Card>
 

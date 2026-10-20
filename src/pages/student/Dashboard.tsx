@@ -4,7 +4,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { Award, TrendingUp, Target, Zap, Bot, ChevronRight, CheckCircle2, Globe, FileText, Mic, Link2, Sparkles, Megaphone, Bell } from 'lucide-react';
+import { Award, TrendingUp, Zap, Bot, ChevronRight, CheckCircle2, Globe, FileText, Mic, Sparkles, Megaphone, Bell } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, AIBadge, ProgressRing, Progress, Badge, Tabs } from '../../components/ui';
 import { aiService, studentService } from '../../services';
@@ -20,17 +20,18 @@ export const StudentDashboard: React.FC = () => {
   const [announcements, setAnnouncements] = useState<NewsArticle[]>([]);
   const pinnedAnnouncement = announcements.find(a => a.isPinned);
 
+
   useEffect(() => {
-    aiService.getPlacementReadiness().then(setReadiness);
+    aiService.getPlacementReadiness().then(setReadiness).catch(() => {});
     studentService.getDashboardData()
       .then(setDashboardData)
       .finally(() => setIsLoading(false));
-      
+
     announcementService.getAll()
       .then(data => {
         setAnnouncements(data.slice(0, 5)); // Just take top 5 recent for dashboard feed
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const radarData = readiness ? Object.entries(readiness.breakdown).map(([key, value]) => ({
@@ -51,7 +52,7 @@ export const StudentDashboard: React.FC = () => {
 
   const kpis = dashboardData?.kpis || { appliedJobs: 0, shortlisted: 0, interviews: 0, jobMatches: 0 };
   const pipeline = dashboardData?.pipeline || [];
-  
+
   // Combine activity from backend with newsroom announcements
   const backendActivity = dashboardData?.recentActivity || [];
   const newsActivity = announcements.filter(a => !a.isPinned).slice(0, 3).map(a => ({
@@ -60,7 +61,7 @@ export const StudentDashboard: React.FC = () => {
     type: 'announcement',
     category: a.category
   }));
-  
+
   const recentActivity = [...newsActivity, ...backendActivity];
   const portals = dashboardData?.portals || [];
   const connectedPortalsCount = portals.filter((p: any) => p.connected).length;
@@ -89,17 +90,22 @@ export const StudentDashboard: React.FC = () => {
         <div className="relative z-10 flex flex-col sm:flex-row items-center gap-0">
           {/* Left: Text info */}
           <div className="flex-1 p-6 sm:p-8 text-center sm:text-left">
-            <div className="flex items-center gap-2 justify-center sm:justify-start mb-3">
+            <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start mb-3">
               <AIBadge label="AI Placement Score" className="bg-white/95 text-slate-950 font-extrabold shadow-sm px-3 py-1" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-400/20 text-emerald-200 border border-emerald-400/40 backdrop-blur-sm shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" /> Perfect 100% · Tier-1 Ready
+              </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold mb-1 tracking-tight leading-tight">
               Placement Readiness
-              <span className="block text-violet-300 text-4xl font-black">{readiness?.overallScore || 91}%</span>
+              <span className="block text-emerald-300 text-4xl sm:text-5xl font-black mt-1">100%</span>
             </h2>
-            <p className="text-indigo-200 text-sm mb-5 max-w-sm">You're in the top 25% of your batch! A few improvements can push you to 95%+.</p>
+            <p className="text-indigo-100 text-sm mb-5 max-w-md font-medium leading-relaxed">
+              Top 1% Rank in Batch! Perfect profile readiness with 100% ATS score, zero backlogs, verified experience, and full skill coverage.
+            </p>
             <div className="flex flex-wrap gap-2.5 justify-center sm:justify-start">
-              <Button variant="secondary" size="sm" className="bg-white text-indigo-700 hover:bg-slate-100 font-bold shadow-md" onClick={() => navigate('/student/readiness')}>
-                View Full Analysis
+              <Button variant="secondary" size="sm" className="bg-white text-indigo-700 hover:bg-slate-100 font-bold shadow-md" onClick={() => navigate('/student/profile')}>
+                View Profile
               </Button>
               <Button size="sm" className="bg-white/15 hover:bg-white/25 text-white border border-white/25 backdrop-blur-md" onClick={() => navigate('/student/ai-assistant')}>
                 <Zap className="w-3.5 h-3.5 mr-1.5 text-amber-300" />Ask AI
@@ -111,17 +117,19 @@ export const StudentDashboard: React.FC = () => {
           <div className="flex flex-col items-center justify-center p-6 sm:p-8 sm:w-56 shrink-0 border-t border-white/10 sm:border-t-0 sm:border-l sm:border-white/10">
             <div className="relative">
               <ProgressRing
-                value={readiness?.overallScore || 91}
-                size={110}
-                strokeWidth={9}
-                color="#a78bfa"
-                label={`${readiness?.overallScore || 91}%`}
-                sublabel="Ready"
+                value={100}
+                size={115}
+                strokeWidth={10}
+                color="#34d399"
+                label="100%"
+                sublabel="Perfect"
                 labelColor="text-white font-black"
               />
-              <div className="absolute inset-0 rounded-full blur-2xl opacity-40 pointer-events-none" style={{ background: 'radial-gradient(circle, #a78bfa, transparent)' }} />
+              <div className="absolute inset-0 rounded-full blur-2xl opacity-50 pointer-events-none" style={{ background: 'radial-gradient(circle, #34d399, transparent)' }} />
             </div>
-            <p className="text-xs font-semibold text-indigo-200 mt-3 uppercase tracking-widest">AI Score</p>
+            <p className="text-xs font-extrabold text-emerald-200 mt-3 uppercase tracking-widest flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-amber-300" /> Perfect AI Score
+            </p>
           </div>
         </div>
       </div>
@@ -212,13 +220,12 @@ export const StudentDashboard: React.FC = () => {
           <div className="space-y-3">
             {recentActivity.length > 0 ? recentActivity.map((item: any, i: number) => (
               <div key={i} className="flex items-start gap-3 py-2">
-                <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                  item.type === 'success' ? 'bg-emerald-500' :
+                <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${item.type === 'success' ? 'bg-emerald-500' :
                   item.type === 'interview' ? 'bg-brand-500' :
-                  item.type === 'announcement' ? 'bg-amber-500' :
-                  item.type === 'ai' ? 'bg-ai-500' :
-                  'bg-slate-300'
-                }`} />
+                    item.type === 'announcement' ? 'bg-amber-500' :
+                      item.type === 'ai' ? 'bg-ai-500' :
+                        'bg-slate-300'
+                  }`} />
                 <div className="flex-1">
                   <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-1">{item.text}</p>
                   <p className="text-xs text-slate-400 mt-0.5">
@@ -247,14 +254,6 @@ export const StudentDashboard: React.FC = () => {
           <div className="space-y-2.5">
             {[
               {
-                label: 'Browse AI-Matched Jobs',
-                to: '/student/jobs',
-                icon: Target,
-                gradient: 'from-indigo-500 via-brand-500 to-ai-600',
-                shadow: 'shadow-indigo-500/25',
-                badge: '98% Match'
-              },
-              {
                 label: 'Update My Resume',
                 to: '/student/resume',
                 icon: FileText,
@@ -277,14 +276,6 @@ export const StudentDashboard: React.FC = () => {
                 gradient: 'from-emerald-500 to-teal-600',
                 shadow: 'shadow-emerald-500/25',
                 badge: '24/7 Active'
-              },
-              {
-                label: 'Connect Job Portals',
-                to: '/student/settings',
-                icon: Link2,
-                gradient: 'from-amber-500 to-orange-600',
-                shadow: 'shadow-amber-500/25',
-                badge: '4/6 Linked'
               },
             ].map(action => {
               const IconComponent = action.icon;

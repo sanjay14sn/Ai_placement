@@ -28,6 +28,8 @@ import uploadRoutes from './routes/upload.routes';
 import atsRoutes from './routes/ats.routes';
 import recruiterRoutes from './routes/recruiter.routes';
 import userRoutes from './routes/user.routes';
+import communityRoutes from './routes/community.routes';
+import aiRoutes from './routes/ai.routes';
 
 // ─── App Init ─────────────────────────────────────────────────────────────────
 const app = express();
@@ -38,7 +40,14 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: [env.clientOrigin, 'http://localhost:5173', 'http://localhost:3000'],
+  origin: [
+    env.clientOrigin,
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://aicampusintelligent.com',
+    'https://app.aicampusintelligent.com',
+    'https://api.aicampusintelligent.com',
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -96,17 +105,25 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/ats', atsRoutes);
 app.use('/api/recruiter', recruiterRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/ai', aiRoutes);
 
 // ─── 404 & Error Handling ─────────────────────────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);
+
+import http from 'http';
+import { initSocket } from './config/socket';
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
 const start = async () => {
   try {
     await connectDB();
 
-    app.listen(env.port, () => {
+    const server = http.createServer(app);
+    initSocket(server);
+
+    server.listen(env.port, () => {
       console.log('');
       console.log('╔═══════════════════════════════════════════════╗');
       console.log('║     🚀  AI PlacementOS API  —  Running        ║');

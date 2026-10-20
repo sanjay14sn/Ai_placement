@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Newspaper, Search, Pin, Eye, ThumbsUp, MessageSquare, Download,
-  Calendar, ArrowRight, Sparkles, AlertTriangle, Send, Share2, CheckCircle2
+  Newspaper, Search, Pin, Download,
+  Calendar, ArrowRight
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
-import { Button, Card, Badge, Input, Modal, Avatar, Textarea } from '../../components/ui';
+import { Button, Card, Badge, Input, Modal, Avatar } from '../../components/ui';
 import { announcementService } from '../../services';
 import { useAuthStore } from '../../store';
 import type { NewsArticle } from '../../types';
@@ -32,7 +32,6 @@ export const StudentNewsroomPage: React.FC = () => {
 
   // Active Reader Modal
   const [activeArticle, setActiveArticle] = useState<NewsArticle | null>(null);
-  const [commentInput, setCommentInput] = useState('');
 
   const categories = [
     'ALL',
@@ -40,50 +39,20 @@ export const StudentNewsroomPage: React.FC = () => {
     'Tech News'
   ];
 
-  const handleOpenArticle = async (article: NewsArticle) => {
-    try {
-      await announcementService.incrementView(article.id);
-      setActiveArticle({ ...article, viewsCount: article.viewsCount + 1 });
-      setCommentInput('');
-      loadAnnouncements(); // Refresh feed in background
-    } catch (err: any) {
-      toast.error('Failed to register view');
-      setActiveArticle(article);
-    }
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
-  const handleSendComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentInput.trim() || !activeArticle) return;
-
-    try {
-      toast.info('Posting comment...');
-      // Wait, there is no addComment in the controller currently. I should update that later or mock it.
-      // But let's mock it for now on frontend since the requirement is mainly broadcasts
-      // Actually, I can just use a local update if I don't have the endpoint yet. 
-      // But I can implement it in the controller! Wait, the implementation plan said to add addComment, but I didn't add it in the controller.
-      // Let's just leave the local optimistic update here, and we can add the endpoint.
-      // Or actually, I'll add `announcementService.addComment` locally here, and we'll implement it in backend next if needed. But for now I'll just mock it.
-      
-      // Let's pretend it succeeded for now
-      setActiveArticle(prev => prev ? {
-        ...prev,
-        comments: [...prev.comments, {
-          id: `cmt-${Date.now()}`,
-          userId: user?.id || 'id',
-          userName: user?.name || 'Student',
-          userRole: user?.role || 'STUDENT',
-          content: commentInput,
-          createdAt: new Date().toISOString(),
-          articleId: activeArticle.id,
-        }] as any
-      } : null);
-      
-      setCommentInput('');
-      toast.success('Question/Comment posted to Super Admin!');
-    } catch (err) {
-      toast.error('Failed to post comment');
-    }
+  const handleOpenArticle = (article: NewsArticle) => {
+    announcementService.incrementView(article.id).catch(() => {});
+    setActiveArticle(article);
   };
 
   // Filtered list
@@ -193,90 +162,65 @@ export const StudentNewsroomPage: React.FC = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredArticles.map((article) => {
-              const hasLiked = article.likedByUsers?.includes(user?.id || 'user-student-1');
+            {filteredArticles.map((article) => (
+              <Card
+                key={article.id}
+                className="overflow-hidden bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all flex flex-col group cursor-pointer"
+                onClick={() => handleOpenArticle(article)}
+              >
+                {/* Thumbnail Cover */}
+                <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                  <img
+                    src={article.coverImage}
+                    alt={article.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30" />
 
-              return (
-                <Card
-                  key={article.id}
-                  className="overflow-hidden bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all flex flex-col group cursor-pointer"
-                  onClick={() => handleOpenArticle(article)}
-                >
-                  {/* Thumbnail Cover */}
-                  <div className="relative aspect-video bg-slate-900 overflow-hidden">
-                    <img
-                      src={article.coverImage}
-                      alt={article.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30" />
-
-                    <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                      <span className="px-2.5 py-0.5 rounded-full bg-white/90 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 text-[10px] font-bold shadow">
-                        {article.category}
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                    <span className="px-2.5 py-0.5 rounded-full bg-white/90 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 text-[10px] font-bold shadow">
+                      {article.category}
+                    </span>
+                    {article.priority === 'urgent' && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-extrabold animate-pulse">
+                        Urgent
                       </span>
-                      {article.priority === 'urgent' && (
-                        <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-extrabold animate-pulse">
-                          Urgent
-                        </span>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    <span className="absolute bottom-2 right-2 text-white/90 text-[11px] font-medium flex items-center gap-1 bg-black/60 px-2 py-0.5 rounded">
-                      <Calendar className="w-3 h-3" /> {article.publishedAt}
+                  <span className="absolute bottom-2 right-2 text-white/90 text-[11px] font-medium flex items-center gap-1 bg-black/60 px-2.5 py-0.5 rounded backdrop-blur-sm">
+                    <Calendar className="w-3 h-3" /> {formatDate(article.publishedAt)}
+                  </span>
+                </div>
+
+                {/* Body */}
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 line-clamp-2 group-hover:text-brand-600 transition-colors">
+                      {article.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2">
+                      {article.summary}
+                    </p>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500">
+                    <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                      By {article.authorName || 'Super Admin'}
+                    </span>
+
+                    <span className="font-semibold text-brand-600 dark:text-brand-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                      Read <ArrowRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
-
-                  {/* Body */}
-                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 line-clamp-2 group-hover:text-brand-600 transition-colors">
-                        {article.title}
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2">
-                        {article.summary}
-                      </p>
-                    </div>
-
-                    {/* Footer stats */}
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500">
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1">
-                          <Eye className="w-3.5 h-3.5 text-blue-500" /> {article.viewsCount}
-                        </span>
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            try {
-                              await announcementService.toggleLike(article.id);
-                              loadAnnouncements();
-                            } catch (err) {
-                              toast.error('Failed to like announcement');
-                            }
-                          }}
-                          className={`flex items-center gap-1 hover:text-brand-600 transition-colors ${
-                            hasLiked ? 'text-brand-600 font-bold' : ''
-                          }`}
-                        >
-                          <ThumbsUp className={`w-3.5 h-3.5 ${hasLiked ? 'fill-brand-600' : ''}`} /> {article.likesCount}
-                        </button>
-                        <span className="flex items-center gap-1">
-                          <MessageSquare className="w-3.5 h-3.5 text-purple-500" /> {article.comments.length}
-                        </span>
-                      </div>
-
-                      <span className="font-semibold text-brand-600 flex items-center gap-1">
-                        Read <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
+                </div>
+              </Card>
+            ))}
           </div>
         )}
 
-        {/* ─── Reader Modal & Student Q&A Comments ──────────────────────────── */}
+        {/* ─── Reader Modal ─────────────────────────────────────────────────── */}
         {activeArticle && (
           <Modal
             isOpen={!!activeArticle}
@@ -308,39 +252,19 @@ export const StudentNewsroomPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Author & Stats Meta */}
+              {/* Author & Published Date */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500">
                 <div className="flex items-center gap-3">
                   <Avatar name={activeArticle.authorName} size="sm" src={activeArticle.authorAvatar} />
                   <div>
                     <p className="font-bold text-slate-900 dark:text-slate-100">{activeArticle.authorName}</p>
-                    <p className="text-[11px] text-slate-400">{activeArticle.authorRole}</p>
+                    <p className="text-[11px] text-slate-400">{activeArticle.authorRole || 'Campus Placement Office'}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <span>Published {activeArticle.publishedAt}</span>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await announcementService.toggleLike(activeArticle.id);
-                        loadAnnouncements();
-                        setActiveArticle(prev => prev ? {
-                          ...prev,
-                          likesCount: prev.likedByUsers?.includes(user?.id || '') ? prev.likesCount - 1 : prev.likesCount + 1,
-                          likedByUsers: prev.likedByUsers?.includes(user?.id || '') 
-                            ? prev.likedByUsers.filter(id => id !== user?.id)
-                            : [...(prev.likedByUsers || []), user?.id || '']
-                        } : null);
-                      } catch (err) {
-                        toast.error('Failed to like announcement');
-                      }
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 font-bold hover:bg-brand-100 transition-all"
-                  >
-                    <ThumbsUp className="w-4 h-4 fill-brand-600" />
-                    {activeArticle.likesCount} Likes
-                  </button>
+                <div className="flex items-center gap-1.5 text-slate-500">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Published {formatDate(activeArticle.publishedAt)}</span>
                 </div>
               </div>
 
@@ -368,57 +292,6 @@ export const StudentNewsroomPage: React.FC = () => {
                   </a>
                 </div>
               )}
-
-              {/* Q&A & Comments Section */}
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4">
-                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-brand-600" /> Student Q&A & Comments ({activeArticle.comments.length})
-                </h4>
-
-                {/* Comment Input */}
-                <form onSubmit={handleSendComment} className="flex gap-2">
-                  <Input
-                    placeholder="Ask a question or comment on this announcement..."
-                    value={commentInput}
-                    onChange={e => setCommentInput(e.target.value)}
-                    className="text-xs flex-1"
-                  />
-                  <Button type="submit" size="sm" leftIcon={<Send className="w-3.5 h-3.5" />}>
-                    Post
-                  </Button>
-                </form>
-
-                {/* Comments List */}
-                <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-                  {activeArticle.comments.length === 0 ? (
-                    <p className="text-xs text-slate-400 py-4 text-center">No questions posted yet. Be the first to ask!</p>
-                  ) : (
-                    activeArticle.comments.map((comm) => (
-                      <div
-                        key={comm.id}
-                        className={`p-3 rounded-xl border text-xs space-y-1 ${
-                          comm.userRole === 'SUPER_ADMIN'
-                            ? 'bg-brand-50/80 dark:bg-brand-950/40 border-brand-200 dark:border-brand-800'
-                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 dark:text-slate-100">{comm.userName}</span>
-                            {comm.userRole === 'SUPER_ADMIN' && (
-                              <Badge variant="purple" className="text-[9px]">Super Admin</Badge>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-slate-400">{comm.createdAt}</span>
-                        </div>
-                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                          {comm.content}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
             </div>
           </Modal>
         )}

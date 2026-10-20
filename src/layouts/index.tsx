@@ -25,7 +25,7 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ allowedRoles }) => {
   const { user, isAuthenticated } = useAuthStore();
-  const { sidebarCollapsed, theme } = useUIStore();
+  const { sidebarCollapsed, mobileNavOpen, setMobileNavOpen, theme } = useUIStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -49,17 +49,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ allowedRoles }
   if (!isAuthenticated || !user) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 overflow-x-hidden">
       <Sidebar />
+      {mobileNavOpen && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          className="fixed inset-0 z-30 bg-slate-900/50 lg:hidden"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
       <CommandPalette />
       <Toaster position="top-right" expand richColors />
 
       <div className={cn(
-        'transition-all duration-300',
-        sidebarCollapsed ? 'ml-16' : 'ml-[260px]'
+        'min-w-0 transition-all duration-300',
+        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-[260px]'
       )}>
-        <main className="pt-16 min-h-screen">
-          <div className="p-6">
+        <main className="pt-14 sm:pt-16 min-h-screen min-w-0">
+          <div className="page-content p-3 sm:p-4 lg:p-6 min-w-0">
             <Outlet />
           </div>
         </main>
@@ -84,7 +92,7 @@ export const PageWrapper: React.FC<PageWrapperProps> = ({
   return (
     <>
       <Topbar title={title} subtitle={subtitle} breadcrumbs={breadcrumbs} actions={actions} />
-      <div className="animate-fade-in">
+      <div className="animate-fade-in min-w-0">
         {children}
       </div>
     </>

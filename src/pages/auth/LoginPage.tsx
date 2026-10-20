@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Zap, Eye, EyeOff, ArrowRight, Mail, Lock, GraduationCap, Building2 } from 'lucide-react';
 import { Button, Input } from '../../components/ui';
-import { authService } from '../../services';
+import { authService, collegeService } from '../../services';
 import { useAuthStore } from '../../store';
 import { getDefaultRoute } from '../../utils';
 
@@ -12,6 +12,7 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('password123');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [campuses, setCampuses] = useState<{ name: string; code: string; tpoEmail: string }[]>([]);
   const navigate = useNavigate();
   const setUser = useAuthStore(s => s.setUser);
 
@@ -21,7 +22,8 @@ export const LoginPage: React.FC = () => {
     try {
       const { user, token } = await authService.login(email, password);
       setUser(user, token);
-      toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
+      const code = user.collegeCode || matchedCampus?.code;
+      toast.success(`Welcome back, ${user.name.split(' ')[0]}!`, code ? { description: `College code ${code}` } : undefined);
       navigate(getDefaultRoute(user.role));
     } catch {
       toast.error('Invalid credentials');
@@ -29,6 +31,18 @@ export const LoginPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    collegeService.getAll({ limit: 100 })
+      .then((res) => setCampuses(res.data.map((college) => ({
+        name: college.name,
+        code: college.code,
+        tpoEmail: college.tpoEmail,
+      }))))
+      .catch(() => undefined);
+  }, []);
+
+  const matchedCampus = campuses.find((college) => college.tpoEmail.toLowerCase() === email.trim().toLowerCase());
 
   const quickLogins = [
     { role: 'College Admin', email: 'tpo@rvce.edu.in', color: 'text-[#08546c]' },
@@ -111,6 +125,11 @@ export const LoginPage: React.FC = () => {
                 className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:border-[#08546c] focus:ring-2 focus:ring-cyan-500/20 font-medium py-2 text-xs sm:text-sm"
                 required
               />
+              {matchedCampus && (
+                <p className="text-xs font-semibold text-[#08546c] dark:text-cyan-300 bg-cyan-50 dark:bg-slate-800 border border-cyan-200/80 dark:border-cyan-900/40 rounded-xl px-3 py-2">
+                  {matchedCampus.name} · College code {matchedCampus.code}
+                </p>
+              )}
               <div>
                 <Input
                   label="Password"
@@ -152,17 +171,22 @@ export const LoginPage: React.FC = () => {
                 Quick Demo Accounts
               </p>
               <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
-                {quickLogins.map(ql => (
+                {quickLogins.map(ql => {
+                  const campusCode = campuses.find((college) => college.tpoEmail.toLowerCase() === ql.email.toLowerCase())?.code;
+                  return (
                   <button
                     key={ql.role}
                     type="button"
                     onClick={() => { setEmail(ql.email); setPassword('password123'); }}
                     className="text-left px-2.5 py-2 rounded-xl border border-cyan-200/80 dark:border-cyan-900/40 bg-cyan-50/70 dark:bg-slate-800/80 hover:bg-cyan-100/80 dark:hover:bg-slate-800 hover:border-[#08546c] transition-all duration-150 shadow-sm cursor-pointer"
                   >
-                    <p className="text-[11px] font-extrabold text-[#08546c] dark:text-cyan-400">{ql.role}</p>
+                    <p className="text-[11px] font-extrabold text-[#08546c] dark:text-cyan-400">
+                      {ql.role}{campusCode ? ` · ${campusCode}` : ''}
+                    </p>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-medium">{ql.email}</p>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

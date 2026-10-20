@@ -21,7 +21,6 @@ export const SuperAdminCollegesPage: React.FC = () => {
 
   const EMPTY_COLLEGE_FORM = {
     name: '',
-    code: '',
     city: '',
     state: '',
     establishedYear: '',
@@ -86,16 +85,15 @@ export const SuperAdminCollegesPage: React.FC = () => {
 
   const handleCreateCollege = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCollege.name || !newCollege.code || !newCollege.tpoEmail || !newCollege.password) {
+    if (!newCollege.name || !newCollege.tpoEmail || !newCollege.password) {
       toast.error('Please fill in all required fields');
       return;
     }
 
     setSubmitting(true);
     try {
-      await collegeService.create({
+      const created = await collegeService.create({
         name: newCollege.name,
-        code: newCollege.code,
         city: newCollege.city,
         state: newCollege.state,
         establishedYear: parseInt(newCollege.establishedYear, 10),
@@ -106,8 +104,9 @@ export const SuperAdminCollegesPage: React.FC = () => {
         plan: newCollege.plan,
       });
 
+      const code = created.college?.code;
       toast.success(`🎉 ${newCollege.name} Registered Successfully!`, {
-        description: `College Admin account generated: ${newCollege.tpoEmail} (Password: ${newCollege.password})`,
+        description: `College code ${code || 'assigned'}. TPO login: ${newCollege.tpoEmail}`,
         duration: 8000,
       });
 
@@ -286,6 +285,7 @@ export const SuperAdminCollegesPage: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-bold text-sm text-slate-900 dark:text-white">{college.name}</h3>
+                    {college.code && <Badge variant="indigo">Code {college.code}</Badge>}
                     {getPlanBadge(college.subscription.plan)}
                     {getStatusBadge(college.subscription.status)}
                   </div>
@@ -363,22 +363,16 @@ export const SuperAdminCollegesPage: React.FC = () => {
             🎓 <strong>Automatic College Admin Setup:</strong> Registering a college creates the institutional tenant and automatically provisions a <strong>College Admin / TPO account</strong>. The admin will use these login credentials to sign in.
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="College / Institution Name *"
-              placeholder="e.g. Sona College of Technology"
-              value={newCollege.name}
-              onChange={e => setNewCollege({ ...newCollege, name: e.target.value })}
-              required
-            />
-            <Input
-              label="College Code / Abbreviation *"
-              placeholder="e.g. SONA"
-              value={newCollege.code}
-              onChange={e => setNewCollege({ ...newCollege, code: e.target.value.toUpperCase() })}
-              required
-            />
-          </div>
+          <Input
+            label="College / Institution Name *"
+            placeholder="e.g. Sona College of Technology"
+            value={newCollege.name}
+            onChange={e => setNewCollege({ ...newCollege, name: e.target.value })}
+            required
+          />
+          <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">
+            A college code of 3 letters and 1 number is generated automatically and shown here and on the TPO login.
+          </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Input
@@ -501,10 +495,9 @@ export const SuperAdminCollegesPage: React.FC = () => {
               required
             />
             <Input
-              label="College Code / Abbreviation *"
+              label="College code"
               value={editForm.code}
-              onChange={e => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })}
-              required
+              readOnly
             />
           </div>
 

@@ -186,7 +186,7 @@ body {
 
   /* Section */
   .section-header {
-    @apply flex items-center justify-between mb-6;
+    @apply flex flex-wrap items-center justify-between gap-3 mb-6;
   }
 
   .section-title {
@@ -278,6 +278,25 @@ body {
   .gradient-text-ai {
     @apply bg-gradient-to-r from-ai-500 to-brand-500 bg-clip-text text-transparent;
   }
+}
+
+@media (max-width: 1023px) {
+  .page-content {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .page-content img,
+  .page-content video,
+  .page-content canvas {
+    max-width: 100%;
+  }
+}
+
+.recharts-responsive-container,
+.recharts-wrapper {
+  max-width: 100%;
+  min-width: 0 !important;
 }
 
 /* ─── Utilities ───────────────────────────────────────────────────────────── */

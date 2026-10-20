@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Filter, Download, Plus, Eye, Mail, MoreHorizontal, GraduationCap } from 'lucide-react';
+import { Search, Filter, Download, Plus, Eye, Mail, MoreHorizontal, GraduationCap, X, Upload } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Input, Select, Avatar, Progress, Pagination, EmptyState, Skeleton, Modal } from '../../components/ui';
 import { studentService, collegeService, departmentService } from '../../services';
@@ -36,9 +36,9 @@ export const StudentsPage: React.FC = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setSearch(searchInput);
+      setSearch(searchInput.trim());
       setPage(1);
-    }, 500);
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
@@ -204,12 +204,19 @@ export const StudentsPage: React.FC = () => {
       title="Students"
       subtitle={`${total} students`}
       breadcrumbs={[{ label: 'College' }, { label: 'Students' }]}
-      actions={
-        <div className="flex items-center gap-2">
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white">Student directory</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {loading && total === 0 ? 'Loading students…' : `${total} ${total === 1 ? 'student' : 'students'} in your college`}
+          </p>
+        </div>
+        <div className="grid grid-cols-3 sm:flex sm:items-center gap-2">
           <Button variant="outline" size="sm" leftIcon={<Download className="w-4 h-4" />} onClick={() => toast.success('Exporting CSV...')}>
             Export
           </Button>
-          <Button variant="outline" size="sm" leftIcon={<Plus className="w-4 h-4" />} onClick={() => toast.info('Opening import wizard...')}>
+          <Button variant="outline" size="sm" leftIcon={<Upload className="w-4 h-4" />} onClick={() => toast.info('Opening import wizard...')}>
             Import
           </Button>
           <Button size="sm" leftIcon={<Plus className="w-4 h-4" />} onClick={() => {
@@ -223,19 +230,31 @@ export const StudentsPage: React.FC = () => {
             Add Student
           </Button>
         </div>
-      }
-    >
+      </div>
+
       {/* Filters */}
       <Card className="p-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <Input
-              placeholder="Search by Name or Register Number..."
+              aria-label="Search students"
+              placeholder="Name, ID, email or skill"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               leftIcon={<Search className="w-4 h-4" />}
+              rightIcon={searchInput ? (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => { setSearchInput(''); setSearch(''); setPage(1); }}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              ) : undefined}
             />
           </div>
+          <div className="sm:w-48 shrink-0">
           <Select
             value={dept}
             onChange={e => {
@@ -259,8 +278,9 @@ export const StudentsPage: React.FC = () => {
             }}
             placeholder="All Departments"
             options={departmentsList.map(d => ({ value: d.code, label: d.code }))}
-            className="sm:w-48"
           />
+          </div>
+          <div className="sm:w-44 shrink-0">
           <Select
             value={status}
             onChange={e => { setStatus(e.target.value); setPage(1); }}
@@ -271,8 +291,8 @@ export const StudentsPage: React.FC = () => {
               { value: 'not_eligible', label: 'Not Eligible' },
               { value: 'opted_out', label: 'Opted Out' },
             ]}
-            className="sm:w-44"
           />
+          </div>
         </div>
       </Card>
 
@@ -324,7 +344,7 @@ export const StudentsPage: React.FC = () => {
                     <EmptyState
                       icon={<GraduationCap className="w-6 h-6" />}
                       title="No students found"
-                      description="Try adjusting your search filters"
+                      description={search ? `No students match "${search}". Try a name, register number, email or skill.` : 'Try adjusting your filters'}
                     />
                   </td>
                 </tr>

@@ -382,6 +382,7 @@ interface StatCardProps {
   value: string | number;
   change?: string;
   changeType?: 'increase' | 'decrease' | 'neutral';
+  description?: string;
   icon?: React.ReactNode;
   color?: 'brand' | 'green' | 'amber' | 'red' | 'purple' | 'slate' | 'blue';
   suffix?: string;
@@ -389,7 +390,7 @@ interface StatCardProps {
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
-  title, value, change, changeType = 'neutral', icon, color = 'brand', suffix, className
+  title, value, change, changeType = 'neutral', description, icon, color = 'brand', suffix, className
 }) => {
   const iconColors = {
     brand: 'bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400',
@@ -401,6 +402,8 @@ export const StatCard: React.FC<StatCardProps> = ({
     blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
   };
 
+  const subText = change || description;
+
   return (
     <Card className={cn('stat-card', className)} padding>
       <div className="flex items-start justify-between">
@@ -410,15 +413,15 @@ export const StatCard: React.FC<StatCardProps> = ({
             <span className="text-2xl font-bold text-slate-900 dark:text-slate-50">{value}</span>
             {suffix && <span className="text-sm text-slate-500 dark:text-slate-400">{suffix}</span>}
           </div>
-          {change && (
+          {subText && (
             <p className={cn('text-xs mt-1.5 font-medium flex items-center gap-1',
-              changeType === 'increase' ? 'text-emerald-600 dark:text-emerald-400' :
-              changeType === 'decrease' ? 'text-red-600 dark:text-red-400' :
+              change && changeType === 'increase' ? 'text-emerald-600 dark:text-emerald-400' :
+              change && changeType === 'decrease' ? 'text-red-600 dark:text-red-400' :
               'text-slate-500 dark:text-slate-400'
             )}>
-              {changeType === 'increase' && '↑'}
-              {changeType === 'decrease' && '↓'}
-              {change}
+              {change && changeType === 'increase' && '↑'}
+              {change && changeType === 'decrease' && '↓'}
+              {subText}
             </p>
           )}
         </div>
@@ -486,9 +489,10 @@ interface ModalProps {
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   footer?: React.ReactNode;
+  className?: string;
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md', footer }) => {
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md', footer, className }) => {
   const sizeClasses = {
     sm: 'max-w-sm',
     md: 'max-w-lg',
@@ -504,7 +508,8 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
       <div className={cn(
         'relative bg-white dark:bg-slate-800 rounded-2xl shadow-modal w-full border border-slate-200 dark:border-slate-700 animate-slide-up max-h-[90vh] flex flex-col',
-        sizeClasses[size]
+        sizeClasses[size],
+        className
       )}>
         {title && (
           <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">

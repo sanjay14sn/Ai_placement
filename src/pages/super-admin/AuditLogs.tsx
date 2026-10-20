@@ -110,7 +110,6 @@ export const SuperAdminAuditLogsPage: React.FC = () => {
   return (
     <PageWrapper
       title="System Audit & Security Logs"
-      subtitle="Immutable, real-time activity log of platform security events, administrative changes, and tenant mutations"
       breadcrumbs={[{ label: 'Super Admin' }, { label: 'Audit Logs' }]}
       actions={
         <Button variant="outline" leftIcon={<Download className="w-4 h-4" />} onClick={() => setIsExportModalOpen(true)}>

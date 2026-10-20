@@ -4,8 +4,9 @@
 // Falls back gracefully if backend is unavailable
 // ─────────────────────────────────────────────────────────────────────────────
 import { mockPlatformStats, mockPlatformCharts } from '../mock/data';
+import { API_BASE, BACKEND_BASE, getMediaUrl } from '../config/api';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+export { API_BASE, BACKEND_BASE, getMediaUrl };
 
 // ─── Token Storage ────────────────────────────────────────────────────────────
 
@@ -197,6 +198,16 @@ export const studentService = {
     return res.data;
   },
 
+  register: async (data: Record<string, unknown>) => {
+    return api<{
+      data: import('../types').Student & { userId: string };
+      token: string;
+      user: import('../types').User;
+    }>('/students/register', {
+      method: 'POST', body: data, auth: false,
+    });
+  },
+
   delete: async (id: string) => {
     return api(`/students/${id}`, { method: 'DELETE', auth: true });
   },
@@ -250,6 +261,86 @@ export const jobService = {
   getRecommendedForStudent: async () => {
     const res = await api<{ data: import('../types').PaginatedResponse<import('../types').Job> }>('/jobs', { params: { status: 'active', limit: '10' }, auth: true });
     return (res.data.data || []).map(j => ({ ...j, matchScore: 70 + Math.floor(Math.random() * 25) }));
+  },
+
+  searchGoogleJobs: async (source: File | { resumeId: string }) => {
+    const form = new FormData();
+    if (source instanceof File) form.append('resume', source, source.name);
+    else form.append('resumeId', source.resumeId);
+    const token = getToken();
+    const response = await fetch(`${API_BASE}/jobs/google`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to load Google jobs');
+    return {
+      jobs: (data.data || []) as {
+        id: string;
+        title: string;
+        companyName: string;
+        location: string;
+        via: string;
+        description: string;
+        schedule: string;
+        postedAt: string;
+        applyLink: string;
+        ratings: { source: string; rating: number | null; reviews: number | null; link: string }[];
+      }[],
+      query: String(data.query || ''),
+      resume: (data.resume || null) as import('../types').SavedResume | null,
+    };
+  },
+
+  getSavedResumes: async () => {
+    const res = await api<{ data: import('../types').SavedResume[] }>('/jobs/resumes', { auth: true });
+    return res.data;
+  },
+
+  uploadSavedResume: async (file: File) => {
+    const form = new FormData();
+    form.append('resume', file, file.name);
+    const token = getToken();
+    const response = await fetch(`${API_BASE}/jobs/resumes`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || 'Could not upload this resume');
+    return data.data as import('../types').SavedResume;
+  },
+
+  getSavedResumeFile: async (resume: import('../types').SavedResume) => {
+    const token = getToken();
+    const response = await fetch(`${API_BASE}/jobs/resumes/${resume.id}/file`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || 'Could not load this resume');
+    }
+    const blob = await response.blob();
+    return new File([blob], resume.fileName, { type: blob.type || 'application/pdf' });
+  },
+
+  openSavedResume: async (id: string) => {
+    const token = getToken();
+    const response = await fetch(`${API_BASE}/jobs/resumes/${id}/file`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || 'Could not open this resume');
+    }
+    const url = URL.createObjectURL(await response.blob());
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  },
+
+  deleteSavedResume: async (id: string) => {
+    await api(`/jobs/resumes/${id}`, { method: 'DELETE', auth: true });
   },
 };
 
@@ -307,16 +398,23 @@ export const applicationService = {
     return res.data;
   },
 
-  apply: async (jobId: string) => {
+  apply: async (jobId: string, driveId?: string) => {
     const res = await api<{ data: import('../types').Application }>('/applications', {
-      method: 'POST', body: { jobId }, auth: true,
+      method: 'POST', body: { jobId, driveId }, auth: true,
+    });
+    return res.data;
+  },
+
+  applyToDrive: async (driveId: string) => {
+    const res = await api<{ data: import('../types').Application }>('/applications', {
+      method: 'POST', body: { driveId }, auth: true,
     });
     return res.data;
   },
 
   updateStatus: async (id: string, status: string, recruiterNotes?: string) => {
     const res = await api<{ data: import('../types').Application }>(`/applications/${id}/status`, {
-      method: 'PUT', body: { status, recruiterNotes }, auth: false,
+      method: 'PUT', body: { status, recruiterNotes }, auth: true,
     });
     return res.data;
   },
@@ -336,20 +434,20 @@ export const interviewService = {
   },
 
   schedule: async (data: Partial<import('../types').Interview>) => {
-    const res = await api<{ data: import('../types').Interview }>('/interviews', { method: 'POST', body: data, auth: false });
+    const res = await api<{ data: import('../types').Interview }>('/interviews', { method: 'POST', body: data, auth: true });
     return res.data;
   },
 
   updateStatus: async (id: string, status: string) => {
     const res = await api<{ data: import('../types').Interview }>(`/interviews/${id}/status`, {
-      method: 'PUT', body: { status }, auth: false,
+      method: 'PUT', body: { status }, auth: true,
     });
     return res.data;
   },
 
   checkConflicts: async (studentId: string, date: string, time: string) => {
     const res = await api<{ data: { hasConflict: boolean; conflictingInterview: import('../types').Interview | null } }>('/interviews/check-conflicts', {
-      params: { studentId, date, time }, auth: false,
+      params: { studentId, date, time }, auth: true,
     });
     return res.data;
   },
@@ -359,7 +457,7 @@ export const interviewService = {
 
 export const driveService = {
   getAll: async (params?: import('../types').FilterParams) => {
-    const res = await api<{ data: import('../types').PlacementDrive[] }>('/drives', { params: params as Record<string, string>, auth: false });
+    const res = await api<{ data: import('../types').PlacementDrive[] }>('/drives', { params: params as Record<string, string>, auth: true });
     return res.data;
   },
 
@@ -370,6 +468,16 @@ export const driveService = {
 
   create: async (data: Partial<import('../types').PlacementDrive>) => {
     const res = await api<{ data: import('../types').PlacementDrive }>('/drives', { method: 'POST', body: data, auth: false });
+    return res.data;
+  },
+
+  update: async (id: string, updates: Partial<import('../types').PlacementDrive>) => {
+    const res = await api<{ data: import('../types').PlacementDrive }>(`/drives/${id}`, { method: 'PUT', body: updates, auth: true });
+    return res.data;
+  },
+
+  delete: async (id: string) => {
+    const res = await api<{ data: { removedApplications: number; removedInterviews: number } }>(`/drives/${id}`, { method: 'DELETE', auth: true });
     return res.data;
   },
 };
@@ -442,9 +550,20 @@ export const collegeService = {
     return res.data;
   },
 
+  lookup: async (q: string) => {
+    const res = await api<{ data: {
+      id: string;
+      name: string;
+      code: string;
+      city: string;
+      departments: { id: string; name: string; code: string }[];
+    } | null }>('/colleges/lookup', { params: { q }, auth: false });
+    return res.data;
+  },
+
   create: async (data: {
     name: string;
-    code: string;
+    code?: string;
     city: string;
     state?: string;
     establishedYear?: number;
@@ -529,6 +648,91 @@ export const announcementService = {
   }
 };
 
+const READ_NOTICES_KEY = 'placementos-read-notices';
+
+const readNoticeIds = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(READ_NOTICES_KEY) || '[]');
+    return new Set<string>(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set<string>();
+  }
+};
+
+export const rememberNoticeRead = (ids: string[]) => {
+  const current = readNoticeIds();
+  ids.forEach((id) => current.add(id));
+  localStorage.setItem(READ_NOTICES_KEY, JSON.stringify([...current]));
+  window.dispatchEvent(new Event('notifications-updated'));
+};
+
+export const getNoticeFeed = async (role?: string) => {
+  const seen = readNoticeIds();
+  const stored = await notificationService.getAll().catch(() => [] as import('../types').Notification[]);
+  const saved = stored.map((item) => ({ ...item, isRead: item.isRead || seen.has(item.id) }));
+  if (role !== 'TPO' && role !== 'COLLEGE_ADMIN') return saved;
+
+  const [applications, interviews, drives, announcements] = await Promise.all([
+    applicationService.getAll({ limit: 12 } as import('../types').FilterParams).catch(() => ({ data: [] as import('../types').Application[] })),
+    interviewService.getAll({ limit: 12 } as import('../types').FilterParams).catch(() => ({ data: [] as import('../types').Interview[] })),
+    driveService.getAll().catch(() => [] as import('../types').PlacementDrive[]),
+    announcementService.getAll().catch(() => [] as import('../types').NewsArticle[]),
+  ]);
+
+  const activity: import('../types').Notification[] = [
+    ...(applications.data || []).map((app) => ({
+      id: `application:${app.id}`,
+      userId: '',
+      type: app.status === 'selected' ? 'selection' as const : 'application' as const,
+      title: app.status === 'selected'
+        ? `${app.student?.name || 'A student'} was selected`
+        : `${app.student?.name || 'A student'} applied`,
+      message: `${app.student?.department || 'Student'} · ${app.job?.title || 'a role'}${app.company?.name ? ` at ${app.company.name}` : ''} · ${app.status.replace(/_/g, ' ')}`,
+      isRead: seen.has(`application:${app.id}`),
+      link: '/college/applications',
+      createdAt: app.appliedAt || app.updatedAt,
+    })),
+    ...(interviews.data || [])
+      .filter((item) => item.status !== 'cancelled')
+      .map((item) => ({
+        id: `interview:${item.id}`,
+        userId: '',
+        type: 'interview' as const,
+        title: `${item.student?.name || 'Student'} · ${item.type} round ${item.round}`,
+        message: `${item.job?.title || 'Interview'}${item.company?.name ? ` at ${item.company.name}` : ''} · ${item.date} ${item.time} · ${item.status.replace(/_/g, ' ')}`,
+        isRead: seen.has(`interview:${item.id}`),
+        link: '/college/interviews',
+        createdAt: item.createdAt || item.date,
+      })),
+    ...drives
+      .filter((drive) => drive.status === 'upcoming' || drive.status === 'ongoing')
+      .map((drive) => ({
+        id: `drive:${drive.id}`,
+        userId: '',
+        type: 'reminder' as const,
+        title: drive.title,
+        message: `${drive.company?.name || 'Campus drive'} · ${drive.status} · ${drive.venue || 'Venue to be announced'}`,
+        isRead: seen.has(`drive:${drive.id}`),
+        link: '/college/drives',
+        createdAt: drive.date || drive.createdAt,
+      })),
+    ...announcements.slice(0, 8).map((article) => ({
+      id: `announcement:${article.id}`,
+      userId: '',
+      type: 'system' as const,
+      title: article.title,
+      message: article.summary || article.category,
+      isRead: seen.has(`announcement:${article.id}`),
+      link: '/college/notifications',
+      createdAt: article.publishedAt || article.updatedAt,
+    })),
+  ];
+
+  const storedIds = new Set(saved.map((item) => item.id));
+  return [...saved, ...activity.filter((item) => !storedIds.has(item.id))]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};
+
 // ─── Department Service ───────────────────────────────────────────────────────
 
 export const departmentService = {
@@ -564,31 +768,228 @@ export const departmentService = {
 
 import { sleep } from '../utils';
 
+export interface ResumeAnalysisResult {
+  fileName: string;
+  targetRole: string;
+  overallScore: number;
+  atsScore: number;
+  formattingScore: number;
+  impactScore: number;
+  parsedSummary: {
+    name: string;
+    email: string;
+    phone: string;
+    wordCount: number;
+    detectedSections: string[];
+    skillsFound: string[];
+  };
+  sections: Record<string, number>;
+  strengths: string[];
+  weaknesses: string[];
+  matchedKeywords: string[];
+  missingKeywords: string[];
+  missingSkills: string[];
+  bulletFixes: { original: string; optimized: string; reason: string }[];
+  atsChecklist: { check: string; passed: boolean; details: string }[];
+  suggestions: string[];
+  certificationRecommendations: string[];
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const toText = (value: unknown): string => {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.map(toText).filter(Boolean).join(', ');
+  if (isRecord(value)) {
+    for (const key of ['text', 'name', 'title', 'keyword', 'skill', 'value', 'description', 'details', 'feedback']) {
+      if (typeof value[key] === 'string' && value[key]) return value[key] as string;
+    }
+    return Object.values(value).map(toText).filter(Boolean).join(' – ');
+  }
+  return '';
+};
+
+const toScore = (value: unknown): number => {
+  const raw = isRecord(value) ? (value.score ?? value.value ?? value.percentage) : value;
+  const num = typeof raw === 'number' ? raw : parseFloat(String(raw ?? ''));
+  if (!Number.isFinite(num)) return 0;
+  return Math.round(Math.min(100, Math.max(0, num <= 1 && num > 0 ? num * 100 : num)));
+};
+
+const toTextList = (value: unknown): string[] => {
+  if (value == null) return [];
+  if (typeof value === 'string') return value.split(/\n|;|,(?![^(]*\))/).map(s => s.trim()).filter(Boolean);
+  if (Array.isArray(value)) return value.map(toText).map(s => s.trim()).filter(Boolean);
+  if (isRecord(value)) return Object.entries(value).map(([k, v]) => (typeof v === 'boolean' ? k : toText(v) || k)).filter(Boolean);
+  return [];
+};
+
+const toList = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) return value;
+  if (isRecord(value)) return Object.values(value);
+  return [];
+};
+
+export const normalizeResumeAnalysis = (raw: unknown, fileName = 'resume.pdf', targetRole = 'Software Engineer'): ResumeAnalysisResult => {
+  const data = isRecord(raw) ? raw : {};
+  const summary = isRecord(data.parsedSummary) ? data.parsedSummary : {};
+  const sectionsRaw = isRecord(data.sections) ? data.sections : {};
+  const sections: Record<string, number> = {};
+  Object.entries(sectionsRaw).forEach(([key, value]) => { sections[key] = toScore(value); });
+
+  return {
+    fileName: toText(data.fileName) || fileName,
+    targetRole: toText(data.targetRole) || targetRole,
+    overallScore: toScore(data.overallScore),
+    atsScore: toScore(data.atsScore),
+    formattingScore: toScore(data.formattingScore),
+    impactScore: toScore(data.impactScore),
+    parsedSummary: {
+      name: toText(summary.name),
+      email: toText(summary.email),
+      phone: toText(summary.phone),
+      wordCount: Math.round(Number(summary.wordCount) || 0),
+      detectedSections: toTextList(summary.detectedSections),
+      skillsFound: toTextList(summary.skillsFound),
+    },
+    sections,
+    strengths: toTextList(data.strengths),
+    weaknesses: toTextList(data.weaknesses),
+    matchedKeywords: toTextList(data.matchedKeywords),
+    missingKeywords: toTextList(data.missingKeywords),
+    missingSkills: toTextList(data.missingSkills),
+    bulletFixes: toList(data.bulletFixes).map(item => {
+      const fix = isRecord(item) ? item : {};
+      return {
+        original: toText(fix.original ?? fix.before),
+        optimized: toText(fix.optimized ?? fix.after ?? fix.improved),
+        reason: toText(fix.reason ?? fix.why ?? fix.explanation),
+      };
+    }).filter(fix => fix.original || fix.optimized),
+    atsChecklist: toList(data.atsChecklist).map(item => {
+      const entry = isRecord(item) ? item : {};
+      const passed = entry.passed ?? entry.pass ?? entry.status;
+      return {
+        check: toText(entry.check ?? entry.name ?? entry.item) || toText(item),
+        passed: passed === true || (typeof passed === 'string' && /^(true|pass|passed|yes|ok)$/i.test(passed)),
+        details: toText(entry.details ?? entry.detail ?? entry.description ?? entry.note),
+      };
+    }).filter(entry => entry.check),
+    suggestions: toTextList(data.suggestions),
+    certificationRecommendations: toTextList(data.certificationRecommendations),
+  };
+};
+
 export const aiService = {
   getMatchScore: async (studentId: string, jobId: string) => {
-    await sleep(800);
-    return {
-      studentId,
-      jobId,
-      overallScore: 78,
-      breakdown: { skillMatch: 82, educationMatch: 100, cgpaMatch: 95, certificationMatch: 75, locationMatch: 80, preferenceMatch: 70 },
-      matchedSkills: ['Java', 'Spring Boot', 'SQL'],
-      missingSkills: ['Docker', 'Kubernetes'],
-      recommendation: 'suitable' as const,
-      explanation: 'Good match based on your skills and education.',
-      strengths: ['Java', 'Spring Boot', 'SQL'],
-      concerns: ['Missing Docker knowledge'],
-    };
+    const res = await api<{ data: {
+      studentId: string;
+      jobId: string;
+      overallScore: number;
+      breakdown: { skillMatch: number; educationMatch: number; cgpaMatch: number; certificationMatch: number; locationMatch: number; preferenceMatch: number };
+      matchedSkills: string[];
+      missingSkills: string[];
+      recommendation: 'suitable' | 'borderline' | 'not_suitable';
+      explanation: string;
+      strengths: string[];
+      concerns: string[];
+    } }>('/ai/match', { method: 'POST', body: { studentId, jobId } });
+    return res.data;
   },
 
-  chat: async (message: string, _role: string): Promise<{ content: string; richContent?: unknown }> => {
-    await sleep(1200);
-    return { content: `I understand you're asking about "${message}". Let me analyze the placement data for you. Please connect to our AI service for detailed insights.` };
+  getChat: async (mode: string) => {
+    const res = await api<{ data: { messages: { id: string; role: 'user' | 'assistant'; content: string; timestamp: string }[] } }>('/ai/chat', { params: { mode } });
+    return res.data;
   },
 
-  analyzeResume: async (file: File | string, targetRole: string = 'Full Stack Developer') => {
+  chat: async (
+    message: string,
+    role: string,
+    history: { role: string; content: string }[] = [],
+  ): Promise<{ content: string; richContent?: unknown }> => {
+    const res = await api<{ data: { content: string } }>('/ai/chat', { method: 'POST', body: { message, mode: role, history } });
+    return res.data;
+  },
+
+  startInterview: async (company: string, round: string) => {
+    const res = await api<{ data: {
+      sessionId: string;
+      token: string;
+      models: string[];
+      instructions: string;
+      remainingToday: number;
+    } }>('/ai/interview/sessions', { method: 'POST', body: { company, round } });
+    return res.data;
+  },
+
+  refreshInterviewToken: async (sessionId: string) => {
+    const res = await api<{ data: { token: string; models: string[] } }>(`/ai/interview/sessions/${sessionId}/token`, { method: 'POST' });
+    return res.data;
+  },
+
+  completeInterview: async (
+    sessionId: string,
+    transcript: { role: 'interviewer' | 'candidate'; text: string }[],
+    model?: string,
+  ) => {
+    const res = await api<{ data: {
+      id: string;
+      company: string;
+      round: string;
+      score: number;
+      feedback: string;
+      strengths: string[];
+      improvements: string[];
+      transcript: { role: 'interviewer' | 'candidate'; text: string }[];
+    } }>(`/ai/interview/sessions/${sessionId}/complete`, { method: 'POST', body: { transcript, model } });
+    return res.data;
+  },
+
+  listInterviews: async () => {
+    const res = await api<{ data: {
+      id: string;
+      company: string;
+      round: string;
+      score: number;
+      feedback: string;
+      createdAt: string;
+    }[] }>('/ai/interview/sessions');
+    return res.data;
+  },
+
+  optimizeProfile: async () => {
+    const res = await api<{ success: boolean; data: {
+      headlineSuggestion: string;
+      executiveSummary: string;
+      recommendedSkills: string[];
+      missingKeywords: string[];
+      projectIdeas: { title: string; tech: string; summary: string }[];
+      recruiterTips: string[];
+    } }>('/ai/optimize-profile', { method: 'POST' });
+    return res.data;
+  },
+
+  analyzeResume: async (file: File | string, targetRole: string = 'Full Stack Developer'): Promise<ResumeAnalysisResult> => {
+    if (typeof file !== 'string') {
+      const form = new FormData();
+      form.append('resume', file, file.name);
+      form.append('targetRole', targetRole);
+      const token = getToken();
+      const response = await fetch(`${API_BASE}/ai/analyze-resume`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Failed to analyze resume');
+      return normalizeResumeAnalysis(data.data, file.name, targetRole);
+    }
+
     await sleep(2000);
-    const fileName = typeof file === 'string' ? file : file.name;
+    const fileName = file;
     const isSampleHigh = fileName.toLowerCase().includes('high') || fileName.toLowerCase().includes('senior') || fileName.toLowerCase().includes('arjun');
     const isSampleLow = fileName.toLowerCase().includes('fresher') || fileName.toLowerCase().includes('basic') || fileName.toLowerCase().includes('low');
 
@@ -768,73 +1169,10 @@ export const aiService = {
       };
     }
 
-    let extractedName = 'Not Found';
-    let extractedEmail = 'Not Found';
-    let extractedPhone = 'Not Found';
-    let extractedSkills: string[] = [];
-
-    if (typeof file !== 'string') {
-      try {
-        console.log("Starting backend API call for resume parsing with file:", file.name);
-        const form = new FormData();
-        form.append("resume", file, file.name);
-
-        const response = await fetch(`${API_BASE}/ats/parse-resume`, {
-            method: "POST",
-            headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {},
-            body: form,
-        });
-        
-        console.log("Backend response status:", response.status);
-
-        if (response.ok) {
-          const json = await response.json();
-          // The backend wraps the response in { success: true, data: result }
-          // And Affinda's result itself is { data: { ... }, meta: { ... } }
-          const affindaData = json.data?.data || json.data || {};
-          console.log("Backend extracted data:", affindaData);
-          
-          const person = affindaData?.person || {};
-          const nameObj = person?.name || affindaData?.name || {};
-          const contact = affindaData?.contact || {};
-          
-          let extractedNameCandidate = nameObj?.formatted || nameObj?.raw || nameObj?.first;
-          if (!extractedNameCandidate && nameObj?.given) {
-            extractedNameCandidate = `${nameObj.given} ${nameObj.family || ''}`.trim();
-          }
-          
-          // Validation to ensure this is actually a resume
-          const hasSkills = affindaData?.skills && affindaData.skills.length > 0;
-          const hasWork = affindaData?.workExperience && affindaData.workExperience.length > 0;
-          const hasEducation = affindaData?.education && affindaData.education.length > 0;
-          const hasName = extractedNameCandidate;
-          
-          if (!hasSkills && !hasWork && !hasEducation && !hasName) {
-            throw new Error("The uploaded file does not appear to be a valid resume. Please upload a standard resume document.");
-          }
-          
-          extractedName = hasName || extractedName;
-          
-          const emails = contact?.emails || person?.emails || affindaData?.emails || [];
-          extractedEmail = typeof emails?.[0] === 'string' ? emails[0] : (emails?.[0]?.email || extractedEmail);
-          
-          const phones = contact?.phoneNumbers || person?.phoneNumbers || affindaData?.phoneNumbers || [];
-          extractedPhone = phones?.[0]?.formatted || phones?.[0]?.raw || (typeof phones?.[0] === 'string' ? phones[0] : extractedPhone);
-          
-          if (affindaData?.skills && Array.isArray(affindaData.skills)) {
-            extractedSkills = affindaData.skills.map((s: any) => typeof s === 'string' ? s : (s.name || '')).filter(Boolean);
-            console.log("Extracted skills array:", extractedSkills);
-          }
-        } else {
-          const errText = await response.text();
-          console.error("Backend ATS API error response:", errText);
-          throw new Error("Failed to parse resume from backend API.");
-        }
-      } catch (err: any) {
-        console.error("Error calling backend ATS API:", err);
-        throw new Error(err.message || "Failed to process resume parsing.");
-      }
-    }
+    const extractedName = 'Not Found';
+    const extractedEmail = 'Not Found';
+    const extractedPhone = 'Not Found';
+    const extractedSkills: string[] = [];
 
     // Dynamic calculation based on actual parsed skills
     const targetKeywords = [...roleData.matched, ...roleData.missingKeywords, ...roleData.missingSkills];
@@ -901,47 +1239,34 @@ export const aiService = {
   },
 
   getSkillGap: async (studentId: string, targetRole: string) => {
-    await sleep(700);
-    const targetSkills: Record<string, string[]> = {
-      'Software Engineer': ['Java', 'Spring Boot', 'SQL', 'Git', 'REST API', 'Docker', 'System Design'],
-      'Data Analyst': ['Python', 'SQL', 'Tableau', 'Excel', 'Statistics', 'Power BI', 'Machine Learning'],
-    };
-    const required = targetSkills[targetRole] || targetSkills['Software Engineer'];
-    return {
-      studentId, targetRole,
-      currentSkills: ['Java', 'Spring Boot', 'SQL', 'Git'],
-      requiredSkills: required,
-      matchedSkills: ['Java', 'Spring Boot', 'SQL'],
-      missingSkills: required.filter(s => !['Java', 'Spring Boot', 'SQL', 'Git'].includes(s)),
-      matchPercent: 65,
-      learningResources: [],
-    };
+    const res = await api<{ data: {
+      studentId: string;
+      targetRole: string;
+      currentSkills: string[];
+      requiredSkills: string[];
+      matchedSkills: string[];
+      missingSkills: string[];
+      matchPercent: number;
+      learningResources: { title: string; url?: string }[];
+    } }>('/ai/skill-gap', { method: 'POST', body: { studentId, targetRole } });
+    return res.data;
   },
 
   getPlacementReadiness: async (studentId?: string) => {
-    await sleep(1500);
-    return {
-      overallScore: 76,
-      breakdown: { resume: 85, skills: 72, projects: 68, certifications: 75, communication: 70, interviewReadiness: 65 },
-      strengths: ['Strong technical foundation', 'Good CGPA'],
-      weaknesses: ['Limited project diversity'],
-      recommendations: ['Complete your resume', 'Add 2 more projects', 'Take an AWS certification'],
-      improvementTimeline: [
-        { week: 1, action: 'Upload and optimize resume', expectedGain: 8 },
-        { week: 2, action: 'Complete missing profile sections', expectedGain: 5 },
-      ],
-    };
+    const res = await api<{ data: {
+      overallScore: number;
+      breakdown: { resume: number; skills: number; projects: number; certifications: number; communication: number; interviewReadiness: number };
+      strengths: string[];
+      weaknesses: string[];
+      recommendations: string[];
+      improvementTimeline: { week: number; action: string; expectedGain: number }[];
+    } }>('/ai/readiness', { params: studentId ? { studentId } : undefined });
+    return res.data;
   },
 
   getMockInterviewQuestion: async (company: string, round: string) => {
-    await sleep(500);
-    const questions: Record<string, string[]> = {
-      technical: ['Explain the difference between process and thread.', 'What is the time complexity of quicksort?'],
-      hr: [`Tell me about yourself.`, `Why do you want to work at ${company}?`],
-      coding: ['Given an array, find two numbers that add up to a target.', 'Check if a string is a palindrome.'],
-    };
-    const set = questions[round] || questions.technical;
-    return set[Math.floor(Math.random() * set.length)];
+    const res = await api<{ data: { question: string } }>('/ai/interview-question', { method: 'POST', body: { company, round } });
+    return res.data.question;
   },
 };
 
@@ -1141,10 +1466,10 @@ export const uploadService = {
     
     // We cannot use the default api() wrapper easily because it sets Content-Type: application/json
     // So we fetch directly
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
     const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.token;
     
-    const res = await fetch(`${API_BASE}/upload`, {
+    const endpoint = token ? `${API_BASE}/upload` : `${API_BASE}/upload/public`;
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       body: formData,
@@ -1156,3 +1481,161 @@ export const uploadService = {
   }
 };
 
+// ─── Community Service ────────────────────────────────────────────────────────
+
+export const communityService = {
+  getFeed: async () => {
+    const res = await api<{ data: any[] }>('/community/feed');
+    return res.data;
+  },
+  createPost: async (postData: { title?: string; content: string; type: string; hashtags?: string[]; bullets?: string[]; media?: string[] }) => {
+    const res = await api<{ data: any }>('/community/feed', {
+      method: 'POST',
+      body: postData,
+    });
+    return res.data;
+  },
+  deletePost: async (postId: string) => {
+    const res = await api<{ success: boolean }>(`/community/feed/${postId}`, {
+      method: 'DELETE',
+    });
+    return res;
+  },
+  getConnections: async () => {
+    const res = await api<{ data: any[] }>('/community/connections');
+    return res.data;
+  },
+  createConnectionRequest: async (recipientId: string) => {
+    const res = await api<{ data: any }>('/community/connections', {
+      method: 'POST',
+      body: { recipientId },
+    });
+    return res.data;
+  },
+  updateConnectionRequest: async (connectionId: string, status: 'accepted' | 'rejected') => {
+    const res = await api<{ data: any }>(`/community/connections/${connectionId}`, {
+      method: 'PATCH',
+      body: { status },
+    });
+    return res.data;
+  },
+  removeConnection: async (connectionId: string) => {
+    return api(`/community/connections/${connectionId}`, { method: 'DELETE' });
+  },
+  getConversations: async () => {
+    const res = await api<{ data: any[] }>('/community/conversations');
+    return res.data;
+  },
+  createConversation: async (userId: string) => {
+    const res = await api<{ data: any }>('/community/conversations', {
+      method: 'POST',
+      body: { userId },
+    });
+    return res.data;
+  },
+  getUnreadCount: async () => {
+    const res = await api<{ data: { count: number } }>('/community/messages/unread');
+    return res.data.count;
+  },
+  getMessages: async (conversationId: string) => {
+    const res = await api<{ data: any[] }>(`/community/messages/${conversationId}`);
+    return res.data;
+  },
+  sendMessage: async (
+    conversationId: string,
+    content: string,
+    attachment?: { url: string; name?: string; type?: 'image' | 'file'; size?: number }
+  ) => {
+    const res = await api<{ data: any }>('/community/messages', {
+      method: 'POST',
+      body: { conversationId, content, attachment },
+    });
+    return res.data;
+  },
+  getGroups: async () => {
+    const res = await api<{ data: any[] }>('/community/groups');
+    return res.data;
+  },
+  createGroup: async (name: string, description: string) => {
+    const res = await api<{ data: any }>('/community/groups', {
+      method: 'POST',
+      body: { name, description },
+    });
+    return res.data;
+  },
+  getGroupById: async (id: string) => {
+    const res = await api<{ data: any }>(`/community/groups/${id}`);
+    return res.data;
+  },
+  joinGroup: async (id: string) => {
+    const res = await api<{ data: any }>(`/community/groups/${id}/join`, {
+      method: 'POST'
+    });
+    return res.data;
+  },
+  leaveGroup: async (id: string) => {
+    const res = await api<{ data: any }>(`/community/groups/${id}/leave`, {
+      method: 'POST'
+    });
+    return res.data;
+  },
+  getEvents: async () => {
+    const res = await api<{ data: any[] }>('/community/events');
+    return res.data;
+  },
+  createEvent: async (data: {
+    title: string;
+    description?: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    type: 'Webinar' | 'Orientation' | 'Masterclass';
+    speaker: string;
+    speakerRole?: string;
+    speakerAvatar?: string;
+    image?: string;
+  }) => {
+    const res = await api<{ data: any }>('/community/events', {
+      method: 'POST',
+      body: data,
+    });
+    return res.data;
+  },
+  updateEvent: async (id: string, data: Partial<{
+    title: string;
+    description?: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    type: 'Webinar' | 'Orientation' | 'Masterclass';
+    speaker: string;
+    speakerRole?: string;
+    speakerAvatar?: string;
+    image?: string;
+  }>) => {
+    const res = await api<{ data: any }>(`/community/events/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+    return res.data;
+  },
+  registerForEvent: async (id: string) => {
+    const res = await api<{ data: any }>(`/community/events/${id}/register`, {
+      method: 'POST',
+    });
+    return res.data;
+  },
+  deleteEvent: async (id: string) => {
+    return api(`/community/events/${id}`, { method: 'DELETE' });
+  },
+  exploreStudents: async () => {
+    const res = await api<{ data: any[] }>('/community/explore-students');
+    return res.data;
+  },
+  getOpportunities: async () => {
+    const res = await api<{ data: any[] }>('/community/opportunities');
+    return res.data;
+  }
+};

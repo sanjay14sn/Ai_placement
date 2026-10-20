@@ -413,6 +413,7 @@ export const mockStudents: Student[] = STUDENT_NAMES.slice(0, 100).map((name, i)
     profileCompletion,
     placementStatus: isPlaced ? 'placed' : isEligible ? 'not_placed' : 'not_eligible',
     isEligible,
+    offersCount: isPlaced ? 1 + Math.floor(Math.random() * 2) : 0,
     placementReadinessScore: 50 + Math.floor(Math.random() * 45),
     aiMatchScore: 60 + Math.floor(Math.random() * 35),
     linkedIn: `https://linkedin.com/in/${name.toLowerCase().replace(/\s+/g, '-')}`,
@@ -570,7 +571,7 @@ export const mockNotifications: Notification[] = [
     title: 'AI Job Match Found',
     message: 'You have a 95% match for the Java Developer role at Google India.',
     isRead: false,
-    link: '/student/jobs/job-1',
+    link: '/student/drives',
     createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
   },
   {
@@ -590,7 +591,7 @@ export const mockNotifications: Notification[] = [
     title: 'Application Deadline',
     message: 'Application deadline for TCS NextStep closes in 2 hours.',
     isRead: false,
-    link: '/student/jobs/job-5',
+    link: '/student/drives',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
   },
   {

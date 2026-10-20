@@ -56,6 +56,18 @@ export const authenticate = async (
   }
 };
 
+export const optionalAuth = (req: Request, _res: Response, next: NextFunction): void => {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      req.user = jwt.verify(authHeader.substring(7), env.jwt.secret) as AuthPayload;
+    } catch {
+      req.user = undefined;
+    }
+  }
+  next();
+};
+
 // ─── Role Authorization Middleware ────────────────────────────────────────────
 
 export const authorize = (...roles: Role[]) => {
