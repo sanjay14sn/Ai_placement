@@ -52,29 +52,8 @@ export const CollegeReportsPage: React.FC = () => {
 
   const safeData = data || {
     placementPercent: 0, totalStudents: 0, placedStudents: 0, avgPackage: 0, highestPackage: 0,
-    departmentWise: [], topRecruiters: [], salaryDistribution: [],
+    departmentWise: [], topRecruiters: [],
     monthlyTrend: []
-  };
-
-  const { salaryDistribution } = safeData;
-  
-  // Safely extract counts from the array
-  const getCount = (rangeKeyword: string) => {
-    if (!Array.isArray(salaryDistribution)) return 0;
-    const item = salaryDistribution.find(s => s.range.includes(rangeKeyword));
-    return item ? item.count : 0;
-  };
-
-  const below5 = getCount('< 5');
-  const between5and10 = getCount('5 - 10');
-  const above10 = getCount('> 10');
-
-  const totalSalaries = below5 + between5and10 + above10 || 1;
-  
-  const sDist = {
-    low: (below5 / totalSalaries) * 100,
-    mid: (between5and10 / totalSalaries) * 100,
-    high: (above10 / totalSalaries) * 100,
   };
 
   return (
@@ -201,65 +180,32 @@ export const CollegeReportsPage: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Salary Distribution */}
-        <Card className="p-6 lg:col-span-2">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-emerald-500" /> Salary Distribution
-            </h3>
-          </div>
-          
-          <div className="mb-6">
-            <div className="w-full h-6 rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800 shadow-inner">
-              <div className="h-full bg-slate-400 dark:bg-slate-600 transition-all duration-1000" style={{ width: `${sDist.low}%` }}></div>
-              <div className="h-full bg-brand-500 transition-all duration-1000" style={{ width: `${sDist.mid}%` }}></div>
-              <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${sDist.high}%` }}></div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/60">
-              <div className="w-3 h-3 rounded-full bg-slate-400 mx-auto mb-2"></div>
-              <p className="text-xs font-semibold text-slate-500 uppercase mb-1">&lt; 5 LPA</p>
-              <p className="font-bold text-slate-900 dark:text-white">{below5} Offers</p>
-            </div>
-            <div className="p-3 rounded-xl bg-brand-50/50 dark:bg-brand-900/10 border border-brand-100 dark:border-brand-900/30">
-              <div className="w-3 h-3 rounded-full bg-brand-500 mx-auto mb-2"></div>
-              <p className="text-xs font-semibold text-slate-500 uppercase mb-1">5 - 10 LPA</p>
-              <p className="font-bold text-slate-900 dark:text-white">{between5and10} Offers</p>
-            </div>
-            <div className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30">
-              <div className="w-3 h-3 rounded-full bg-emerald-500 mx-auto mb-2"></div>
-              <p className="text-xs font-semibold text-slate-500 uppercase mb-1">&gt; 10 LPA</p>
-              <p className="font-bold text-slate-900 dark:text-white">{above10} Offers</p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="p-6">
-          <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-6">Generated Reports</h3>
-          <div className="space-y-3">
-            {[
-              { title: 'Placement Summary 2026', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-              { title: 'Department Wise Analysis', icon: BarChart2, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' },
-              { title: 'Top Recruiters List', icon: Building, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-              { title: 'Offer Acceptance Metrics', icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-            ].map((report, i) => (
-              <button key={i} onClick={handleExport} className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-slate-50/30 dark:bg-slate-800/10 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg ${report.bg} ${report.color} flex items-center justify-center`}>
-                    <report.icon className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-brand-600 transition-colors text-left">{report.title}</span>
+      {/* Generated Reports */}
+      <Card className="p-6 mb-6">
+        <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-6">Generated Reports</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { title: 'Placement Summary 2026', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+            { title: 'Department Wise Analysis', icon: BarChart2, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+            { title: 'Top Recruiters List', icon: Building, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+            { title: 'Offer Acceptance Metrics', icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+          ].map((report, i) => (
+            <button
+              key={i}
+              onClick={handleExport}
+              className="w-full flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-slate-50/30 dark:bg-slate-800/10 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg ${report.bg} ${report.color} flex items-center justify-center`}>
+                  <report.icon className="w-4 h-4" />
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-brand-600 transition-colors" />
-              </button>
-            ))}
-          </div>
-        </Card>
-      </div>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-brand-600 transition-colors text-left">{report.title}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-brand-600 transition-colors shrink-0" />
+            </button>
+          ))}
+        </div>
+      </Card>
     </PageWrapper>
   );
 };

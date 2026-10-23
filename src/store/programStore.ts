@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Program, Role } from '../types';
 import { programService } from '../services';
+import { normalizeProgram } from '../utils';
 
 interface ProgramStore {
   programs: Program[];
@@ -228,7 +229,7 @@ export const useProgramStore = create<ProgramStore>()(
         try {
           const apiPrograms = await programService.getAll(params);
           if (apiPrograms && apiPrograms.length > 0) {
-            set({ programs: apiPrograms, loading: false });
+            set({ programs: apiPrograms.map(normalizeProgram), loading: false });
           } else {
             set({ loading: false });
           }
@@ -314,8 +315,9 @@ export const useProgramStore = create<ProgramStore>()(
 
       getProgramsForRole: (role) => {
         const { programs } = get();
-        if (role === 'SUPER_ADMIN') return programs;
-        return programs.filter((p) => {
+        const normalized = programs.map(normalizeProgram);
+        if (role === 'SUPER_ADMIN') return normalized;
+        return normalized.filter((p) => {
           if (!p.isPublished) return false;
           if (p.targetAudience.includes('ALL')) return true;
           if (role === 'STUDENT' && p.targetAudience.includes('STUDENT')) {

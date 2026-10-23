@@ -7,6 +7,7 @@ import { PageWrapper } from '../../layouts';
 import { Button, Card, Badge, Input, Modal, Avatar } from '../../components/ui';
 import { useProgramStore } from '../../store/programStore';
 import type { Program, ProgramVideo } from '../../types';
+import { normalizeProgram, normalizeVideo } from '../../utils';
 import { toast } from 'sonner';
 
 export const StudentProgramsPage: React.FC = () => {
@@ -22,6 +23,12 @@ export const StudentProgramsPage: React.FC = () => {
   // Video Player state
   const [activeProgram, setActiveProgram] = useState<Program | null>(null);
   const [activeVideo, setActiveVideo] = useState<ProgramVideo | null>(null);
+
+  const handleOpenProgram = (program: Program) => {
+    const normalized = normalizeProgram(program);
+    setActiveProgram(normalized);
+    setActiveVideo(normalized.videos?.[0] ? normalizeVideo(normalized.videos[0], 0) : null);
+  };
 
   const categories = ['ALL', 'Placement Training', 'Career Advice', 'Technical'];
 
@@ -119,10 +126,7 @@ export const StudentProgramsPage: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30" />
 
                     <button
-                      onClick={() => {
-                        setActiveProgram(program);
-                        setActiveVideo(program.videos[0] || null);
-                      }}
+                      onClick={() => handleOpenProgram(program)}
                       className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-brand-600/90 text-white flex items-center justify-center shadow-lg hover:scale-110 hover:bg-brand-600 transition-all opacity-95"
                     >
                       <Play className="w-5 h-5 fill-white ml-0.5" />
@@ -178,10 +182,7 @@ export const StudentProgramsPage: React.FC = () => {
 
                         <Button
                           size="sm"
-                          onClick={() => {
-                            setActiveProgram(program);
-                            setActiveVideo(program.videos[0] || null);
-                          }}
+                          onClick={() => handleOpenProgram(program)}
                           leftIcon={<Play className="w-3.5 h-3.5" />}
                           className="text-xs"
                         >
@@ -287,14 +288,15 @@ export const StudentProgramsPage: React.FC = () => {
                   Course Modules ({activeProgram.videos.length})
                 </h5>
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {activeProgram.videos.map((vid) => {
-                    const isDone = completedVideos[`${activeProgram.id}_${vid.id}`];
+                  {activeProgram.videos.map((vid, idx) => {
+                    const normVid = normalizeVideo(vid, idx);
+                    const isDone = completedVideos[`${activeProgram.id}_${normVid.id}`];
                     return (
                       <button
-                        key={vid.id}
-                        onClick={() => setActiveVideo(vid)}
+                        key={normVid.id}
+                        onClick={() => setActiveVideo(normVid)}
                         className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
-                          activeVideo.id === vid.id
+                          activeVideo.id === normVid.id
                             ? 'bg-brand-50 dark:bg-brand-900/30 border-brand-300 dark:border-brand-600 text-brand-900 dark:text-brand-200 font-semibold'
                             : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
                         }`}
@@ -304,14 +306,14 @@ export const StudentProgramsPage: React.FC = () => {
                             <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                           ) : (
                             <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
-                              activeVideo.id === vid.id ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                              activeVideo.id === normVid.id ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
                             }`}>
-                              {vid.order}
+                              {normVid.order}
                             </div>
                           )}
                           <div>
-                            <p className="text-xs font-medium">{vid.title}</p>
-                            <p className="text-[11px] text-slate-400">{vid.duration}</p>
+                            <p className="text-xs font-medium">{normVid.title}</p>
+                            <p className="text-[11px] text-slate-400">{normVid.duration}</p>
                           </div>
                         </div>
                         <Play className="w-4 h-4 text-brand-600" />

@@ -7,6 +7,7 @@ import { PageWrapper } from '../../layouts';
 import { Button, Card, Badge, Input, Modal, Avatar } from '../../components/ui';
 import { useProgramStore } from '../../store/programStore';
 import type { Program, ProgramVideo } from '../../types';
+import { normalizeProgram, normalizeVideo } from '../../utils';
 import { toast } from 'sonner';
 
 export const RecruiterProgramsPage: React.FC = () => {
@@ -21,6 +22,12 @@ export const RecruiterProgramsPage: React.FC = () => {
   // Video player state
   const [activeProgram, setActiveProgram] = useState<Program | null>(null);
   const [activeVideo, setActiveVideo] = useState<ProgramVideo | null>(null);
+
+  const handleOpenProgram = (program: Program) => {
+    const normalized = normalizeProgram(program);
+    setActiveProgram(normalized);
+    setActiveVideo(normalized.videos?.[0] ? normalizeVideo(normalized.videos[0], 0) : null);
+  };
 
   const filteredPrograms = programs.filter(p =>
     p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -89,10 +96,7 @@ export const RecruiterProgramsPage: React.FC = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30" />
 
                   <button
-                    onClick={() => {
-                      setActiveProgram(program);
-                      setActiveVideo(program.videos[0] || null);
-                    }}
+                    onClick={() => handleOpenProgram(program)}
                     className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-amber-600/90 text-white flex items-center justify-center shadow-lg hover:scale-110 hover:bg-amber-600 transition-all opacity-95"
                   >
                     <Play className="w-5 h-5 fill-white ml-0.5" />
@@ -133,10 +137,7 @@ export const RecruiterProgramsPage: React.FC = () => {
 
                     <Button
                       size="sm"
-                      onClick={() => {
-                        setActiveProgram(program);
-                        setActiveVideo(program.videos[0] || null);
-                      }}
+                      onClick={() => handleOpenProgram(program)}
                       leftIcon={<Play className="w-3.5 h-3.5" />}
                       className="w-full bg-amber-600 hover:bg-amber-700 text-white text-xs"
                     >
@@ -236,30 +237,33 @@ export const RecruiterProgramsPage: React.FC = () => {
                   Recruiter Modules ({activeProgram.videos.length})
                 </h5>
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {activeProgram.videos.map((vid) => (
-                    <button
-                      key={vid.id}
-                      onClick={() => setActiveVideo(vid)}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
-                        activeVideo.id === vid.id
-                          ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-600 text-amber-900 dark:text-amber-200 font-semibold'
-                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
-                          activeVideo.id === vid.id ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
-                        }`}>
-                          {vid.order}
+                  {activeProgram.videos.map((vid, idx) => {
+                    const normVid = normalizeVideo(vid, idx);
+                    return (
+                      <button
+                        key={normVid.id}
+                        onClick={() => setActiveVideo(normVid)}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                          activeVideo.id === normVid.id
+                            ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-600 text-amber-900 dark:text-amber-200 font-semibold'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
+                            activeVideo.id === normVid.id ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                          }`}>
+                            {normVid.order}
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium">{normVid.title}</p>
+                            <p className="text-[11px] text-slate-400">{normVid.duration}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-medium">{vid.title}</p>
-                          <p className="text-[11px] text-slate-400">{vid.duration}</p>
-                        </div>
-                      </div>
-                      <Play className="w-4 h-4 text-amber-600" />
-                    </button>
-                  ))}
+                        <Play className="w-4 h-4 text-amber-600" />
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

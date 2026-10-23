@@ -1,4 +1,4 @@
-import type { Role } from '../types';
+import type { Role, Program, ProgramVideo, VideoResource } from '../types';
 
 // ─── Permission Matrix ─────────────────────────────────────────────────────────
 
@@ -228,3 +228,46 @@ export const debounce = <T extends (...args: unknown[]) => unknown>(
 
 export const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
+
+export const normalizeVideo = (vid: any, index: number = 0): ProgramVideo => {
+  const doc = vid?._doc || {};
+  return {
+    id: String(vid?.id || vid?._id || doc.id || doc._id || `vid-${index + 1}`),
+    order: Number(vid?.order ?? doc.order ?? (index + 1)),
+    title: String(vid?.title || doc.title || `Module ${index + 1}`),
+    description: String(vid?.description || doc.description || ''),
+    duration: String(vid?.duration || doc.duration || '30:00'),
+    videoUrl: String(vid?.videoUrl || doc.videoUrl || ''),
+    thumbnail: vid?.thumbnail || doc.thumbnail,
+    isCompleted: Boolean(vid?.isCompleted ?? doc.isCompleted ?? false),
+    resources: Array.isArray(vid?.resources || doc.resources)
+      ? (vid?.resources || doc.resources).map((res: any, rIdx: number): VideoResource => {
+          const rDoc = res?._doc || {};
+          return {
+            id: String(res?.id || res?._id || rDoc.id || rDoc._id || `res-${rIdx + 1}`),
+            title: String(res?.title || rDoc.title || 'Handout Resource'),
+            type: (res?.type || rDoc.type || 'link'),
+            url: String(res?.url || rDoc.url || '#'),
+            size: res?.size || rDoc.size,
+          };
+        })
+      : [],
+  };
+};
+
+export const normalizeProgram = (prog: any): Program => {
+  if (!prog) return prog;
+  const doc = prog?._doc || {};
+  const base = { ...doc, ...prog };
+  const rawVideos = base.videos || [];
+  const normalizedVideos: ProgramVideo[] = Array.isArray(rawVideos)
+    ? rawVideos.map((v: any, idx: number) => normalizeVideo(v, idx))
+    : [];
+
+  return {
+    ...base,
+    id: String(base.id || base._id || ''),
+    videos: normalizedVideos,
+    videosCount: normalizedVideos.length || base.videosCount || 0,
+  };
+};

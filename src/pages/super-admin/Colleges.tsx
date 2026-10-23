@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Search, Filter, Mail, Phone, ArrowUpRight, ShieldAlert, Sparkles, Check, X, Plus, Eye, EyeOff, Pencil } from 'lucide-react';
+import { Building2, Search, Filter, Mail, Phone, ArrowUpRight, ShieldAlert, Sparkles, Check, X, Plus, Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Input, Select, Pagination, EmptyState, Skeleton, Modal } from '../../components/ui';
 import { collegeService } from '../../services';
@@ -18,6 +18,35 @@ export const SuperAdminCollegesPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [plan, setPlan] = useState('');
   const [status, setStatus] = useState('');
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [studentCounts, setStudentCounts] = useState<Record<string, number>>({});
+  const [deleteTarget, setDeleteTarget] = useState<College | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    collegeService.getStudentCounts().then(setStudentCounts).catch(() => setStudentCounts({}));
+  }, []);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const result = await collegeService.delete(deleteTarget.id, deleteTarget.isActive);
+      if (result === 'deleted') {
+        toast.success(`${deleteTarget.name} deleted`);
+      } else {
+        toast.success(`${deleteTarget.name} removed from dashboard`, {
+          description: 'Suspended on the server (logins disabled). Permanent deletion needs the backend DELETE endpoint.',
+        });
+      }
+      setDeleteTarget(null);
+      fetchColleges();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete college');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const EMPTY_COLLEGE_FORM = {
     name: '',
@@ -59,19 +88,42 @@ export const SuperAdminCollegesPage: React.FC = () => {
   const fetchColleges = async () => {
     setLoading(true);
     try {
-      const res = await collegeService.getAll({
-        search,
-        page,
-        limit: LIMIT,
-      });
+      // Fetch full set from API + database + sync so no colleges are missing
+      const res = await collegeService.getAll({ limit: 200 });
 
       let filtered = [...res.data];
+
+      // Filter by search query across name, code, city, state
+      if (search.trim()) {
+        const q = search.trim().toLowerCase();
+        filtered = filtered.filter(c =>
+          c.name.toLowerCase().includes(q) ||
+          c.code.toLowerCase().includes(q) ||
+          c.city.toLowerCase().includes(q) ||
+          (c.state && c.state.toLowerCase().includes(q))
+        );
+      }
+
+      // Filter by plan
       if (plan) filtered = filtered.filter(c => c.subscription.plan === plan);
+
+      // Filter by status
       if (status) filtered = filtered.filter(c => c.subscription.status === status);
 
-      setColleges(filtered);
-      setTotal(filtered.length);
-      setTotalPages(Math.ceil(filtered.length / LIMIT));
+      const totalCount = filtered.length;
+      setTotal(totalCount);
+      const computedTotalPages = Math.max(1, Math.ceil(totalCount / LIMIT));
+      setTotalPages(computedTotalPages);
+
+      // Adjust page if current page exceeds computed totalPages
+      const safePage = Math.min(page, computedTotalPages);
+      if (safePage !== page && safePage > 0) {
+        setPage(safePage);
+      }
+
+      // Paginate current slice
+      const start = (safePage - 1) * LIMIT;
+      setColleges(filtered.slice(start, start + LIMIT));
     } catch {
       toast.error('Failed to load colleges');
     } finally {
@@ -184,9 +236,33 @@ export const SuperAdminCollegesPage: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = (id: string, current: boolean) => {
+  const handleToggleStatus = async (id: string, current: boolean) => {
+    setTogglingId(id);
+    // Optimistic UI update
     setColleges(prev => prev.map(c => c.id === id ? { ...c, isActive: !current } : c));
-    toast.success(`College account ${!current ? 'activated' : 'suspended'} successfully`);
+
+    try {
+      const result = await collegeService.toggleStatus(id);
+      const newStatus = typeof result?.isActive === 'boolean' ? result.isActive : !current;
+
+      setColleges(prev => prev.map(c => c.id === id ? { ...c, isActive: newStatus } : c));
+
+      toast.success(
+        newStatus ? '🎉 College account activated successfully' : '⚠️ College account suspended successfully',
+        {
+          description: newStatus
+            ? 'College portal and student logins are now active.'
+            : 'College portal has been suspended. Student and TPO logins disabled.',
+        }
+      );
+    } catch (err: unknown) {
+      // Revert optimistic update on failure
+      setColleges(prev => prev.map(c => c.id === id ? { ...c, isActive: current } : c));
+      const msg = err instanceof Error ? err.message : 'Failed to update college status';
+      toast.error(msg);
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const getPlanBadge = (p: College['subscription']['plan']) => {
@@ -257,6 +333,20 @@ export const SuperAdminCollegesPage: React.FC = () => {
             className="sm:w-40"
           />
         </div>
+        {(search || plan || status) && (
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500">
+            <span>
+              Found <strong className="text-slate-800 dark:text-slate-200">{total}</strong> {total === 1 ? 'college' : 'colleges'} matching your filters
+            </span>
+            <button
+              type="button"
+              onClick={() => { setSearch(''); setPlan(''); setStatus(''); setPage(1); }}
+              className="text-brand-600 hover:text-brand-700 font-semibold cursor-pointer"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
       </Card>
 
       {/* Grid */}
@@ -302,7 +392,7 @@ export const SuperAdminCollegesPage: React.FC = () => {
                   <div className="grid grid-cols-3 gap-6 text-xs text-right sm:text-left">
                     <div>
                       <span className="block text-[10px] text-slate-400 font-semibold uppercase">Students</span>
-                      <span className="font-bold text-slate-900 dark:text-white">{college.subscription.studentsUsed} / {college.subscription.studentsLimit}</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{studentCounts[college.id] ?? 0}</span>
                     </div>
                     <div>
                       <span className="block text-[10px] text-slate-400 font-semibold uppercase">AI Credits</span>
@@ -329,6 +419,7 @@ export const SuperAdminCollegesPage: React.FC = () => {
                     <Button
                       variant={college.isActive ? 'outline' : 'primary'}
                       size="sm"
+                      loading={togglingId === college.id}
                       className="text-xs justify-center flex-1 sm:flex-none"
                       onClick={(e) => { e.stopPropagation(); handleToggleStatus(college.id, college.isActive); }}
                     >
@@ -343,11 +434,31 @@ export const SuperAdminCollegesPage: React.FC = () => {
                     >
                       <Sparkles className="w-4 h-4" />
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Delete college"
+                      className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(college); }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
             </Card>
           ))}
+
+          {/* Pagination */}
+          <Card className="p-4 mt-4">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              limit={LIMIT}
+              onPageChange={setPage}
+            />
+          </Card>
         </div>
       )}
 
@@ -452,9 +563,9 @@ export const SuperAdminCollegesPage: React.FC = () => {
               value={newCollege.plan}
               onChange={e => setNewCollege({ ...newCollege, plan: e.target.value })}
               options={[
-                { value: 'starter', label: 'Starter Plan (1,000 Students, 5,000 AI Credits)' },
-                { value: 'professional', label: 'Professional Plan (5,000 Students, 20,000 AI Credits)' },
-                { value: 'enterprise', label: 'Enterprise Plan (10,000 Students, 50,000 AI Credits)' },
+                { value: 'starter', label: 'Starter Plan (5,000 AI Credits)' },
+                { value: 'professional', label: 'Professional Plan (20,000 AI Credits)' },
+                { value: 'enterprise', label: 'Enterprise Plan (50,000 AI Credits)' },
               ]}
             />
           </div>
@@ -584,6 +695,37 @@ export const SuperAdminCollegesPage: React.FC = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => !deleting && setDeleteTarget(null)}
+        title="Delete college"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex gap-3 p-3.5 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40">
+            <ShieldAlert className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-700 dark:text-red-300">
+              Permanently delete <strong>{deleteTarget?.name}</strong>
+              {deleteTarget?.code ? ` (${deleteTarget.code})` : ''}? It has{' '}
+              <strong>{deleteTarget ? studentCounts[deleteTarget.id] ?? 0 : 0}</strong> registered student(s). This cannot be undone.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</Button>
+            <Button
+              variant="primary"
+              loading={deleting}
+              onClick={handleDelete}
+              leftIcon={<Trash2 className="w-4 h-4" />}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete College
+            </Button>
+          </div>
+        </div>
       </Modal>
 
     </PageWrapper>

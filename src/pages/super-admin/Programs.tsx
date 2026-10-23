@@ -11,6 +11,7 @@ import type { Program, ProgramVideo, TargetAudience, VideoResource } from '../..
 import { uploadService } from '../../services';
 import { toast } from 'sonner';
 import { getMediaUrl } from '../../config/api';
+import { normalizeProgram } from '../../utils';
 
 // Helper to convert standard YouTube links to embed format
 const formatVideoEmbedUrl = (url: string): string => {
@@ -130,7 +131,8 @@ export const SuperAdminProgramsPage: React.FC = () => {
     setIsCreateModalOpen(true);
   };
 
-  const handleOpenEdit = (program: Program) => {
+  const handleOpenEdit = (rawProgram: Program) => {
+    const program = normalizeProgram(rawProgram);
     setEditingProgram(program);
     setFormTitle(program.title);
     setFormSubtitle(program.subtitle || '');

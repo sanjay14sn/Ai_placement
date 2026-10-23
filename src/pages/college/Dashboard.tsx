@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import {
@@ -142,7 +142,7 @@ export const CollegeDashboard: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Recruiters */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-5">
@@ -169,24 +169,6 @@ export const CollegeDashboard: React.FC = () => {
           )}
         </Card>
 
-        {/* Salary Distribution */}
-        <Card className="p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-5">Salary Distribution</h3>
-          {analytics && (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={analytics.salaryDistribution} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis type="number" tick={{ fontSize: 11 }} />
-                <YAxis type="category" dataKey="range" tick={{ fontSize: 10 }} width={60} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#4f46e5" radius={[0, 4, 4, 0]} name="Students" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6">
         {/* Pending Actions */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-5">

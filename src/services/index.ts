@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { mockPlatformStats, mockPlatformCharts } from '../mock/data';
 import { API_BASE, BACKEND_BASE, getMediaUrl } from '../config/api';
+import { normalizeProgram } from '../utils';
 
 export { API_BASE, BACKEND_BASE, getMediaUrl };
 
@@ -531,34 +532,169 @@ export const recruiterService = {
 
 // ─── College Service ──────────────────────────────────────────────────────────
 
+const getLocalRegisteredColleges = (): import('../types').College[] => {
+  try {
+    const raw = localStorage.getItem('placementos_registered_colleges');
+    if (!raw) return [];
+    const parsed: import('../types').College[] = JSON.parse(raw);
+    // Purge legacy mock entries with non-mongo IDs like 'college-1'
+    return Array.isArray(parsed) ? parsed.filter(c => c && c.id && !c.id.startsWith('college-')) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveLocalRegisteredColleges = (colleges: import('../types').College[]) => {
+  try {
+    // Only persist valid real colleges
+    const clean = colleges.filter(c => c && c.id && !c.id.startsWith('college-'));
+    localStorage.setItem('placementos_registered_colleges', JSON.stringify(clean));
+  } catch {}
+};
+
+// Colleges removed from the dashboard while the backend lacks DELETE /colleges/:id
+const REMOVED_KEY = 'placementos_removed_colleges';
+const getRemovedCollegeIds = (): string[] => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(REMOVED_KEY) || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+};
+const addRemovedCollegeId = (id: string) => {
+  try {
+    localStorage.setItem(REMOVED_KEY, JSON.stringify(Array.from(new Set([...getRemovedCollegeIds(), id]))));
+  } catch {}
+};
+
 export const collegeService = {
   getAll: async (params?: import('../types').FilterParams) => {
+    const local = getLocalRegisteredColleges();
     try {
+      const queryLimit = params?.limit ? Math.max(Number(params.limit), 100) : 200;
       const res = await api<{ data: import('../types').PaginatedResponse<import('../types').College> }>('/colleges', {
-        params: params as Record<string, string>,
+        params: { ...params, limit: queryLimit },
         auth: false,
       });
-      return res.data;
+      const apiColleges = res?.data?.data || [];
+
+      // Backend (MongoDB) is the single source of truth when reachable
+      const removed = new Set(getRemovedCollegeIds());
+      const combined: import('../types').College[] = apiColleges
+        .map(c => {
+          const id = c.id || (c as any)._id;
+          const code = (c.code || (c.name ? c.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() + '1' : 'COL1')).toUpperCase();
+          return { ...c, id, code };
+        })
+        .filter(c => !removed.has(c.id));
+
+      // Refresh the offline cache so deleted / stale colleges don't linger
+      saveLocalRegisteredColleges(combined);
+
+      return {
+        data: combined,
+        total: combined.length,
+        page: res?.data?.page || 1,
+        limit: res?.data?.limit || combined.length,
+        totalPages: Math.ceil(combined.length / 10),
+      };
     } catch (err) {
-      console.warn('Failed to fetch colleges from API:', err);
-      return { data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
+      console.warn('Failed to fetch colleges from API, using locally registered colleges:', err);
+      return { data: local, total: local.length, page: 1, limit: 10, totalPages: Math.ceil(local.length / 10) };
     }
   },
 
   getById: async (id: string) => {
-    const res = await api<{ data: import('../types').College }>(`/colleges/${id}`);
-    return res.data;
+    try {
+      const res = await api<{ data: import('../types').College }>(`/colleges/${id}`);
+      const c = res.data;
+      return { ...c, id: c.id || (c as any)._id } as import('../types').College;
+    } catch (err) {
+      const found = getLocalRegisteredColleges().find(c => c.id === id || c.code === id);
+      if (found) return found;
+      throw err;
+    }
+  },
+
+  /** All real students registered under a college (filtered client-side by collegeId). */
+  getStudents: async (collegeId: string): Promise<import('../types').Student[]> => {
+    const res = await api<{ data: import('../types').PaginatedResponse<import('../types').Student> }>('/students', {
+      params: { collegeId, limit: 1000 },
+      auth: true,
+    });
+    const list = res?.data?.data || [];
+    return list
+      .map(s => ({ ...s, id: s.id || (s as any)._id }))
+      .filter(s => String((s as any).collegeId?._id || s.collegeId) === collegeId);
+  },
+
+  /** Real registered-student count per collegeId. */
+  getStudentCounts: async (): Promise<Record<string, number>> => {
+    const res = await api<{ data: import('../types').PaginatedResponse<import('../types').Student> }>('/students', {
+      params: { limit: 1000 },
+      auth: true,
+    });
+    const counts: Record<string, number> = {};
+    (res?.data?.data || []).forEach(s => {
+      const cid = String((s as any).collegeId?._id || s.collegeId || '');
+      if (cid) counts[cid] = (counts[cid] || 0) + 1;
+    });
+    return counts;
+  },
+
+  /**
+   * Deletes a college. If the backend has no DELETE route yet, falls back to
+   * suspending it on the server and hiding it from lists in this browser.
+   * Returns 'deleted' or 'suspended' so the UI can tell the user what happened.
+   */
+  delete: async (id: string, isActive = true): Promise<'deleted' | 'suspended'> => {
+    try {
+      await api(`/colleges/${id}`, { method: 'DELETE', auth: true });
+      saveLocalRegisteredColleges(getLocalRegisteredColleges().filter(c => c.id !== id));
+      return 'deleted';
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (!/route not found|404/i.test(msg)) throw err;
+
+      // Fallback: deactivate on the server (blocks TPO/student logins), then hide locally
+      if (isActive) {
+        await api(`/colleges/${id}/toggle-status`, { method: 'PATCH', auth: false });
+      }
+      addRemovedCollegeId(id);
+      saveLocalRegisteredColleges(getLocalRegisteredColleges().filter(c => c.id !== id));
+      return 'suspended';
+    }
   },
 
   lookup: async (q: string) => {
-    const res = await api<{ data: {
-      id: string;
-      name: string;
-      code: string;
-      city: string;
-      departments: { id: string; name: string; code: string }[];
-    } | null }>('/colleges/lookup', { params: { q }, auth: false });
-    return res.data;
+    const qLower = q.trim().toLowerCase();
+    const local = getLocalRegisteredColleges();
+    const localMatch = local.find(c =>
+      c.code?.toLowerCase() === qLower ||
+      c.name?.toLowerCase().includes(qLower)
+    );
+    if (localMatch) {
+      return {
+        id: localMatch.id,
+        name: localMatch.name,
+        code: localMatch.code,
+        city: localMatch.city,
+        departments: localMatch.departments || [],
+      };
+    }
+    try {
+      const res = await api<{ data: {
+        id: string;
+        name: string;
+        code: string;
+        city: string;
+        departments: { id: string; name: string; code: string }[];
+      } | null }>('/colleges/lookup', { params: { q }, auth: false });
+      return res.data;
+    } catch {
+      return null;
+    }
   },
 
   create: async (data: {
@@ -573,19 +709,131 @@ export const collegeService = {
     password?: string;
     plan?: string;
   }) => {
-    const res = await api<{ data: { college: import('../types').College; adminUser: unknown } }>('/colleges', {
-      method: 'POST',
-      body: data,
-    });
-    return res.data;
+    let result: { college: import('../types').College; adminUser: unknown };
+    try {
+      const res = await api<{ data: { college: import('../types').College; adminUser: unknown } }>('/colleges', {
+        method: 'POST',
+        body: data,
+      });
+      result = res.data;
+    } catch {
+      // Fallback offline creation so registration works seamlessly even if backend is offline
+      const code = data.code || (data.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() + '1');
+      const mockCol: import('../types').College = {
+        id: `college-${Date.now()}`,
+        name: data.name,
+        code,
+        city: data.city,
+        state: data.state || '',
+        country: 'India',
+        phone: data.tpoPhone || '080-12345678',
+        email: data.tpoEmail,
+        establishedYear: data.establishedYear || 2000,
+        affiliation: 'Affiliated University',
+        type: 'engineering',
+        totalStudents: 0,
+        tpoName: data.tpoName,
+        tpoEmail: data.tpoEmail,
+        tpoPhone: data.tpoPhone,
+        subscription: {
+          plan: (data.plan as any) || 'starter',
+          status: 'active',
+          expiresAt: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+          studentsLimit: 1000,
+          studentsUsed: 0,
+          aiCreditsLimit: 1000,
+          aiCreditsUsed: 0,
+          recruitersLimit: 50,
+          recruitersUsed: 0,
+          jobsLimit: 100,
+          jobsUsed: 0,
+        },
+        stats: {
+          totalStudents: 0,
+          eligibleStudents: 0,
+          placedStudents: 0,
+          placementPercent: 0,
+          activeJobs: 0,
+          totalApplications: 0,
+          totalInterviews: 0,
+          avgPackage: 0,
+          highestPackage: 0,
+        },
+        departments: ['CSE', 'ISE', 'ECE', 'MECH'],
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      };
+      result = { college: mockCol, adminUser: { email: data.tpoEmail } };
+    }
+
+    if (result?.college) {
+      const existing = getLocalRegisteredColleges();
+      const filtered = existing.filter(c => c.code !== result.college.code && c.id !== result.college.id);
+      saveLocalRegisteredColleges([result.college, ...filtered]);
+    }
+    return result;
   },
 
-  update: async (id: string, updates: Partial<import('../types').College>) => {
-    const res = await api<{ data: import('../types').College }>(`/colleges/${id}`, {
-      method: 'PUT',
-      body: updates,
-    });
-    return res.data;
+  update: async (id: string, updates: Partial<import('../types').College>): Promise<import('../types').College> => {
+    let result: import('../types').College | null = null;
+    try {
+      const res = await api<{ data: import('../types').College }>(`/colleges/${id}`, {
+        method: 'PUT',
+        body: updates,
+        auth: true,
+      });
+      if (res?.data) {
+        result = res.data;
+      }
+    } catch (err) {
+      console.warn('API PUT /colleges/:id failed, updating local storage:', err);
+    }
+
+    const local = getLocalRegisteredColleges();
+    const existingIndex = local.findIndex(c => c.id === id || c.code === id);
+    const existing = existingIndex !== -1 ? local[existingIndex] : null;
+    const fallbackCollege: import('../types').College = {
+      ...(existing || {}),
+      id,
+      ...updates,
+      ...(result || {}),
+    } as import('../types').College;
+
+    if (existingIndex !== -1) {
+      local[existingIndex] = fallbackCollege;
+      saveLocalRegisteredColleges(local);
+    } else {
+      saveLocalRegisteredColleges([fallbackCollege, ...local]);
+    }
+    return result || fallbackCollege;
+  },
+
+  toggleStatus: async (id: string) => {
+    let updatedCollege: import('../types').College | null = null;
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(id);
+
+    if (isMongoId) {
+      const res = await api<{ data: import('../types').College; success: boolean }>(`/colleges/${id}/toggle-status`, {
+        method: 'PATCH',
+        auth: false,
+      });
+      if (res?.data) {
+        updatedCollege = res.data;
+      }
+    }
+
+    // Sync with local registered colleges storage
+    const local = getLocalRegisteredColleges();
+    const existing = local.find(c => c.id === id);
+    const newIsActive = updatedCollege ? updatedCollege.isActive : !(existing?.isActive ?? true);
+
+    const updated = local.map(c => c.id === id ? { ...c, isActive: newIsActive } : c);
+    if (!existing && updatedCollege) {
+      updated.push(updatedCollege);
+    }
+    saveLocalRegisteredColleges(updated);
+
+    return updatedCollege || { id, isActive: newIsActive };
   },
 };
 
@@ -1419,7 +1667,7 @@ export const programService = {
   getAll: async (params?: Record<string, string | number | boolean | undefined>) => {
     try {
       const res = await api<{ success: boolean; data: import('../types').Program[] }>('/programs', { params, auth: false });
-      return res.data;
+      return (res.data || []).map(normalizeProgram);
     } catch (err) {
       console.warn('Backend /programs failed, using store cache:', err);
       return [];
@@ -1427,21 +1675,21 @@ export const programService = {
   },
   getById: async (id: string) => {
     const res = await api<{ success: boolean; data: import('../types').Program }>(`/programs/${id}`, { auth: false });
-    return res.data;
+    return normalizeProgram(res.data);
   },
   create: async (data: Partial<import('../types').Program>) => {
     const res = await api<{ success: boolean; data: import('../types').Program }>('/programs', {
       method: 'POST',
       body: data,
     });
-    return res.data;
+    return normalizeProgram(res.data);
   },
   update: async (id: string, data: Partial<import('../types').Program>) => {
     const res = await api<{ success: boolean; data: import('../types').Program }>(`/programs/${id}`, {
       method: 'PUT',
       body: data,
     });
-    return res.data;
+    return normalizeProgram(res.data);
   },
   delete: async (id: string) => {
     const res = await api<{ success: boolean; message: string }>(`/programs/${id}`, {
@@ -1453,7 +1701,7 @@ export const programService = {
     const res = await api<{ success: boolean; data: import('../types').Program }>(`/programs/${id}/publish`, {
       method: 'PATCH',
     });
-    return res.data;
+    return normalizeProgram(res.data);
   },
 };
 

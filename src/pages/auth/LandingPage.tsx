@@ -1,949 +1,879 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Sparkles, 
-  ChevronDown, 
-  Cpu, 
-  TrendingUp, 
-  Calendar, 
-  Building2, 
-  Briefcase, 
-  Award, 
-  Users, 
-  MapPin, 
-  CheckCircle2, 
-  GraduationCap, 
-  School,
-  ArrowRight,
-  Shield,
-  Zap,
-  Clock,
-  Globe,
-  Star,
-  Target,
-  ShieldCheck,
+  ArrowRight, 
+  ChevronRight, 
+  Star, 
+  Menu, 
+  X, 
+  Check, 
+  ExternalLink,
+  ChevronLeft,
+  GraduationCap,
+  Code2,
+  RefreshCw,
+  Search,
+  Sparkles,
+  ArrowUp,
+  Video,
   FileText,
-  Bot,
-  BarChart3,
-  ArrowUpRight,
-  Check,
-  Menu,
-  X
+  MessageSquare
 } from 'lucide-react';
-import { Button } from '../../components/ui';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-
-  // Active state for FAQ
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [menuOpen, setMenuOpen] = useState(false);
-
-
-
-  const srmFeatures = [
-    {
-      icon: <Cpu className="w-6 h-6 text-[#08546c]" />,
-      title: 'SRM AI Multi-Parameter Matcher',
-      badge: '50+ Parameters',
-      badgeBg: 'bg-cyan-50 text-[#08546c] border-cyan-200/80',
-      description: 'Evaluates 50+ parameters including SRM NetID grades, departmental electives, GitHub projects, and recruiter cutoffs to generate precision match scores.',
-    },
-    {
-      icon: <TrendingUp className="w-6 h-6 text-amber-600" />,
-      title: 'Super Dream Readiness Engine',
-      badge: '> 15 LPA Target',
-      badgeBg: 'bg-amber-50 text-amber-700 border-amber-200/80',
-      description: 'Calculates real-time readiness metrics for SRM students targeting >15 LPA offers with actionable skill-gap improvement advice.',
-    },
-    {
-      icon: <School className="w-6 h-6 text-blue-600" />,
-      title: 'Multi-Campus Isolation Architecture',
-      badge: 'KTR • AP • RMP',
-      badgeBg: 'bg-blue-50 text-blue-700 border-blue-200/80',
-      description: 'Seamlessly connects KTR, Ramapuram, Vadapalani, and AP campuses into one unified placement ecosystem while maintaining departmental data control.',
-    },
-    {
-      icon: <Calendar className="w-6 h-6 text-emerald-600" />,
-      title: 'Directorate Slotting & Scheduling',
-      badge: 'Automated SLA',
-      badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
-      description: 'Automated venue reservation for SRM Tech Auditoriums and virtual panels, managing parallel interview tracks across 1,000+ companies.',
-    },
-  ];
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeTestimonialIdx, setActiveTestimonialIdx] = useState(0);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [contactSubmitted, setContactSubmitted] = useState(false);
 
   const testimonials = [
     {
-      name: 'Dr. V. Thirumurugan',
-      role: 'Director, Directorate of Career Centre, SRM IST',
-      content: 'SRM AI PlacementOS transformed our multi-campus placement drives across KTR, Ramapuram, and AP. We achieved over 10,000+ offers this season with complete transparency and automated AI matching.',
-      stat: '10,000+ Offers Generated',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      id: 1,
+      rating: 5,
+      quote: "I had a very good experience using this platform. The application process was smooth, easy to understand, and user-friendly. I appreciate how quickly everything was organized and updated. Overall, the experience was professional and convenient.",
+      author: "S V S Susmitha Sriya",
+      source: "Trustpilot",
+      date: "20 May 2026",
+      sourceType: "trustpilot" as const,
     },
     {
-      name: 'Anitha Rao',
-      role: 'Head of Campus Relations, Amazon India',
-      content: 'SRM\'s AI candidate shortlisting reduced our screening cycle by 65%. The 50-parameter match scores genuinely reflect candidate coding proficiency and core domain fundamentals.',
-      stat: '65% Faster Recruitment',
-      avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+      id: 2,
+      rating: 5,
+      quote: "My overall experience with the platform is great and its the best platform for conducting online interviews. I recommend it to everyone to use for their interviews. This saves significant time for both recruiters and candidates. Students mainly have benefits as the job postings and interviews can be done at one platform.",
+      author: "Harshini",
+      role: "IT professional",
+      source: "Capterra",
+      date: "21 Feb 2026",
+      sourceType: "capterra" as const,
     },
     {
-      name: 'Arjun Sharma',
-      role: 'B.Tech Computer Science (KTR Campus, 2025)',
-      content: 'The AI Placement Readiness score identified my exact skill gaps in System Design. Guided by the AI Career Advisor, I secured a 32 LPA Super Dream offer at Amazon!',
-      stat: '₹32 LPA Super Dream Offer',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-    },
-  ];
-
-  const faqs = [
-    {
-      q: 'How does SRM AI PlacementOS handle Super Dream vs Dream drive eligibility?',
-      a: 'The system enforces SRM Directorate guidelines automatically. Students can configure eligibility preferences, while recruiters set cutoffs based on CGPA, backlogs, department electives, and AI readiness scores.'
+      id: 3,
+      rating: 5,
+      quote: "The platform makes it easy to manage assessments, shortlisting, interviews, and communication in one place, without having to juggle multiple tools. This saves significant time for both recruiters and candidates across our nationwide campus drives.",
+      author: "Syed I.",
+      role: "Manager - Corporate Relations and Placements",
+      source: "G2",
+      date: "5 May 2026",
+      incentivized: true,
+      sourceType: "g2" as const,
     },
     {
-      q: 'Is student academic data synchronized with SRM University records?',
-      a: 'Yes! The platform integrates directly with SRM NetID and examination databases, ensuring CGPA, course credits, and arrear status are 100% verified.'
-    },
-    {
-      q: 'Can recruiters access students across all SRM campuses (KTR, Ramapuram, Vadapalani, AP)?',
-      a: 'Yes. Recruiters can choose to conduct combined multi-campus recruitment drives or target specific SRM campuses and specialized departments.'
-    },
-    {
-      q: 'What is the SRM AI TPO Assistant?',
-      a: 'It is a specialized natural-language AI trained on SRM placement statistics and guidelines. Placement officers can query real-time analytics, issue mass alerts, and track company pipelines instantly.'
-    },
-    {
-      q: 'How do SRM students practice for technical interviews on the portal?',
-      a: 'Students get access to an AI Mock Interviewer and ATS Resume Analyzer tuned to company-specific interview formats for top SRM recruiters like Google, Amazon, TCS, and Barclays.'
+      id: 4,
+      rating: 5,
+      quote: "Ease of access and exposure to high quality companies while reaching candidates with a single click. Everything was fast, reliable and kept me updated throughout the cycle.",
+      author: "Divyanshu Singh",
+      source: "Trustpilot",
+      date: "9 Jul 2026",
+      sourceType: "trustpilot" as const,
     },
   ];
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-900 font-sans antialiased selection:bg-amber-500 selection:text-white pt-20">
-      
-      {/* Top Navbar - Fixed Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-md text-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <img 
-              src="/svm.png" 
-              alt="SVM Logo" 
-              className="h-12 sm:h-16 w-auto object-contain py-1"
-            />
-          </div>
+    <div className="min-h-screen bg-white text-slate-900 font-sans antialiased selection:bg-blue-100 selection:text-blue-900">
+      {/* ───────────────── HEADER NAVBAR ───────────────── */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+          {/* Brand Logo */}
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-xl bg-[#0066FF] flex items-center justify-center text-white shadow-md shadow-blue-500/25 transition-transform duration-200 group-hover:scale-105 flex-shrink-0">
+              <GraduationCap className="w-5 h-5" strokeWidth={2.2} />
+            </div>
+            <span className="text-2xl font-black tracking-tight text-slate-900 leading-none">
+              Placement<span className="text-[#0066FF]">OS</span>
+            </span>
+          </Link>
 
-          <div className="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-600">
-            <a href="#student-benefits" className="hover:text-slate-900 transition-colors">Student Benefits</a>
-            <a href="#features" className="hover:text-slate-900 transition-colors">AI Features</a>
-            <a href="#testimonials" className="hover:text-slate-900 transition-colors">Testimonials</a>
-            <a href="#faq" className="hover:text-slate-900 transition-colors">FAQ</a>
-          </div>
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-9 text-[15px] font-medium text-slate-600">
+            <a href="#institutions" className="hover:text-slate-950 transition-colors">Institutions</a>
+            <a href="#recruiters" className="hover:text-slate-950 transition-colors">Recruiters</a>
+            <a href="#candidates" className="hover:text-slate-950 transition-colors">Candidates</a>
+            <a href="#solutions" className="hover:text-slate-950 transition-colors">Solutions</a>
+          </nav>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              className="lg:hidden p-2 rounded-lg text-slate-700 hover:bg-slate-100"
-              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              onClick={() => setMenuOpen((open) => !open)}
+          {/* Right Action Buttons */}
+          <div className="hidden md:flex items-center gap-7">
+            <button 
+              onClick={() => setContactModalOpen(true)}
+              className="text-[15px] font-medium text-slate-600 hover:text-slate-950 transition-colors cursor-pointer"
             >
-              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              Contact sales
             </button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate('/login')}
-              className="text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs sm:text-sm px-3 sm:px-4"
+            <Link 
+              to="/login"
+              className="text-[15px] font-medium text-slate-600 hover:text-slate-950 transition-colors"
             >
-              Sign In
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={() => navigate('/register')}
-              className="bg-slate-950 hover:bg-slate-800 text-white rounded-full px-4 sm:px-5 py-2 text-xs sm:text-sm font-bold shadow-lg transition-all"
+              Log in
+            </Link>
+            <Link 
+              to="/register"
+              className="bg-[#0B1528] hover:bg-slate-800 text-white text-[15px] font-semibold px-6 py-2.5 rounded-full transition-all duration-200 shadow-sm"
             >
-              Register
-            </Button>
+              Sign up
+            </Link>
           </div>
+
+          {/* Mobile Menu Toggle */}
+          <button 
+            type="button"
+            className="md:hidden p-2 text-slate-700"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
-        {menuOpen && (
-          <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 flex flex-col gap-3 text-sm font-semibold text-slate-700">
-            <a href="#student-benefits" onClick={() => setMenuOpen(false)}>Student Benefits</a>
-            <a href="#features" onClick={() => setMenuOpen(false)}>AI Features</a>
-            <a href="#testimonials" onClick={() => setMenuOpen(false)}>Testimonials</a>
-            <a href="#faq" onClick={() => setMenuOpen(false)}>FAQ</a>
+
+        {/* Mobile Dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden px-6 pt-3 pb-6 border-b border-slate-100 bg-white flex flex-col gap-4 text-base font-medium">
+            <a href="#institutions" onClick={() => setMobileMenuOpen(false)} className="text-slate-700 py-1">Institutions</a>
+            <a href="#recruiters" onClick={() => setMobileMenuOpen(false)} className="text-slate-700 py-1">Recruiters</a>
+            <a href="#candidates" onClick={() => setMobileMenuOpen(false)} className="text-slate-700 py-1">Candidates</a>
+            <a href="#solutions" onClick={() => setMobileMenuOpen(false)} className="text-slate-700 py-1">Solutions</a>
+            <button onClick={() => { setMobileMenuOpen(false); setContactModalOpen(true); }} className="text-left text-slate-700 py-1">Contact sales</button>
+            <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
+              <Link to="/login" className="w-full text-center py-2.5 text-slate-800 font-semibold border border-slate-200 rounded-full">Log in</Link>
+              <Link to="/register" className="w-full text-center py-2.5 bg-[#0B1528] text-white font-semibold rounded-full">Sign up</Link>
+            </div>
           </div>
         )}
-      </nav>
+      </header>
 
-      {/* ─────────────────────────────────────────────────────────────────────────
-          HERO SECTION - FULLY RESPONSIVE DESKTOP & MOBILE
-         ───────────────────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-white pt-6 sm:pt-8 pb-16 lg:pb-32">
-        
-        {/* Dynamic Curved Deep Oceanic Teal Background Wave (Desktop Only) */}
-        <div className="hidden lg:block absolute right-0 top-0 w-[60%] xl:w-[65%] h-full pointer-events-none z-0 overflow-hidden">
-          <svg 
-            className="absolute right-0 top-0 h-full w-full object-cover" 
-            viewBox="0 0 900 800" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg" 
-            preserveAspectRatio="none"
-          >
-            <path 
-              d="M320 0C250 180 380 320 220 540C120 680 0 720 0 800H900V0H320Z" 
-              fill="#08546c" 
-            />
-          </svg>
-          {/* Accent Deep Teal Blob under student */}
-          <div className="absolute top-[18%] right-[8%] w-[420px] h-[420px] bg-[#064255] rounded-full blur-none z-0 shadow-2xl opacity-90 transform -rotate-12" />
-        </div>
-
-        {/* Hero Main Grid Container */}
-        <div className="relative z-10 max-w-[1540px] mx-auto px-4 sm:px-6 lg:pl-16 lg:pr-0">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-4 items-center">
+      {/* ───────────────── HERO SECTION (Screenshot 1) ───────────────── */}
+      <section className="relative overflow-hidden pt-12 md:pt-20 pb-20 lg:pb-28">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
-            {/* Left Column (Content & CTAs) */}
-            <div className="lg:col-span-6 xl:col-span-5 pt-2 sm:pt-4 lg:pr-10">
-              
-              {/* Main Headline */}
-              <h1 className="text-3xl sm:text-5xl lg:text-5xl xl:text-6xl font-black text-slate-950 tracking-tight leading-[1.1] sm:leading-[1.08] mb-4 sm:mb-6">
-                Empowering SRMites with Next-Gen AI Campus Recruitment
+            {/* Left Content Column */}
+            <div className="lg:col-span-7 xl:col-span-7 pr-0 lg:pr-6">
+              <h1 className="text-4xl sm:text-5xl lg:text-[64px] font-black tracking-tight text-slate-950 leading-[1.08] mb-6">
+                India's largest campus hiring platform
               </h1>
 
-              {/* Subtitle */}
-              <p className="text-slate-600 text-sm sm:text-base lg:text-lg max-w-2xl leading-relaxed mb-6 sm:mb-8 font-normal">
-                Automating placement management across SRM Kattankulathur (KTR Main Campus), Ramapuram, Vadapalani, and Amaravati (AP). AI-powered job matching, Super Dream drive slotting, ATS resume scoring, and automated interview scheduling — all in one platform.
+              <p className="text-lg sm:text-xl text-slate-500 font-normal leading-relaxed max-w-xl mb-9">
+                Conduct outreach, engagement, assessments, and roll out offers on a single, integrated platform.
               </p>
 
-              {/* Buttons */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-                <button 
-                  onClick={() => navigate('/register')}
-                  className="bg-slate-950 hover:bg-slate-800 text-white font-bold px-6 sm:px-8 py-3.5 sm:py-4 rounded-full text-sm sm:text-base shadow-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 text-center"
+              {/* Action Buttons Row */}
+              <div className="flex flex-wrap items-center gap-4 mb-14">
+                <Link
+                  to="/register"
+                  className="bg-[#0B1528] hover:bg-slate-800 text-white text-base font-semibold px-8 py-3.5 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
                 >
-                  Access SRM Student & TPO Portal
-                </button>
+                  Get started
+                </Link>
 
-                <button 
-                  onClick={() => navigate('/login')}
-                  className="bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 font-bold px-6 sm:px-7 py-3.5 sm:py-4 rounded-full text-sm sm:text-base shadow-sm transition-all duration-200 text-center"
+                {/* G2 Rating Pill */}
+                <a 
+                  href="https://www.g2.com" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-slate-200 bg-white hover:border-slate-300 transition-colors shadow-xs group"
                 >
-                  Recruiter Registration →
-                </button>
+                  {/* G2 Red/Orange Logo */}
+                  <div className="w-5 h-5 rounded-full bg-[#FF492C] flex items-center justify-center text-white text-[10px] font-black">
+                    G
+                  </div>
+                  <span className="text-sm font-bold text-slate-800">4.6</span>
+                  <div className="flex text-amber-400 text-xs">
+                    {'★★★★★'}
+                  </div>
+                  <span className="text-sm text-slate-600 font-medium">on G2</span>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </a>
               </div>
 
+              {/* Metrics Divider */}
+              <div className="w-full h-px bg-slate-200/80 mb-8" />
+
+              {/* 3 Metric Counters */}
+              <div className="grid grid-cols-3 gap-4 sm:gap-8">
+                <div>
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight">
+                    30M+
+                  </div>
+                  <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-wider uppercase mt-1">
+                    STUDENTS
+                  </div>
+                </div>
+
+                <div className="border-l border-slate-200/80 pl-4 sm:pl-8">
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight">
+                    1,400+
+                  </div>
+                  <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-wider uppercase mt-1">
+                    EDUCATIONAL INSTITUTIONS
+                  </div>
+                </div>
+
+                <div className="border-l border-slate-200/80 pl-4 sm:pl-8">
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight">
+                    600+
+                  </div>
+                  <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-wider uppercase mt-1">
+                    EMPLOYERS
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Right Column (Big Hero Image) */}
-            <div className="lg:col-span-6 xl:col-span-7 relative flex justify-center lg:justify-end items-center pr-0 mt-6 lg:mt-0">
-              {/* Mobile Teal Card Backdrop behind Image */}
-              <div className="lg:hidden absolute inset-0 bg-gradient-to-br from-[#08546c] to-[#042b37] rounded-3xl -z-10 shadow-xl my-2" />
-              <img 
-                src="/interview.png" 
-                alt="SRM Placement Interview" 
-                className="relative z-10 w-full max-w-lg lg:max-w-none h-auto max-h-[360px] sm:max-h-[500px] lg:max-h-[580px] xl:max-h-[640px] object-contain object-center lg:object-right drop-shadow-2xl p-3 lg:p-0"
-              />
+            {/* Right Visual Column (Modern Campus Hiring Showcase) */}
+            <div className="lg:col-span-5 xl:col-span-5 relative flex items-center justify-center">
+              <div className="relative w-full max-w-[500px]">
+                {/* Background Glow */}
+                <div className="absolute -inset-2 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 rounded-[32px] blur-xl opacity-70 -z-10" />
+
+                {/* Main Hero Image Container */}
+                <div className="relative rounded-[28px] overflow-hidden shadow-2xl border border-slate-200/80 bg-white">
+                  <img
+                    src="/campus_hiring_hero.jpg"
+                    alt="Campus Hiring and Student Placements"
+                    className="w-full h-[440px] sm:h-[480px] object-cover object-center transform hover:scale-[1.02] transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none" />
+                </div>
+              </div>
             </div>
 
           </div>
         </div>
-
       </section>
 
-
-
-      {/* Bento Grid: How PlacementOS Helps SRM Students */}
-      <section id="student-benefits" className="py-24 bg-slate-50 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6">
+      {/* ───────────────── AUDIENCE SECTIONS (Screenshot 2) ───────────────── */}
+      <section className="py-12 border-t border-slate-100">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 divide-y divide-slate-100">
           
+          {/* 1. RECRUITERS */}
+          <div id="recruiters" className="py-14 sm:py-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start scroll-mt-24">
+            <span id="employers" className="sr-only" />
+            <div className="lg:col-span-5">
+              <span className="text-[13px] font-black uppercase tracking-widest text-[#0066FF] block mb-2">
+                RECRUITERS & ENTERPRISES
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight leading-tight max-w-sm">
+                End-to-end virtual campus hiring
+              </h2>
+            </div>
+            <div className="lg:col-span-7 flex flex-col items-start gap-6 max-w-xl">
+              <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
+                Automate your entire campus hiring drive. From outreach, engagement, assessments and virtual interviews to industry benchmarking and analytics.
+              </p>
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center px-7 py-2.5 rounded-full border border-slate-300 hover:border-slate-900 text-slate-900 font-semibold text-sm transition-colors"
+              >
+                Start Hiring
+              </Link>
+            </div>
+          </div>
+
+          {/* 2. INSTITUTIONS */}
+          <div id="institutions" className="py-14 sm:py-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start scroll-mt-24">
+            <span id="universities" className="sr-only" />
+            <div className="lg:col-span-5">
+              <span className="text-[13px] font-black uppercase tracking-widest text-[#0066FF] block mb-2">
+                INSTITUTIONS & COLLEGES
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight leading-tight max-w-sm">
+                Digitise and automate placements online
+              </h2>
+            </div>
+            <div className="lg:col-span-7 flex flex-col items-start gap-6 max-w-xl">
+              <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
+                Streamline your campus placement process: access the latest job openings, manage student data and secure interviews, all aimed at a 100% placement success rate.
+              </p>
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center px-7 py-2.5 rounded-full border border-slate-300 hover:border-slate-900 text-slate-900 font-semibold text-sm transition-colors"
+              >
+                Transform Placements
+              </Link>
+            </div>
+          </div>
+
+          {/* 3. CANDIDATES */}
+          <div id="candidates" className="py-14 sm:py-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start scroll-mt-24">
+            <span id="students" className="sr-only" />
+            <div className="lg:col-span-5">
+              <span className="text-[13px] font-black uppercase tracking-widest text-[#0066FF] block mb-2">
+                STUDENTS & CANDIDATES
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight leading-tight max-w-sm">
+                Learn, prepare and apply to jobs
+              </h2>
+            </div>
+            <div className="lg:col-span-7 flex flex-col items-start gap-6 max-w-xl">
+              <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
+                Discover new jobs, upskill through courses, take mock interviews. Open to all students.
+              </p>
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center px-7 py-2.5 rounded-full border border-slate-300 hover:border-slate-900 text-slate-900 font-semibold text-sm transition-colors"
+              >
+                Find a job
+              </Link>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ───────────────── ALL-INCLUSIVE PLATFORM FOR FEARLESS HIRING (Screenshot 1) ───────────────── */}
+      <section id="solutions" className="py-20 lg:py-28 bg-[#F8FAFC] border-t border-slate-100 scroll-mt-24">
+        <span id="assessments" className="sr-only" />
+        <span id="reviews" className="sr-only" />
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-xs font-extrabold text-[#08546c] uppercase tracking-widest px-4 py-1.5 rounded-full bg-cyan-50 border border-cyan-200/80">
-              Empowering SRMites
-            </span>
-            <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight mt-4 mb-4">
-              How AI PlacementOS Supercharges Your SRM Placement Journey
+            <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-black text-slate-900 tracking-tight mb-4">
+              All-inclusive platform for Fearless Hiring
             </h2>
-            <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-              Designed specifically for SRM KTR, Ramapuram, Vadapalani, and AP campuses. Explore our AI-driven student CRM features built to land Super Dream offers.
+            <p className="text-base text-slate-500 font-normal">
+              Everything you need to get into action and achieve all your hiring goals.
             </p>
           </div>
 
-          {/* Bento Grid Layout - Asymmetric 2-Column Desktop Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            {/* ── CARD 1: Large Featured Deep Teal Card with Background Image ── */}
-            <div className="lg:col-span-7 rounded-[2.2rem] p-8 sm:p-10 text-white relative overflow-hidden flex flex-col justify-between shadow-xl min-h-[320px] group border border-cyan-500/20">
-              {/* Background Image Layer */}
-              <div 
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-35 mix-blend-luminosity transform scale-105 group-hover:scale-110 transition-transform duration-700"
-                style={{ 
-                  backgroundImage: `url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1000&auto=format&fit=crop&q=80')` 
-                }}
-              />
-              {/* Deep Oceanic Teal Gradient Backdrop (#08546c) & Glow */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#08546c] via-[#064255] to-[#042b37]" />
-              <div className="absolute -bottom-10 -right-10 w-60 h-60 bg-cyan-400/20 blur-3xl rounded-full pointer-events-none" />
-
-              {/* Top Action Arrow Button */}
-              <div className="flex justify-between items-start mb-6 z-10">
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/20 text-white backdrop-blur-md border border-white/30">
-                  Precision Matching
-                </span>
-                <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white transition-transform group-hover:scale-110">
-                  <ArrowUpRight className="w-5 h-5" />
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16">
+            {/* 1. Coding Assessments */}
+            <div className="flex flex-col items-center text-center group">
+              <div className="w-16 h-16 rounded-2xl border-2 border-[#0066FF]/30 bg-blue-50/60 flex items-center justify-center text-[#0066FF] mb-5 shadow-xs transition-transform duration-300 group-hover:scale-110 group-hover:bg-[#0066FF] group-hover:text-white">
+                <Code2 className="w-8 h-8" strokeWidth={1.8} />
               </div>
-
-              {/* Title & Description */}
-              <div className="z-10 max-w-lg">
-                <h3 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-3 leading-tight">
-                  50+ Parameter AI Match Score
-                </h3>
-                <p className="text-cyan-100 text-sm sm:text-base leading-relaxed opacity-95">
-                  Evaluates your SRM CGPA, departmental electives, GitHub projects, and arrear status against company cutoffs so you apply with maximum hiring probability.
-                </p>
-              </div>
-            </div>
-
-            {/* ── CARD 2: Top Right Card (Verified Eligibility - Spans 5 cols) ── */}
-            <div className="lg:col-span-5 bg-gradient-to-br from-sky-50 via-blue-50/70 to-indigo-50/80 border border-sky-100 rounded-[2.2rem] p-8 text-slate-900 relative overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition-all group">
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-blue-600">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center transition-transform group-hover:scale-110">
-                  <ArrowUpRight className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-950 mb-2">
-                  SRM NetID & Arrear Sync
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  Real-time academic data synchronization with SRM Directorate databases. Prevents accidental disqualification by automatically validating CGPA & backlogs.
-                </p>
-              </div>
-            </div>
-
-            {/* ── CARD 3: Bottom Left Card (ATS Resume Optimizer - Spans 5 cols) ── */}
-            <div className="lg:col-span-5 bg-gradient-to-br from-blue-50/80 via-sky-50 to-indigo-50 border border-blue-100 rounded-[2.2rem] p-8 text-slate-900 relative overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition-all group">
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-indigo-600">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div className="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center transition-transform group-hover:scale-110">
-                  <ArrowUpRight className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-950 mb-2">
-                  Company-Specific ATS Resume Scoring
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  Audits your resume against target MNC formats (Amazon, Barclays, Google) and gives actionable feedback to clear automated recruiter resume screens.
-                </p>
-              </div>
-            </div>
-
-            {/* ── CARD 4: Middle Right Large Card with Deep Teal Background Image ── */}
-            <div className="lg:col-span-7 rounded-[2.2rem] p-8 sm:p-10 text-white relative overflow-hidden flex flex-col justify-between shadow-xl min-h-[320px] group border border-cyan-500/20">
-              {/* Background Image Layer */}
-              <div 
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-35 mix-blend-luminosity transform scale-105 group-hover:scale-110 transition-transform duration-700"
-                style={{ 
-                  backgroundImage: `url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1000&auto=format&fit=crop&q=80')` 
-                }}
-              />
-              {/* Deep Oceanic Teal Gradient Backdrop (#08546c) & Glow */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#08546c] via-[#064255] to-[#042b37]" />
-              <div className="absolute -bottom-10 -right-10 w-60 h-60 bg-cyan-400/20 blur-3xl rounded-full pointer-events-none" />
-
-              {/* Top Action Arrow Button */}
-              <div className="flex justify-between items-start mb-6 z-10">
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/20 text-white backdrop-blur-md border border-white/30">
-                  Super Dream Target
-                </span>
-                <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white transition-transform group-hover:scale-110">
-                  <ArrowUpRight className="w-5 h-5" />
-                </div>
-              </div>
-
-              {/* Title & Subtitle */}
-              <div className="z-10 max-w-lg">
-                <h3 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-3 leading-tight">
-                  Placement Readiness Index (PRI)
-                </h3>
-                <p className="text-cyan-100 text-sm sm:text-base leading-relaxed opacity-95">
-                  Dynamic readiness meter that tracks your weekly progress toward &gt;15 LPA Super Dream packages and suggests custom skill-up paths.
-                </p>
-              </div>
-            </div>
-
-            {/* ── CARD 5: Bottom Left Card (AI Mock Technical & HR Simulator - Spans 6 cols) ── */}
-            <div className="lg:col-span-6 bg-gradient-to-br from-purple-50/80 via-indigo-50/60 to-blue-50 border border-purple-100 rounded-[2.2rem] p-8 text-slate-900 relative overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition-all group">
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-purple-600">
-                  <Bot className="w-6 h-6" />
-                </div>
-                <div className="w-9 h-9 rounded-full bg-purple-600 text-white flex items-center justify-center transition-transform group-hover:scale-110">
-                  <ArrowUpRight className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-950 mb-2">
-                  Interactive Technical & HR Simulator
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  Practice mock technical and HR rounds with an AI interviewer tuned to SRM placement patterns, receiving real-time code and communication feedback.
-                </p>
-              </div>
-            </div>
-
-            {/* ── CARD 6: Bottom Right Card (Automated Slotting & Venue Alerts - Spans 6 cols) ── */}
-            <div className="lg:col-span-6 bg-gradient-to-br from-cyan-50/80 via-sky-50/60 to-blue-50 border border-cyan-100 rounded-[2.2rem] p-8 text-slate-900 relative overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition-all group">
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-cyan-600">
-                  <Clock className="w-6 h-6" />
-                </div>
-                <div className="w-9 h-9 rounded-full bg-cyan-600 text-white flex items-center justify-center transition-transform group-hover:scale-110">
-                  <ArrowUpRight className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-950 mb-2">
-                  Automated Slotting & Venue Alerts
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  Instant SMS & portal notifications for interview tracks at SRM Tech Auditoriums or virtual panels. Never miss a round or schedule change.
-                </p>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Bottom Student CTA Banner */}
-          <div className="mt-12 bg-gradient-to-r from-[#08546c] via-[#064255] to-[#042b37] rounded-[2.2rem] p-8 sm:p-10 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl border border-cyan-500/30">
-            <div className="max-w-xl">
-              <span className="text-xs font-black text-amber-300 uppercase tracking-widest">SRM Student Advantage</span>
-              <h3 className="text-2xl sm:text-3xl font-black mt-2 mb-2">
-                Ready to secure your Dream or Super Dream offer?
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                PlacementOS Coding Assessments
               </h3>
-              <p className="text-cyan-100 text-sm leading-relaxed">
-                Log in with your SRM NetID credentials to view your live AI placement readiness score and active campus drives.
+              <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
+                Seamlessly test candidates' coding skills across all domains
               </p>
             </div>
-            <button 
-              onClick={() => navigate('/register')}
-              className="bg-white hover:bg-cyan-50 text-[#08546c] font-extrabold px-8 py-4 rounded-full text-sm shrink-0 shadow-lg transition-all duration-200 hover:scale-105"
-            >
-              Access Student Portal →
-            </button>
-          </div>
 
+            {/* 2. Functional Assessments */}
+            <div className="flex flex-col items-center text-center group">
+              <div className="w-16 h-16 rounded-2xl border-2 border-[#0066FF]/30 bg-blue-50/60 flex items-center justify-center text-[#0066FF] mb-5 shadow-xs transition-transform duration-300 group-hover:scale-110 group-hover:bg-[#0066FF] group-hover:text-white">
+                <RefreshCw className="w-8 h-8" strokeWidth={1.8} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                PlacementOS Functional Assessments
+              </h3>
+              <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
+                Assess candidates on cognitive, behavioural, soft skills, and functional domains
+              </p>
+            </div>
+
+            {/* 3. Proctoring */}
+            <div className="flex flex-col items-center text-center group">
+              <div className="w-16 h-16 rounded-2xl border-2 border-[#0066FF]/30 bg-blue-50/60 flex items-center justify-center text-[#0066FF] mb-5 shadow-xs transition-transform duration-300 group-hover:scale-110 group-hover:bg-[#0066FF] group-hover:text-white">
+                <Search className="w-8 h-8" strokeWidth={1.8} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                PlacementOS Proctoring
+              </h3>
+              <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
+                Monitor candidates anywhere, anytime, to ensure fraud-free assessments and interviews
+              </p>
+            </div>
+
+            {/* 4. College Hiring Workflows */}
+            <div className="flex flex-col items-center text-center group">
+              <div className="w-16 h-16 rounded-2xl border-2 border-[#0066FF]/30 bg-blue-50/60 flex items-center justify-center text-[#0066FF] mb-5 shadow-xs transition-transform duration-300 group-hover:scale-110 group-hover:bg-[#0066FF] group-hover:text-white">
+                <Sparkles className="w-8 h-8" strokeWidth={1.8} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                PlacementOS College Hiring Workflows
+              </h3>
+              <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
+                Select fresh talent from top campuses easily with our end-to-end recruitment platform
+              </p>
+            </div>
+
+            {/* 5. Onboarding */}
+            <div className="flex flex-col items-center text-center group">
+              <div className="w-16 h-16 rounded-2xl border-2 border-[#0066FF]/30 bg-blue-50/60 flex items-center justify-center text-[#0066FF] mb-5 shadow-xs transition-transform duration-300 group-hover:scale-110 group-hover:bg-[#0066FF] group-hover:text-white">
+                <ArrowUp className="w-8 h-8" strokeWidth={1.8} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                PlacementOS Onboarding
+              </h3>
+              <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
+                Engage and welcome new employees with smooth, paperless onboarding
+              </p>
+            </div>
+
+            {/* 6. Video Interviews */}
+            <div className="flex flex-col items-center text-center group">
+              <div className="w-16 h-16 rounded-2xl border-2 border-[#0066FF]/30 bg-blue-50/60 flex items-center justify-center text-[#0066FF] mb-5 shadow-xs transition-transform duration-300 group-hover:scale-110 group-hover:bg-[#0066FF] group-hover:text-white">
+                <Video className="w-8 h-8" strokeWidth={1.8} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                PlacementOS Video Interviews
+              </h3>
+              <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
+                Interview candidates from the comfort of your home or office
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Side-by-Side Comparison Section - Matching exact reference design */}
-      <section className="py-24 bg-slate-100/70 border-t border-b border-slate-200/80">
-        <div className="max-w-6xl mx-auto px-6">
+      {/* ───────────────── THE HUMAN WAY · THE FEARLESS WAY (Screenshot 2) ───────────────── */}
+      <section className="relative overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2">
+          {/* Left Column: Campus Recruiters Image */}
+          <div className="relative h-96 sm:h-[480px] lg:h-auto min-h-[460px] overflow-hidden">
+            <img 
+              src="/campus_recruiters.jpg" 
+              alt="Campus recruitment professionals" 
+              className="w-full h-full object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-slate-950/20 lg:to-transparent pointer-events-none" />
+          </div>
+
+          {/* Right Column: In our theme color (PlacementOS Royal Blue / Cyan Gradient) */}
+          <div className="bg-gradient-to-br from-[#0284C7] via-[#0066FF] to-[#1E40AF] text-white p-8 sm:p-12 lg:p-16 xl:p-20 flex flex-col justify-center">
+            {/* Heading Stanzas */}
+            <div className="space-y-1 mb-10">
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                The human way.
+              </h3>
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                The fearless way.
+              </h3>
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white/95 leading-tight">
+                It’s a hiring experience with a difference.
+              </h3>
+            </div>
+
+            {/* 3 Services List with Clean Outlined Icon Cards */}
+            <div className="space-y-8 max-w-xl">
+              {/* Service 1 */}
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl border-2 border-white/40 bg-white/10 backdrop-blur-xs flex items-center justify-center text-white flex-shrink-0 mt-0.5">
+                  <GraduationCap className="w-6 h-6" strokeWidth={1.8} />
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-white mb-1">
+                    College Hiring Services
+                  </h4>
+                  <p className="text-sm text-white/85 leading-relaxed font-normal">
+                    College hiring strategy and execution driven by decades of experience in consulting and flawless operations management
+                  </p>
+                </div>
+              </div>
+
+              {/* Service 2 */}
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl border-2 border-white/40 bg-white/10 backdrop-blur-xs flex items-center justify-center text-white flex-shrink-0 mt-0.5">
+                  <FileText className="w-6 h-6" strokeWidth={1.8} />
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-white mb-1">
+                    Assessment Services
+                  </h4>
+                  <p className="text-sm text-white/85 leading-relaxed font-normal">
+                    Customised assessments and content to match your unique requirements
+                  </p>
+                </div>
+              </div>
+
+              {/* Service 3 */}
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl border-2 border-white/40 bg-white/10 backdrop-blur-xs flex items-center justify-center text-white flex-shrink-0 mt-0.5">
+                  <MessageSquare className="w-6 h-6" strokeWidth={1.8} />
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-white mb-1">
+                    Interview Services
+                  </h4>
+                  <p className="text-sm text-white/85 leading-relaxed font-normal">
+                    Experienced interviewers to evaluate candidates and help you select the best
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── DARK NAVY FEATURE SECTION (Screenshot 3) ───────────────── */}
+      <section className="bg-[#0B1528] text-white py-20 lg:py-28 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
           
           {/* Header */}
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-xs font-bold text-[#08546c] uppercase tracking-widest">
-              The Choice is Clear
-            </span>
-            <h2 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight mt-3 mb-3 leading-tight">
-              Switching takes a few minutes.<br />
-              The alternative costs you every season.
+          <div className="mb-16">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white max-w-2xl leading-[1.12]">
+              We don't automate hiring, we build your brand
             </h2>
           </div>
 
-          {/* Comparison Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          {/* 3-Column Feature Layout */}
+          <div className="pt-8 border-t border-slate-800 grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-12">
             
-            {/* Left Column: WITH PLACEMENTOS */}
-            <div className="space-y-3">
-              {/* Main Header Pill */}
-              <div className="bg-[#08546c] text-white font-extrabold text-lg py-3.5 px-6 rounded-2xl text-center shadow-md border border-cyan-600/40">
-                With SRM AI PlacementOS
-              </div>
-
-              {/* Stack of Light Teal Benefit Rows */}
-              {[
-                { icon: <Target className="w-4 h-4 text-[#08546c]" />, text: 'AI 50-parameter candidate matching cuts screening by 85%.' },
-                { icon: <ShieldCheck className="w-4 h-4 text-[#08546c]" />, text: '100% SRM NetID & arrear verification eliminates ineligible registrations.' },
-                { icon: <Zap className="w-4 h-4 text-[#08546c]" />, text: 'Super Dream drive slotting automated across KTR, Ramapuram, & AP.' },
-                { icon: <FileText className="w-4 h-4 text-[#08546c]" />, text: 'Built-in ATS resume auditor boosts student shortlists to 92.4%.' },
-                { icon: <Bot className="w-4 h-4 text-[#08546c]" />, text: 'AI mock interview simulator prepares SRMites for top MNC drives.' },
-                { icon: <BarChart3 className="w-4 h-4 text-[#08546c]" />, text: 'Real-time Directorate placement analytics with instant alert hub.' },
-              ].map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="bg-cyan-50/80 hover:bg-cyan-100/70 transition-colors border border-cyan-200/80 rounded-2xl p-4 flex items-center gap-3.5 text-slate-900 font-semibold text-sm shadow-sm"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-white text-[#08546c] flex items-center justify-center shrink-0 shadow-sm border border-cyan-100">
-                    {item.icon}
-                  </div>
-                  <span>{item.text}</span>
-                </div>
-              ))}
+            {/* Column 1: Topic Heading */}
+            <div className="md:col-span-3">
+              <h3 className="text-xl font-bold text-white tracking-tight">
+                Reach and engage
+              </h3>
             </div>
 
-            {/* Right Column: WITHOUT PLACEMENTOS */}
-            <div className="space-y-3">
-              {/* Main Header Pill */}
-              <div className="bg-slate-800 text-white font-extrabold text-lg py-3.5 px-6 rounded-2xl text-center shadow-md border border-slate-700">
-                Without PlacementOS (Manual Way)
-              </div>
-
-              {/* Stack of White Error Rows with Red X */}
-              {[
-                'Manual resume sorting takes weeks, leading to missed MNC drive deadlines.',
-                'Unverified CGPA & arrears cause last-minute recruiter candidate rejections.',
-                'Disconnected campus placement cells create scheduling clashes & chaos.',
-                'Generic student resumes fail automated recruiter ATS screening filters.',
-                'Students step into technical interviews without structured domain practice.',
-                'Manual Excel tracking leads to lost student data and delayed offer letters.',
-              ].map((text, idx) => (
-                <div 
-                  key={idx} 
-                  className="bg-white hover:bg-red-50/30 transition-colors border border-slate-200/80 rounded-2xl p-4 flex items-center gap-3.5 text-slate-600 font-medium text-sm shadow-sm"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 border border-red-200">
-                    <X className="w-4 h-4" />
-                  </div>
-                  <span>{text}</span>
-                </div>
-              ))}
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* AI Features Section - Deep Oceanic Teal Theme */}
-      <section id="features" className="py-28 bg-[#08546c] text-white relative overflow-hidden border-t border-cyan-700/40">
-        {/* Ambient Radial Lights Overlay */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-cyan-400/20 via-teal-500/10 to-transparent blur-3xl pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          
-          {/* Section Header */}
-          <div className="text-center max-w-3xl mx-auto mb-20">
-            <span className="text-xs font-black text-amber-300 uppercase tracking-widest px-4 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 shadow-sm">
-              AI-First Platform Features
-            </span>
-            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight mt-5 mb-4 leading-tight">
-              Built for SRM Placement Officers, Recruiters & Students
-            </h2>
-            <p className="text-cyan-100/90 text-base sm:text-lg leading-relaxed font-normal">
-              Every workflow is powered by custom AI models designed to optimize placement rates and match accuracy across SRM campuses.
-            </p>
-          </div>
-
-          {/* 4 Core Features Grid - White Background Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-20">
-            {srmFeatures.map((feat, i) => (
-              <div 
-                key={i} 
-                className="bg-white border border-slate-200/90 rounded-[2.2rem] p-8 sm:p-9 hover:border-cyan-300 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 shadow-xl group relative overflow-hidden text-slate-900"
-              >
-                {/* Accent Glow Circle */}
-                <div className="absolute -top-12 -right-12 w-32 h-32 bg-cyan-100/40 rounded-full blur-2xl group-hover:bg-cyan-200/50 transition-colors pointer-events-none" />
-
-                <div className="flex items-center justify-between mb-6 relative z-10">
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 shrink-0 group-hover:scale-110 transition-transform shadow-sm">
-                    {feat.icon}
-                  </div>
-                  <span className={`text-xs font-extrabold px-3.5 py-1.5 rounded-full border shadow-sm ${feat.badgeBg}`}>
-                    {feat.badge}
-                  </span>
-                </div>
-
-                <h3 className="text-xl sm:text-2xl font-black text-slate-950 mb-3 tracking-tight relative z-10">
-                  {feat.title}
-                </h3>
-                <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-normal relative z-10">
-                  {feat.description}
+            {/* Column 2: Competitions, Hackathons & Drive Day */}
+            <div className="md:col-span-5 space-y-10">
+              <div>
+                <h4 className="text-base font-bold text-white mb-2.5">
+                  Competitions and hackathons
+                </h4>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  Run team competitions, hackathons, case studies and business simulations to reach students long before they are on the market.
                 </p>
               </div>
-            ))}
-          </div>
 
-          {/* Role-Specific Capabilities Breakdown Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                title: '🎓 For SRM Students',
-                accentBorder: 'border-cyan-400/40 hover:border-cyan-400/70',
-                badgeBg: 'from-[#0a607b] via-[#08546c] to-[#064255]',
-                checkColor: 'text-amber-300',
-                items: [
-                  'SRM NetID verified profile',
-                  'AI Super Dream job recommendations',
-                  'ATS Resume score & improvement tips',
-                  'Skill gap analysis against target MNCs',
-                  'Mock AI technical interview simulator',
-                  'Placement readiness score tracking',
-                ],
-              },
-              {
-                title: '📋 For Directorate of Career Centre',
-                accentBorder: 'border-amber-400/40 hover:border-amber-400/70',
-                badgeBg: 'from-[#095972] via-[#08546c] to-[#053a4b]',
-                checkColor: 'text-amber-300',
-                items: [
-                  'Unified multi-campus student management',
-                  'Super Dream / Dream drive slot manager',
-                  'AI TPO Natural Language Assistant',
-                  'Automated venue & interview scheduler',
-                  'Mass SMS & Email broadcast system',
-                  'Live placement analytics & reports',
-                ],
-              },
-              {
-                title: '🏢 For Campus Recruiters',
-                accentBorder: 'border-cyan-400/40 hover:border-cyan-400/70',
-                badgeBg: 'from-[#074f66] via-[#064255] to-[#042d3b]',
-                checkColor: 'text-amber-300',
-                items: [
-                  'Pre-scored SRM candidate shortlists',
-                  'Custom CGPA & backlog cutoff filters',
-                  'Automated multi-round interview paneling',
-                  'Instant offer letter management',
-                  'Multi-campus access (KTR, AP, Ramapuram)',
-                  'Analytics on candidate acceptance rate',
-                ],
-              },
-            ].map((roleCard, idx) => (
-              <div 
-                key={idx} 
-                className={`bg-gradient-to-b ${roleCard.badgeBg} border ${roleCard.accentBorder} rounded-[2.2rem] p-8 shadow-xl transition-all duration-300 hover:-translate-y-1`}
-              >
-                <h3 className="text-xl font-black text-white mb-6 pb-4 border-b border-cyan-500/30">
-                  {roleCard.title}
-                </h3>
-                <ul className="space-y-4">
-                  {roleCard.items.map((item, itemIdx) => (
-                    <li key={itemIdx} className="flex items-start gap-3.5 text-sm text-cyan-100 font-medium">
-                      <CheckCircle2 className={`w-4 h-4 ${roleCard.checkColor} flex-shrink-0 mt-0.5`} />
-                      <span className="leading-snug">{item}</span>
-                    </li>
-                  ))}
+              <div>
+                <h4 className="text-base font-bold text-white mb-3">
+                  Internships, fairs and drive day
+                </h4>
+                <ul className="space-y-2 text-sm text-slate-300 leading-relaxed">
+                  <li className="flex items-start gap-2">
+                    <span className="text-slate-400 mt-1">•</span>
+                    <span>End-to-end management of internship programmes</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-slate-400 mt-1">•</span>
+                    <span>Online career fairs and pool campuses run as virtual events</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-slate-400 mt-1">•</span>
+                    <span>Drive day sequenced from a control centre</span>
+                  </li>
                 </ul>
               </div>
+            </div>
+
+            {/* Column 3: Employer Branding */}
+            <div className="md:col-span-4">
+              <h4 className="text-base font-bold text-white mb-3">
+                Employer branding
+              </h4>
+              <ul className="space-y-2 text-sm text-slate-300 leading-relaxed">
+                <li className="flex items-start gap-2">
+                  <span className="text-slate-400 mt-1">•</span>
+                  <span>Customised interactive microsites</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-slate-400 mt-1">•</span>
+                  <span>Live pre-placement talks & decks</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-slate-400 mt-1">•</span>
+                  <span>Physical on-campus activations</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-slate-400 mt-1">•</span>
+                  <span>SMS, email and push campaigns</span>
+                </li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── REVIEWS & SOCIAL PROOF SECTION (Screenshot 4) ───────────────── */}
+      <section id="reviews" className="py-20 lg:py-28 bg-[#FAFAFA] border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          
+          {/* Title & Subtitle */}
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight mb-3">
+              Loved by organizations and users alike
+            </h2>
+            <p className="text-sm sm:text-base text-slate-500">
+              Scores as published on each platform. Every quote links to the review it came from.
+            </p>
+          </div>
+
+          {/* 4 Score Cards Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-16">
+            
+            {/* Card 1: Capterra */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex items-center gap-4">
+              {/* Capterra Logo Mark */}
+              <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
+                <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
+                  <path d="M16 2L4 26H28L16 2Z" fill="#002B49" />
+                  <path d="M16 2L4 26H16L20 14L16 2Z" fill="#F36C3D" />
+                  <path d="M16 26L20 14L28 26H16Z" fill="#0099FF" />
+                </svg>
+              </div>
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-black text-slate-950 tracking-tight">4.8</span>
+                  <span className="text-xs text-slate-400 font-semibold">/ 5</span>
+                </div>
+                <div className="flex text-amber-400 text-xs my-0.5">
+                  {'★★★★★'}
+                </div>
+                <div className="text-xs font-semibold text-slate-600">
+                  Capterra
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Trustpilot */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex items-center gap-4">
+              {/* Trustpilot Green Star Logo */}
+              <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
+                <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
+                  <path d="M16 2L20.2 11.8L30.7 12.6L22.6 19.5L25.1 29.8L16 24.3L6.9 29.8L9.4 19.5L1.3 12.6L11.8 11.8L16 2Z" fill="#00B67A" />
+                </svg>
+              </div>
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-black text-slate-950 tracking-tight">4.9</span>
+                  <span className="text-xs text-slate-400 font-semibold">/ 5</span>
+                </div>
+                <div className="flex text-amber-400 text-xs my-0.5">
+                  {'★★★★★'}
+                </div>
+                <div className="text-xs font-semibold text-slate-600">
+                  Trustpilot
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: G2 */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex items-center gap-4">
+              {/* G2 Red Badge */}
+              <div className="w-9 h-9 flex-shrink-0 rounded-full bg-[#FF492C] flex items-center justify-center text-white text-base font-black shadow-xs">
+                G
+              </div>
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-black text-slate-950 tracking-tight">4.6</span>
+                  <span className="text-xs text-slate-400 font-semibold">/ 5</span>
+                </div>
+                <div className="flex text-amber-400 text-xs my-0.5">
+                  {'★★★★★'}
+                </div>
+                <div className="text-xs font-semibold text-slate-600">
+                  G2
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4: Google Reviews */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex items-center gap-4">
+              {/* Google 4-Color Logo */}
+              <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-8 h-8">
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                </svg>
+              </div>
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-black text-slate-950 tracking-tight">4.8</span>
+                  <span className="text-xs text-slate-400 font-semibold">/ 5</span>
+                </div>
+                <div className="flex text-amber-400 text-xs my-0.5">
+                  {'★★★★★'}
+                </div>
+                <div className="text-xs font-semibold text-slate-600">
+                  Google Reviews
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Testimonials Carousel Controls */}
+          <div className="flex justify-end gap-2 mb-4">
+            <button 
+              type="button"
+              onClick={() => setActiveTestimonialIdx((prev) => Math.max(0, prev - 1))}
+              disabled={activeTestimonialIdx === 0}
+              className="w-9 h-9 rounded-full border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 disabled:opacity-40 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button 
+              type="button"
+              onClick={() => setActiveTestimonialIdx((prev) => Math.min(testimonials.length - 1, prev + 1))}
+              disabled={activeTestimonialIdx === testimonials.length - 1}
+              className="w-9 h-9 rounded-full border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 disabled:opacity-40 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Testimonial Quote Cards Grid (Matching Screenshot 4) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {testimonials.map((t) => (
+              <div 
+                key={t.id}
+                className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
+              >
+                <div>
+                  {/* 5 Yellow Stars */}
+                  <div className="flex text-amber-400 text-sm mb-4">
+                    {'★★★★★'}
+                  </div>
+
+                  {/* Quote Body */}
+                  <p className="text-xs sm:text-[13px] text-slate-700 leading-relaxed font-normal mb-6">
+                    "{t.quote}"
+                  </p>
+                </div>
+
+                {/* Author Info */}
+                <div className="pt-4 border-t border-slate-100 flex items-start gap-3">
+                  {t.sourceType === 'trustpilot' && (
+                    <div className="w-5 h-5 flex-shrink-0 text-emerald-500 mt-0.5">
+                      <Star className="w-4 h-4 fill-emerald-500 text-emerald-500" />
+                    </div>
+                  )}
+                  {t.sourceType === 'capterra' && (
+                    <div className="w-5 h-5 flex-shrink-0 mt-0.5">
+                      <svg viewBox="0 0 24 24" className="w-4 h-4">
+                        <path d="M12 2L4 20H20L12 2Z" fill="#F36C3D" />
+                      </svg>
+                    </div>
+                  )}
+                  {t.sourceType === 'g2' && (
+                    <div className="w-5 h-5 rounded-full bg-[#FF492C] flex items-center justify-center text-white text-[9px] font-black flex-shrink-0 mt-0.5">
+                      G
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 truncate">
+                      {t.author}
+                    </div>
+                    {t.role && (
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {t.role}
+                      </div>
+                    )}
+                    <div className="text-[10px] text-slate-400">
+                      {t.source} · {t.date}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
             ))}
           </div>
 
         </div>
       </section>
 
-      {/* Testimonials - Styled exactly like specified reference design */}
-      <section id="testimonials" className="py-24 bg-gradient-to-b from-slate-50/80 via-cyan-50/30 to-slate-50">
-        <div className="max-w-7xl mx-auto px-6">
-          
-          {/* Top Row: Title Header */}
-          <div className="max-w-3xl mb-16">
-            <h2 className="text-4xl sm:text-5xl font-black text-slate-950 tracking-tight leading-[1.15] mb-4">
-              <span className="text-[#08546c]">10,000+ offers</span> generated on SRM PlacementOS
-            </h2>
-            <p className="text-slate-600 text-base sm:text-lg mb-6 leading-relaxed">
-              See why the Directorate of Career Centre, top MNC recruiters, and students rely on AI PlacementOS.
-            </p>
-            <button 
-              onClick={() => navigate('/register')}
-              className="inline-flex items-center gap-2 text-[#08546c] hover:text-[#064255] font-bold text-sm group transition-colors"
-            >
-              <span>Read all success stories</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </button>
-          </div>
-
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t, i) => {
-              const isMiddle = i === 1;
-              return (
-                <div 
-                  key={i} 
-                  className={`rounded-3xl p-8 flex flex-col justify-between transition-all duration-300 ${
-                    isMiddle
-                      ? 'bg-gradient-to-b from-white via-white to-blue-50/50 shadow-xl border border-blue-200/80 ring-2 ring-blue-500/20'
-                      : 'bg-white border border-slate-200/80 shadow-sm hover:shadow-md'
-                  }`}
-                >
-                  <div className="mb-8">
-                    <p className="text-slate-700 text-sm leading-relaxed font-normal">
-                      {t.content}
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-100 flex items-center gap-3.5">
-                    <img 
-                      src={t.avatar} 
-                      alt={t.name} 
-                      className="w-12 h-12 rounded-full object-cover shadow-sm border border-slate-100" 
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-slate-900 text-sm tracking-tight truncate">{t.name}</p>
-                      <p className="text-xs text-slate-500 truncate">{t.role}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-        </div>
-      </section>
-
-      {/* ─────────────────────────────────────────────────────────────────────────
-          AGENTIC USE CASE GUIDE BANNER (EXACT REFERENCE DESIGN REPLICATION)
-         ───────────────────────────────────────────────────────────────────────── */}
-      <section className="py-20 bg-[#08546c] text-white relative overflow-hidden border-t border-cyan-700/40">
-        {/* Subtle background ambient curves */}
-        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-teal-300 via-transparent to-transparent" />
-        
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-            
-            {/* Left Graphic Showcase Box */}
-            <div className="lg:col-span-6 relative">
-              <div className="bg-gradient-to-br from-[#c9f5ed] via-[#b6eee3] to-[#faf0b0] rounded-[2.5rem] p-6 sm:p-10 shadow-2xl relative overflow-hidden flex items-center justify-center min-h-[380px] sm:min-h-[440px]">
-                
-                {/* Booklet Playbook Mockup */}
-                <div className="relative w-full max-w-lg aspect-[4/3] bg-white rounded-2xl shadow-2xl overflow-hidden border border-emerald-900/10 flex">
-                  {/* Left Booklet Page */}
-                  <div className="w-1/2 p-5 sm:p-6 bg-white border-r border-slate-200 flex flex-col justify-between relative shadow-inner">
-                    <div className="space-y-4">
-                      {/* Logo badges */}
-                      <div className="flex items-center gap-1.5 opacity-90">
-                        <div className="w-4 h-4 rounded-full bg-blue-600" />
-                        <div className="w-4 h-4 rounded-full bg-emerald-500" />
-                        <div className="w-4 h-4 rounded-full bg-amber-500" />
-                      </div>
-                      
-                      {/* Cover Title */}
-                      <div className="pt-4">
-                        <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">
-                          USE CASE GUIDE
-                        </span>
-                        <h4 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
-                          SRM Placement<br />Agents
-                        </h4>
-                      </div>
-                    </div>
-
-                    {/* Bottom Image / Decorative Icon */}
-                    <div className="bg-gradient-to-tr from-cyan-100 to-sky-50 rounded-xl p-3 border border-cyan-200/60 mt-4">
-                      <div className="flex items-center gap-2">
-                        <Bot className="w-5 h-5 text-[#08546c]" />
-                        <span className="text-[11px] font-bold text-[#08546c]">Agentic Placement v3.0</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Booklet Page */}
-                  <div className="w-1/2 p-4 sm:p-5 bg-[#ebf7f4] flex flex-col justify-between">
-                    <div>
-                      {/* Page Banner Header */}
-                      <div className="bg-[#246255] text-white p-3 rounded-xl mb-3 shadow-sm">
-                        <h5 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-200 mb-1">
-                          WHY THE FUTURE STARTS NOW
-                        </h5>
-                        
-                        {/* Circle Metric */}
-                        <div className="flex items-center justify-between mt-2">
-                          <div className="w-10 h-10 rounded-full border-4 border-amber-300 flex items-center justify-center text-[10px] font-bold text-white bg-[#1b4e43]">
-                            72%
-                          </div>
-                          <span className="text-[9px] text-emerald-100 font-medium leading-tight max-w-[80px]">
-                            AI match accuracy boost
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Text Snippet Simulation */}
-                      <div className="space-y-1.5 text-[8px] sm:text-[9px] text-slate-600 leading-tight opacity-80">
-                        <p>Executive leadership has entered a digital-first era. SRM PlacementOS equips TPO officers and students with AI agents.</p>
-                        <p>Autonomous workflow engines match candidates in real-time across 50+ eligibility cutoffs.</p>
-                      </div>
-                    </div>
-
-                    {/* Bottom Metric Badges */}
-                    <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-300/60">
-                      <div className="bg-[#1b4e43] text-white p-2 rounded-lg text-center">
-                        <div className="text-[11px] font-black text-amber-300">15.1%</div>
-                        <div className="text-[7px] text-slate-200 leading-tight">Increase in offers</div>
-                      </div>
-                      <div className="bg-[#1b4e43] text-white p-2 rounded-lg text-center">
-                        <div className="text-[11px] font-black text-amber-300">9.4%</div>
-                        <div className="text-[7px] text-slate-200 leading-tight">Higher pkg avg</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Right Text Content Area */}
-            <div className="lg:col-span-6 space-y-6">
-              
-              {/* Category Eyebrow */}
-              <p className="text-xs sm:text-sm font-extrabold uppercase tracking-widest text-cyan-200">
-                USE CASE GUIDE: SRM PLACEMENT AGENTS
-              </p>
-
-              {/* Title */}
-              <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.1]">
-                Step into the future with Agentic Placement
-              </h2>
-
-              {/* Description */}
-              <p className="text-cyan-50/90 text-base sm:text-lg leading-relaxed font-normal">
-                Empower your entire campus placement organization with plug-and-play assistive agents that work in partnership with your team to take on time consuming tasks, allowing your team to work faster, smarter, and more effectively. Learn more about SRM's placement agents for:
-              </p>
-
-              {/* Bulleted List */}
-              <ul className="space-y-2.5 text-base sm:text-lg text-white font-medium pl-2">
-                <li className="flex items-center gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
-                  <span>Placement leaders and Directorate</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
-                  <span>Recruiters and account managers</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
-                  <span>Placement operations and administrators</span>
-                </li>
-              </ul>
-
-              {/* CTA Button */}
-              <div className="pt-4">
-                <button
-                  onClick={() => navigate('/register')}
-                  className="bg-white hover:bg-cyan-50 text-[#08546c] font-bold px-8 py-3.5 rounded-xl shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 text-base"
-                >
-                  Get the guide
-                </button>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section - Clean Light Theme */}
-      <section id="faq" className="py-20 bg-white text-slate-950 border-t border-slate-200/80">
-        <div className="max-w-3xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-3">
-              Frequently Asked Questions
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {faqs.map((faq, i) => {
-              const isOpen = openFaq === i;
-              return (
-                <div 
-                  key={i} 
-                  className="bg-slate-50 border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm transition-all duration-200"
-                >
-                  <button 
-                    onClick={() => setOpenFaq(isOpen ? null : i)}
-                    className="w-full flex items-center justify-between p-6 text-left font-semibold text-slate-900 text-sm sm:text-base gap-4"
-                  >
-                    <span>{faq.q}</span>
-                    <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180 text-amber-500' : ''}`} />
-                  </button>
-                  {isOpen && (
-                    <div className="px-6 pb-6 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-200/60 pt-4">
-                      {faq.a}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Final Call to Action with Background Image & Gradient Overlay */}
-      <section className="relative py-28 overflow-hidden bg-[#042b37] text-white border-t border-cyan-900/60">
-        {/* Background Image Layer */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-25 mix-blend-luminosity transform scale-105"
-          style={{ 
-            backgroundImage: `url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1600&auto=format&fit=crop&q=80')` 
-          }}
-        />
-        
-        {/* Dark Oceanic Gradient Backdrop & Lighting Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#031e27] via-[#042b37]/90 to-[#064255]/85" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-cyan-500/20 blur-[120px] rounded-full pointer-events-none" />
-
-        <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
-          <span className="text-xs font-extrabold uppercase tracking-widest text-amber-300 bg-amber-400/10 border border-amber-400/30 px-4 py-1.5 rounded-full inline-block mb-6">
-            SRM Placement Season 2025–26 Live
-          </span>
-          <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight mb-4 leading-tight">
-            Ready to Access the SRM AI Placement Portal?
-          </h2>
-          <p className="text-cyan-100/90 text-base sm:text-xl mb-10 max-w-2xl mx-auto leading-relaxed font-normal">
-            Join 10,000+ SRMites and 1,100+ global recruiters achieving record-breaking campus placements this season.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button 
-              onClick={() => navigate('/register')} 
-              className="bg-white text-[#08546c] hover:bg-cyan-50 font-extrabold text-base px-9 py-4 rounded-full shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95"
-            >
-              Student & Faculty Portal Access
-            </button>
-            <button 
-              onClick={() => navigate('/login')} 
-              className="bg-[#064255] hover:bg-[#053646] text-white border border-cyan-500/40 text-base px-9 py-4 rounded-full font-bold shadow-xl transition-all duration-200 backdrop-blur-md hover:scale-105 active:scale-95"
-            >
-              Recruiter Sign In →
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Official SRM Footer */}
-      <footer className="border-t border-slate-800 bg-slate-950 py-12 text-slate-400">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+      {/* ───────────────── FOOTER ───────────────── */}
+      <footer className="bg-white border-t border-slate-200 py-16 text-sm text-slate-500">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-400 flex items-center justify-center">
-              <GraduationCap className="w-4 h-4 text-slate-950" />
+            <div className="w-8 h-8 rounded-lg bg-[#0066FF] flex items-center justify-center text-white shadow-sm flex-shrink-0">
+              <GraduationCap className="w-4 h-4" strokeWidth={2.2} />
             </div>
-            <div>
-              <span className="font-bold text-white text-sm">SRM Institute of Science and Technology</span>
-              <p className="text-[11px] text-slate-400">Directorate of Career Centre • Powered by AI PlacementOS</p>
-            </div>
+            <span className="font-black text-slate-900 text-lg tracking-tight">
+              Placement<span className="text-[#0066FF]">OS</span>
+            </span>
+            <span className="text-slate-400 text-xs ml-3">© 2026 PlacementOS Platform. All rights reserved.</span>
           </div>
 
-          <p className="text-xs text-slate-400 text-center md:text-left">
-            © 2025 SRM Institute of Science and Technology. All Rights Reserved.
-          </p>
-
-          <div className="flex items-center gap-6 text-xs text-cyan-200/80">
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">SRM Placement Guidelines</a>
-            <a href="#" className="hover:text-white transition-colors">Career Centre Contact</a>
+          <div className="flex flex-wrap items-center gap-6 text-xs text-slate-500">
+            <Link to="/login" className="hover:text-slate-900">Sign in</Link>
+            <Link to="/register" className="hover:text-slate-900">Register</Link>
+            <button onClick={() => setContactModalOpen(true)} className="hover:text-slate-900 cursor-pointer">Contact</button>
+            <a href="#institutions" className="hover:text-slate-900">Institutions</a>
+            <a href="#recruiters" className="hover:text-slate-900">Recruiters</a>
+            <a href="#candidates" className="hover:text-slate-900">Candidates</a>
+            <a href="#solutions" className="hover:text-slate-900">Solutions</a>
           </div>
         </div>
       </footer>
+
+      {/* ───────────────── CONTACT SALES MODAL ───────────────── */}
+      {contactModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative border border-slate-100">
+            <button
+              type="button"
+              onClick={() => { setContactModalOpen(false); setContactSubmitted(false); }}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {!contactSubmitted ? (
+              <div>
+                <h3 className="text-2xl font-black text-slate-950 tracking-tight mb-2">
+                  Talk to our campus experts
+                </h3>
+                <p className="text-sm text-slate-500 mb-6">
+                  Learn how PlacementOS can power your institutional placements and campus hiring drives.
+                </p>
+
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setContactSubmitted(true);
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Full Name</label>
+                    <input 
+                      required 
+                      placeholder="e.g. Dr. Rajesh Kumar" 
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Work / College Email</label>
+                    <input 
+                      required 
+                      type="email" 
+                      placeholder="tpo@university.edu.in" 
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Organization / College Name</label>
+                    <input 
+                      required 
+                      placeholder="e.g. Indian Institute of Technology" 
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-3 bg-[#0B1528] hover:bg-slate-800 text-white font-semibold rounded-full text-sm mt-4 transition-colors shadow-sm"
+                  >
+                    Request Demo & Connect
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-6 h-6 stroke-[2.5]" />
+                </div>
+                <h4 className="text-xl font-bold text-slate-900 mb-2">Thank you!</h4>
+                <p className="text-sm text-slate-600 mb-6">
+                  Our campus partnership team will reach out to you within 24 hours.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setContactModalOpen(false); setContactSubmitted(false); }}
+                  className="px-6 py-2 bg-slate-900 text-white text-sm font-semibold rounded-full"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
