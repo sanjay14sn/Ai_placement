@@ -86,14 +86,14 @@ const INITIAL_PROGRAMS: Program[] = [
     videosCount: 3,
     enrolledCount: 340,
     rating: 5.0,
-    tags: ['TPO Strategy', 'Campus Drives', 'Corporate Relations', 'Placement OS'],
+    tags: ['TPO Strategy', 'Campus Drives', 'Corporate Relations', 'AI Campus OS'],
     createdAt: '2026-07-15',
     updatedAt: '2026-08-01',
     videos: [
       {
         id: 'vid-t1-1',
         order: 1,
-        title: 'Automating Campus Drive Logistics on PlacementOS',
+        title: 'Automating Campus Drive Logistics on AI Campus OS',
         description: 'Creating job listings, batch eligibility criteria, automated shortlisting, and real-time candidate notifications.',
         duration: '50:00',
         videoUrl: 'https://www.youtube.com/embed/1uF7oP33-9w',
@@ -187,7 +187,7 @@ const INITIAL_PROGRAMS: Program[] = [
         id: 'vid-r1-1',
         order: 1,
         title: 'Optimizing Job Criteria & AI Match Score Thresholds',
-        description: 'How to configure CGPA, branch, and skill filters on PlacementOS to automatically surface top 5% talent.',
+        description: 'How to configure CGPA, branch, and skill filters on AI Campus OS to automatically surface top 5% talent.',
         duration: '45:00',
         videoUrl: 'https://www.youtube.com/embed/bUHFg8CZFuc',
         resources: [
@@ -331,7 +331,7 @@ export const useProgramStore = create<ProgramStore>()(
       },
     }),
     {
-      name: 'placementos-program-storage',
+      name: 'aicampus-program-storage',
       partialize: (state) => ({ completedVideos: state.completedVideos }),
     }
   )

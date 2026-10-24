@@ -19,6 +19,7 @@ import {
   FileText,
   MessageSquare
 } from 'lucide-react';
+import { PublicNavbar } from '../../components/public/PublicNavbar';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -71,148 +72,89 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans antialiased selection:bg-blue-100 selection:text-blue-900">
-      {/* ───────────────── HEADER NAVBAR ───────────────── */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
-          {/* Brand Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-[#0066FF] flex items-center justify-center text-white shadow-md shadow-blue-500/25 transition-transform duration-200 group-hover:scale-105 flex-shrink-0">
-              <GraduationCap className="w-5 h-5" strokeWidth={2.2} />
-            </div>
-            <span className="text-2xl font-black tracking-tight text-slate-900 leading-none">
-              Placement<span className="text-[#0066FF]">OS</span>
-            </span>
-          </Link>
+      <PublicNavbar activePage="home" />
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-9 text-[15px] font-medium text-slate-600">
-            <a href="#institutions" className="hover:text-slate-950 transition-colors">Institutions</a>
-            <a href="#recruiters" className="hover:text-slate-950 transition-colors">Recruiters</a>
-            <a href="#candidates" className="hover:text-slate-950 transition-colors">Candidates</a>
-            <a href="#solutions" className="hover:text-slate-950 transition-colors">Solutions</a>
-          </nav>
-
-          {/* Right Action Buttons */}
-          <div className="hidden md:flex items-center gap-7">
-            <button 
-              onClick={() => setContactModalOpen(true)}
-              className="text-[15px] font-medium text-slate-600 hover:text-slate-950 transition-colors cursor-pointer"
-            >
-              Contact sales
-            </button>
-            <Link 
-              to="/login"
-              className="text-[15px] font-medium text-slate-600 hover:text-slate-950 transition-colors"
-            >
-              Log in
-            </Link>
-            <Link 
-              to="/register"
-              className="bg-[#0B1528] hover:bg-slate-800 text-white text-[15px] font-semibold px-6 py-2.5 rounded-full transition-all duration-200 shadow-sm"
-            >
-              Sign up
-            </Link>
-          </div>
-
-          {/* Mobile Menu Toggle */}
-          <button 
-            type="button"
-            className="md:hidden p-2 text-slate-700"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-
-        {/* Mobile Dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden px-6 pt-3 pb-6 border-b border-slate-100 bg-white flex flex-col gap-4 text-base font-medium">
-            <a href="#institutions" onClick={() => setMobileMenuOpen(false)} className="text-slate-700 py-1">Institutions</a>
-            <a href="#recruiters" onClick={() => setMobileMenuOpen(false)} className="text-slate-700 py-1">Recruiters</a>
-            <a href="#candidates" onClick={() => setMobileMenuOpen(false)} className="text-slate-700 py-1">Candidates</a>
-            <a href="#solutions" onClick={() => setMobileMenuOpen(false)} className="text-slate-700 py-1">Solutions</a>
-            <button onClick={() => { setMobileMenuOpen(false); setContactModalOpen(true); }} className="text-left text-slate-700 py-1">Contact sales</button>
-            <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
-              <Link to="/login" className="w-full text-center py-2.5 text-slate-800 font-semibold border border-slate-200 rounded-full">Log in</Link>
-              <Link to="/register" className="w-full text-center py-2.5 bg-[#0B1528] text-white font-semibold rounded-full">Sign up</Link>
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* ───────────────── HERO SECTION (Screenshot 1) ───────────────── */}
-      <section className="relative overflow-hidden pt-12 md:pt-20 pb-20 lg:pb-28">
+      {/* ───────────────── HERO SECTION ───────────────── */}
+      <section className="relative overflow-hidden pt-12 md:pt-20 pb-20 lg:pb-28 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
             {/* Left Content Column */}
             <div className="lg:col-span-7 xl:col-span-7 pr-0 lg:pr-6">
-              <h1 className="text-4xl sm:text-5xl lg:text-[64px] font-black tracking-tight text-slate-950 leading-[1.08] mb-6">
-                India's largest campus hiring platform
+              <h1 className="text-4xl sm:text-5xl lg:text-[62px] font-black tracking-tight text-[#0B1528] leading-[1.08] mb-6">
+                Powering intelligent campus placements with <span className="text-[#0066FF]">autonomous AI</span>
               </h1>
 
-              <p className="text-lg sm:text-xl text-slate-500 font-normal leading-relaxed max-w-xl mb-9">
-                Conduct outreach, engagement, assessments, and roll out offers on a single, integrated platform.
+              <p className="text-lg sm:text-xl text-slate-600 font-normal leading-relaxed max-w-xl mb-9">
+                Unite universities, candidates, and tier-1 recruiters on a single zero-error platform. Automate verified eligibility, proctored assessments, and seamless 1-click drive execution.
               </p>
 
               {/* Action Buttons Row */}
-              <div className="flex flex-wrap items-center gap-4 mb-14">
+              <div className="flex flex-wrap items-center gap-4 mb-8">
                 <Link
                   to="/register"
-                  className="bg-[#0B1528] hover:bg-slate-800 text-white text-base font-semibold px-8 py-3.5 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="bg-[#0B1528] hover:bg-slate-800 text-white text-base font-semibold px-8 py-3.5 rounded-full transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center gap-2"
                 >
-                  Get started
+                  Get started free
+                  <ArrowRight className="w-4 h-4 opacity-70" />
                 </Link>
 
-                {/* G2 Rating Pill */}
-                <a 
-                  href="https://www.g2.com" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-slate-200 bg-white hover:border-slate-300 transition-colors shadow-xs group"
+                <button
+                  type="button"
+                  onClick={() => setContactModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-slate-300 hover:border-slate-800 text-slate-800 font-semibold text-base transition-all bg-white hover:bg-slate-50 shadow-xs cursor-pointer"
                 >
-                  {/* G2 Red/Orange Logo */}
-                  <div className="w-5 h-5 rounded-full bg-[#FF492C] flex items-center justify-center text-white text-[10px] font-black">
-                    G
-                  </div>
-                  <span className="text-sm font-bold text-slate-800">4.6</span>
-                  <div className="flex text-amber-400 text-xs">
-                    {'★★★★★'}
-                  </div>
-                  <span className="text-sm text-slate-600 font-medium">on G2</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-                </a>
+                  Schedule campus demo
+                </button>
+              </div>
+
+              {/* Trust Badge */}
+              <div className="flex items-center gap-2.5 mb-10 text-xs text-slate-500">
+                <div className="flex text-amber-400 text-sm">
+                  {'★★★★★'}
+                </div>
+                <span className="font-bold text-slate-900 text-sm">4.9 / 5</span>
+                <span>• Rated #1 by 1,200+ Placement Officers and Hiring Teams</span>
               </div>
 
               {/* Metrics Divider */}
               <div className="w-full h-px bg-slate-200/80 mb-8" />
 
-              {/* 3 Metric Counters */}
-              <div className="grid grid-cols-3 gap-4 sm:gap-8">
-                <div>
-                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight">
-                    30M+
+              {/* 3 Modern Metric Cards */}
+              <div className="grid grid-cols-3 gap-3 sm:gap-5">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#0B1528] tracking-tight">
+                    2M+
                   </div>
-                  <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-wider uppercase mt-1">
+                  <div className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase mt-1">
                     STUDENTS
                   </div>
-                </div>
-
-                <div className="border-l border-slate-200/80 pl-4 sm:pl-8">
-                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight">
-                    1,400+
-                  </div>
-                  <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-wider uppercase mt-1">
-                    EDUCATIONAL INSTITUTIONS
+                  <div className="text-[11px] text-slate-500 mt-0.5 hidden sm:block">
+                    Registry-verified profiles
                   </div>
                 </div>
 
-                <div className="border-l border-slate-200/80 pl-4 sm:pl-8">
-                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight">
-                    600+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#0B1528] tracking-tight">
+                    450+
                   </div>
-                  <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-wider uppercase mt-1">
-                    EMPLOYERS
+                  <div className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase mt-1">
+                    INSTITUTIONS
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5 hidden sm:block">
+                    Connected TPO portals
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#0B1528] tracking-tight">
+                    18,000+
+                  </div>
+                  <div className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase mt-1">
+                    CAMPUS DRIVES
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5 hidden sm:block">
+                    Zero-error policy compliant
                   </div>
                 </div>
               </div>
@@ -259,12 +201,20 @@ export const LandingPage: React.FC = () => {
               <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
                 Automate your entire campus hiring drive. From outreach, engagement, assessments and virtual interviews to industry benchmarking and analytics.
               </p>
-              <Link
-                to="/register"
-                className="inline-flex items-center justify-center px-7 py-2.5 rounded-full border border-slate-300 hover:border-slate-900 text-slate-900 font-semibold text-sm transition-colors"
-              >
-                Start Hiring
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  to="/register"
+                  className="inline-flex items-center justify-center px-7 py-2.5 rounded-full bg-[#0B1528] hover:bg-slate-800 text-white font-semibold text-sm transition-colors"
+                >
+                  Start Hiring
+                </Link>
+                <Link
+                  to="/recruiters"
+                  className="inline-flex items-center justify-center px-6 py-2.5 rounded-full border border-slate-300 hover:border-[#0066FF] hover:text-[#0066FF] text-slate-700 font-semibold text-sm transition-colors"
+                >
+                  Explore Recruiter Suite →
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -283,12 +233,20 @@ export const LandingPage: React.FC = () => {
               <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
                 Streamline your campus placement process: access the latest job openings, manage student data and secure interviews, all aimed at a 100% placement success rate.
               </p>
-              <Link
-                to="/register"
-                className="inline-flex items-center justify-center px-7 py-2.5 rounded-full border border-slate-300 hover:border-slate-900 text-slate-900 font-semibold text-sm transition-colors"
-              >
-                Transform Placements
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  to="/register"
+                  className="inline-flex items-center justify-center px-7 py-2.5 rounded-full bg-[#0B1528] hover:bg-slate-800 text-white font-semibold text-sm transition-colors"
+                >
+                  Transform Placements
+                </Link>
+                <Link
+                  to="/institutions"
+                  className="inline-flex items-center justify-center px-6 py-2.5 rounded-full border border-slate-300 hover:border-[#0066FF] hover:text-[#0066FF] text-slate-700 font-semibold text-sm transition-colors"
+                >
+                  Explore Institution OS →
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -307,12 +265,20 @@ export const LandingPage: React.FC = () => {
               <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
                 Discover new jobs, upskill through courses, take mock interviews. Open to all students.
               </p>
-              <Link
-                to="/register"
-                className="inline-flex items-center justify-center px-7 py-2.5 rounded-full border border-slate-300 hover:border-slate-900 text-slate-900 font-semibold text-sm transition-colors"
-              >
-                Find a job
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  to="/register"
+                  className="inline-flex items-center justify-center px-7 py-2.5 rounded-full bg-[#0B1528] hover:bg-slate-800 text-white font-semibold text-sm transition-colors"
+                >
+                  Find a job
+                </Link>
+                <Link
+                  to="/candidates"
+                  className="inline-flex items-center justify-center px-6 py-2.5 rounded-full border border-slate-300 hover:border-[#0066FF] hover:text-[#0066FF] text-slate-700 font-semibold text-sm transition-colors"
+                >
+                  Explore Candidate Prep →
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -340,7 +306,7 @@ export const LandingPage: React.FC = () => {
                 <Code2 className="w-8 h-8" strokeWidth={1.8} />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">
-                PlacementOS Coding Assessments
+                AI Campus OS Coding Assessments
               </h3>
               <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
                 Seamlessly test candidates' coding skills across all domains
@@ -353,7 +319,7 @@ export const LandingPage: React.FC = () => {
                 <RefreshCw className="w-8 h-8" strokeWidth={1.8} />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">
-                PlacementOS Functional Assessments
+                AI Campus OS Functional Assessments
               </h3>
               <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
                 Assess candidates on cognitive, behavioural, soft skills, and functional domains
@@ -366,7 +332,7 @@ export const LandingPage: React.FC = () => {
                 <Search className="w-8 h-8" strokeWidth={1.8} />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">
-                PlacementOS Proctoring
+                AI Campus OS Proctoring
               </h3>
               <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
                 Monitor candidates anywhere, anytime, to ensure fraud-free assessments and interviews
@@ -379,7 +345,7 @@ export const LandingPage: React.FC = () => {
                 <Sparkles className="w-8 h-8" strokeWidth={1.8} />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">
-                PlacementOS College Hiring Workflows
+                AI Campus OS College Hiring Workflows
               </h3>
               <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
                 Select fresh talent from top campuses easily with our end-to-end recruitment platform
@@ -392,7 +358,7 @@ export const LandingPage: React.FC = () => {
                 <ArrowUp className="w-8 h-8" strokeWidth={1.8} />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">
-                PlacementOS Onboarding
+                AI Campus OS Onboarding
               </h3>
               <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
                 Engage and welcome new employees with smooth, paperless onboarding
@@ -405,7 +371,7 @@ export const LandingPage: React.FC = () => {
                 <Video className="w-8 h-8" strokeWidth={1.8} />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">
-                PlacementOS Video Interviews
+                AI Campus OS Video Interviews
               </h3>
               <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
                 Interview candidates from the comfort of your home or office
@@ -428,7 +394,7 @@ export const LandingPage: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-slate-950/20 lg:to-transparent pointer-events-none" />
           </div>
 
-          {/* Right Column: In our theme color (PlacementOS Royal Blue / Cyan Gradient) */}
+          {/* Right Column: In our theme color (AI Campus OS Royal Blue / Cyan Gradient) */}
           <div className="bg-gradient-to-br from-[#0284C7] via-[#0066FF] to-[#1E40AF] text-white p-8 sm:p-12 lg:p-16 xl:p-20 flex flex-col justify-center">
             {/* Heading Stanzas */}
             <div className="space-y-1 mb-10">
@@ -573,6 +539,16 @@ export const LandingPage: React.FC = () => {
               </ul>
             </div>
 
+          </div>
+
+          <div className="mt-16 text-center">
+            <Link
+              to="/solutions"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#0066FF] hover:bg-blue-600 text-white font-semibold text-sm transition-all shadow-md shadow-blue-500/20"
+            >
+              Explore Full Solutions Architecture
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </section>
@@ -771,23 +747,23 @@ export const LandingPage: React.FC = () => {
       <footer className="bg-white border-t border-slate-200 py-16 text-sm text-slate-500">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#0066FF] flex items-center justify-center text-white shadow-sm flex-shrink-0">
-              <GraduationCap className="w-4 h-4" strokeWidth={2.2} />
-            </div>
-            <span className="font-black text-slate-900 text-lg tracking-tight">
-              Placement<span className="text-[#0066FF]">OS</span>
-            </span>
-            <span className="text-slate-400 text-xs ml-3">© 2026 PlacementOS Platform. All rights reserved.</span>
+            <Link to="/" className="flex items-center group">
+              <img
+                src="/aicampusos.png"
+                alt="AI Campus OS"
+                className="h-14 sm:h-18 max-h-[72px] w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+              />
+            </Link>
+            <span className="text-slate-400 text-xs ml-3">© 2026 AI Campus OS Platform. All rights reserved.</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-6 text-xs text-slate-500">
             <Link to="/login" className="hover:text-slate-900">Sign in</Link>
             <Link to="/register" className="hover:text-slate-900">Register</Link>
             <button onClick={() => setContactModalOpen(true)} className="hover:text-slate-900 cursor-pointer">Contact</button>
-            <a href="#institutions" className="hover:text-slate-900">Institutions</a>
-            <a href="#recruiters" className="hover:text-slate-900">Recruiters</a>
-            <a href="#candidates" className="hover:text-slate-900">Candidates</a>
-            <a href="#solutions" className="hover:text-slate-900">Solutions</a>
+            <Link to="/institutions" className="hover:text-slate-900">Institutions</Link>
+            <Link to="/candidates" className="hover:text-slate-900">Candidates</Link>
+            <Link to="/solutions" className="hover:text-slate-900">Solutions</Link>
           </div>
         </div>
       </footer>
@@ -810,7 +786,7 @@ export const LandingPage: React.FC = () => {
                   Talk to our campus experts
                 </h3>
                 <p className="text-sm text-slate-500 mb-6">
-                  Learn how PlacementOS can power your institutional placements and campus hiring drives.
+                  Learn how AI Campus OS can power your institutional placements and campus hiring drives.
                 </p>
 
                 <form 

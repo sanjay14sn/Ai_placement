@@ -26,16 +26,10 @@ import { getDefaultRoute } from '../../utils';
 
 type RoleTab = 'Individual' | 'College' | 'Recruiter';
 
-const ROLE_DEMO_EMAILS: Record<RoleTab, string> = {
-  Individual: 'arjun.sharma@rvce.edu.in',
-  College: 'tpo@rvce.edu.in',
-  Recruiter: 'hr@infosys.com',
-};
-
 export const LoginPage: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<RoleTab>('Individual');
-  const [email, setEmail] = useState<string>(ROLE_DEMO_EMAILS.Individual);
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [campuses, setCampuses] = useState<{ name: string; code: string; tpoEmail: string }[]>([]);
@@ -61,8 +55,6 @@ export const LoginPage: React.FC = () => {
 
   const handleRoleSelect = (role: RoleTab) => {
     setSelectedRole(role);
-    setEmail(ROLE_DEMO_EMAILS[role]);
-    setPassword('password123');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -81,7 +73,7 @@ export const LoginPage: React.FC = () => {
       navigate(getDefaultRoute(user.role));
     } catch {
       toast.error('Invalid credentials', {
-        description: 'Please check your email and password or use one of the role tabs above.',
+        description: 'Please check your email and password.',
       });
     } finally {
       setLoading(false);
@@ -100,13 +92,12 @@ export const LoginPage: React.FC = () => {
         <div className="px-6 sm:px-8 xl:px-10 pt-5 xl:pt-7 pb-2 flex-shrink-0">
           {/* Header & Brand Logo */}
           <div className="flex items-center justify-between pb-3 xl:pb-4">
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-xl bg-[#0066FF] flex items-center justify-center text-white shadow-md shadow-blue-500/25 transition-transform duration-200 group-hover:scale-105 flex-shrink-0">
-                <GraduationCap className="w-6 h-6" strokeWidth={2.2} />
-              </div>
-              <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 leading-none">
-                Placement<span className="text-[#0066FF]">OS</span>
-              </span>
+            <Link to="/" className="flex items-center group">
+              <img
+                src="/aicampusos.png"
+                alt="AI Campus OS"
+                className="h-14 sm:h-16 lg:h-18 max-h-[68px] w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+              />
             </Link>
           </div>
 
@@ -118,7 +109,8 @@ export const LoginPage: React.FC = () => {
               Your Next <span className="text-[#0066FF]">Opportunity.</span>
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1.5 max-w-lg leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1.5 m
+            ax-w-lg leading-relaxed">
               A complete platform to learn, build skills, track jobs and grow your career — all in
               one place.
             </p>
@@ -282,13 +274,13 @@ export const LoginPage: React.FC = () => {
 
           {helpOpen && (
             <div className="absolute top-9 right-0 z-50 bg-white border border-slate-200 rounded-xl shadow-xl p-3.5 w-64 text-left">
-              <p className="font-bold text-slate-900 text-xs mb-1">PlacementOS Help Desk</p>
+              <p className="font-bold text-slate-900 text-xs mb-1">AI Campus OS Help Desk</p>
               <p className="text-[11px] text-slate-600 mb-2">
                 Need help accessing your student or institution account?
               </p>
               <div className="space-y-1 text-[11px] font-medium text-blue-600">
-                <a href="mailto:support@placementos.ai" className="block hover:underline">
-                  support@placementos.ai
+                <a href="mailto:support@aicampusintelligent.com" className="block hover:underline">
+                  support@aicampusintelligent.com
                 </a>
                 <p className="text-slate-500 font-normal">Toll-free: +91 1800-120-7522</p>
               </div>
@@ -303,7 +295,7 @@ export const LoginPage: React.FC = () => {
               Welcome Back!
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1.5 leading-relaxed">
-              Sign in to your PlacementOS account and manage your jobs, skills and career journey.
+              Sign in to your AI Campus OS account and manage your jobs, skills and career journey.
             </p>
           </div>
 
@@ -313,16 +305,14 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => handleRoleSelect('Individual')}
-              className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                selectedRole === 'Individual'
+              className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${selectedRole === 'Individual'
                   ? 'bg-[#0066FF] text-white shadow-md shadow-blue-500/25 ring-2 ring-[#0066FF]/20'
                   : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <User
-                className={`w-4 h-4 mb-1.5 ${
-                  selectedRole === 'Individual' ? 'text-white' : 'text-slate-500'
-                }`}
+                className={`w-4 h-4 mb-1.5 ${selectedRole === 'Individual' ? 'text-white' : 'text-slate-500'
+                  }`}
               />
               <span className="text-[11px] truncate">Individual</span>
             </button>
@@ -331,16 +321,14 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => handleRoleSelect('College')}
-              className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                selectedRole === 'College'
+              className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${selectedRole === 'College'
                   ? 'bg-[#0066FF] text-white shadow-md shadow-blue-500/25 ring-2 ring-[#0066FF]/20'
                   : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <Building2
-                className={`w-4 h-4 mb-1.5 ${
-                  selectedRole === 'College' ? 'text-white' : 'text-slate-500'
-                }`}
+                className={`w-4 h-4 mb-1.5 ${selectedRole === 'College' ? 'text-white' : 'text-slate-500'
+                  }`}
               />
               <span className="text-[11px] truncate">College</span>
             </button>
@@ -349,16 +337,14 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => handleRoleSelect('Recruiter')}
-              className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                selectedRole === 'Recruiter'
+              className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${selectedRole === 'Recruiter'
                   ? 'bg-[#0066FF] text-white shadow-md shadow-blue-500/25 ring-2 ring-[#0066FF]/20'
                   : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <Users
-                className={`w-4 h-4 mb-1.5 ${
-                  selectedRole === 'Recruiter' ? 'text-white' : 'text-slate-500'
-                }`}
+                className={`w-4 h-4 mb-1.5 ${selectedRole === 'Recruiter' ? 'text-white' : 'text-slate-500'
+                  }`}
               />
               <span className="text-[11px] truncate">Recruiter</span>
             </button>

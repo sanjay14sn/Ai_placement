@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// AI PlacementOS — API Client
+// AI Campus OS — API Client
 // Connects to real backend API at /api/* with JWT auth
 // Falls back gracefully if backend is unavailable
 // ─────────────────────────────────────────────────────────────────────────────
@@ -118,8 +118,24 @@ export const authService = {
     return api('/auth/forgot-password', { method: 'POST', body: { email }, auth: false });
   },
 
+  forgotPasswordOtp: async (email: string) => {
+    return api<{ success: boolean; message: string }>('/auth/forgot-password-otp', {
+      method: 'POST',
+      body: { email },
+      auth: false,
+    });
+  },
+
   resetPassword: async (token: string, password: string) => {
     return api('/auth/reset-password', { method: 'POST', body: { token, password }, auth: false });
+  },
+
+  resetPasswordOtp: async (data: { email: string; otp: string; password: string }) => {
+    return api<{ success: boolean; message: string }>('/auth/reset-password-otp', {
+      method: 'POST',
+      body: data,
+      auth: false,
+    });
   },
 
   getMe: async () => {
@@ -131,6 +147,8 @@ export const authService = {
     return api('/auth/change-password', { method: 'POST', body: { currentPassword, newPassword } });
   },
 };
+
+export const authApi = authService;
 
 // ─── User Service ─────────────────────────────────────────────────────────────
 
@@ -534,7 +552,7 @@ export const recruiterService = {
 
 const getLocalRegisteredColleges = (): import('../types').College[] => {
   try {
-    const raw = localStorage.getItem('placementos_registered_colleges');
+    const raw = localStorage.getItem('aicampus_registered_colleges') || localStorage.getItem('placementos_registered_colleges');
     if (!raw) return [];
     const parsed: import('../types').College[] = JSON.parse(raw);
     // Purge legacy mock entries with non-mongo IDs like 'college-1'
@@ -548,12 +566,12 @@ const saveLocalRegisteredColleges = (colleges: import('../types').College[]) => 
   try {
     // Only persist valid real colleges
     const clean = colleges.filter(c => c && c.id && !c.id.startsWith('college-'));
-    localStorage.setItem('placementos_registered_colleges', JSON.stringify(clean));
+    localStorage.setItem('aicampus_registered_colleges', JSON.stringify(clean));
   } catch {}
 };
 
 // Colleges removed from the dashboard while the backend lacks DELETE /colleges/:id
-const REMOVED_KEY = 'placementos_removed_colleges';
+const REMOVED_KEY = 'aicampus_removed_colleges';
 const getRemovedCollegeIds = (): string[] => {
   try {
     const raw = JSON.parse(localStorage.getItem(REMOVED_KEY) || '[]');
@@ -896,7 +914,7 @@ export const announcementService = {
   }
 };
 
-const READ_NOTICES_KEY = 'placementos-read-notices';
+const READ_NOTICES_KEY = 'aicampus-read-notices';
 
 const readNoticeIds = () => {
   try {
@@ -1659,7 +1677,7 @@ export const superAdminSettingsService = {
     Object.assign(mockPlatformSettings[section], updates);
     return mockPlatformSettings[section];
   },
-  triggerDatabaseBackup: async () => { await sleep(1500); return { success: true, timestamp: new Date().toISOString(), size: '14.8 GB', location: 's3://placementos-backups/daily/db_prod_backup.tar.gz' }; },
+  triggerDatabaseBackup: async () => { await sleep(1500); return { success: true, timestamp: new Date().toISOString(), size: '14.8 GB', location: 's3://aicampus-backups/daily/db_prod_backup.tar.gz' }; },
   flushCache: async () => { await sleep(800); return { success: true, keysCleared: 14250, freedMemoryMB: 384 }; },
 };
 
@@ -1887,3 +1905,29 @@ export const communityService = {
     return res.data;
   }
 };
+
+// ─── Email Service (Backend Integration) ──────────────────────────────────────
+export const emailApi = {
+  sendTest: async (to: string) => {
+    return api<{ success: boolean; message: string }>('/email/test', {
+      method: 'POST',
+      body: { to },
+      auth: false,
+    });
+  },
+  contactSales: async (data: {
+    name: string;
+    email: string;
+    phone?: string;
+    organization?: string;
+    role?: string;
+    message?: string;
+  }) => {
+    return api<{ success: boolean; message: string }>('/email/contact-sales', {
+      method: 'POST',
+      body: data,
+      auth: false,
+    });
+  },
+};
+

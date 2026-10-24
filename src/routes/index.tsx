@@ -8,6 +8,10 @@ import { LandingPage } from '../pages/auth/LandingPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { RegisterPage } from '../pages/auth/RegisterPage';
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
+import { InstitutionsPage } from '../pages/public/InstitutionsPage';
+import { RecruitersPage } from '../pages/public/RecruitersPage';
+import { CandidatesPage } from '../pages/public/CandidatesPage';
+import { SolutionsPage } from '../pages/public/SolutionsPage';
 
 // Super Admin
 import { SuperAdminOverview } from '../pages/super-admin/Overview';
@@ -96,6 +100,10 @@ export const AppRouter: React.FC = () => {
           {/* Public Routes */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/institutions" element={<InstitutionsPage />} />
+            <Route path="/recruiters" element={<Navigate to="/solutions" replace />} />
+            <Route path="/candidates" element={<CandidatesPage />} />
+            <Route path="/solutions" element={<SolutionsPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// AI PlacementOS — API Configuration
+// AI Campus OS — API Configuration
 // Resolves live or development API base URL & Backend origin
 // ─────────────────────────────────────────────────────────────────────────────
 

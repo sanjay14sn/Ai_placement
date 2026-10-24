@@ -34,7 +34,7 @@ The Super Administration team has released the official **Campus Placement Direc
    - Once a student accepts an offer >= ₹12 LPA, all further campus drive registrations for that student will be automatically frozen.
 
 2. **Pre-Placement Offer (PPO) Acceptance**:
-   - Students receiving PPOs from summer internships must communicate their acceptance or refusal within **7 business days** of release on PlacementOS.
+   - Students receiving PPOs from summer internships must communicate their acceptance or refusal within **7 business days** of release on AI Campus OS.
 
 3. **Drive Attendance Compliance**:
    - Shortlisted candidates who fail to attend scheduled technical or HR interview rounds without a 24-hour prior medical or TPO exemption will be barred from the next two drive eligibility lists.
@@ -93,10 +93,10 @@ The Super Administration team has released the official **Campus Placement Direc
     id: 'news-2',
     slug: 'national-mega-campus-drive-2026',
     title: '🚀 National Mega Off-Campus Drive 2026: 45+ Product Tech Firms Hiring',
-    summary: 'PlacementOS Super Admin partners with leading tech unicorns to host a joint placement drive offering packages up to 32 LPA.',
+    summary: 'AI Campus OS Super Admin partners with leading tech unicorns to host a joint placement drive offering packages up to 32 LPA.',
     content: `
 ### Mega Hiring Event Announcement
-PlacementOS Super Admin is thrilled to announce the **National Mega Tech Campus Drive 2026**. Over 45 marquee product engineering companies, including cloud infrastructure providers, AI startups, and fintech leaders, will be recruiting directly through PlacementOS.
+AI Campus OS Super Admin is thrilled to announce the **National Mega Tech Campus Drive 2026**. Over 45 marquee product engineering companies, including cloud infrastructure providers, AI startups, and fintech leaders, will be recruiting directly through AI Campus OS.
 
 ---
 
@@ -123,7 +123,7 @@ Students can apply directly via the **Recommended Jobs** section on their Studen
     targetAudience: ['STUDENT'],
     coverImage: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80',
     authorName: 'Super Admin Editorial Team',
-    authorRole: 'Corporate Relations & PlacementOS Admin',
+    authorRole: 'Corporate Relations & AI Campus OS Admin',
     authorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
     isPinned: true,
     isPublished: true,
@@ -159,7 +159,7 @@ Students can apply directly via the **Recommended Jobs** section on their Studen
     summary: 'Join the 48-hour global student buildathon. Top 50 finalists receive direct interview tickets for Senior SDE & AI Roles.',
     content: `
 ### Global Student Buildathon & Fellowship
-PlacementOS in collaboration with leading AI technology partners announces the **2026 AI & System Design Student Buildathon**.
+AI Campus OS in collaboration with leading AI technology partners announces the **2026 AI & System Design Student Buildathon**.
 
 ---
 
@@ -193,9 +193,9 @@ PlacementOS in collaboration with leading AI technology partners announces the *
     id: 'news-4',
     slug: 'august-2026-placement-champions',
     title: '🏆 August 2026 Placement Champions: 1,400+ Students Placed Across Partner Colleges',
-    summary: 'Celebrating our top-performing students and highest CTC packages recorded this month on PlacementOS.',
+    summary: 'Celebrating our top-performing students and highest CTC packages recorded this month on AI Campus OS.',
     content: `
-### PlacementOS August Monthly Highlights
+### AI Campus OS August Monthly Highlights
 We are excited to celebrate an extraordinary month of campus placement milestones across our university network.
 
 ---
@@ -212,7 +212,7 @@ Congratulations to all selected candidates, TPO cells, and participating recruit
     priority: 'normal',
     targetAudience: ['STUDENT', 'COLLEGE_ADMIN', 'TPO', 'RECRUITER'],
     coverImage: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&auto=format&fit=crop&q=80',
-    authorName: 'PlacementOS Press Office',
+    authorName: 'AI Campus OS Press Office',
     authorRole: 'Platform Communications',
     isPinned: false,
     isPublished: true,
@@ -337,7 +337,7 @@ export const useNewsroomStore = create<NewsroomStore>()(
       },
     }),
     {
-      name: 'placementos-newsroom-storage',
+      name: 'aicampus-newsroom-storage',
       partialize: (state) => ({ articles: state.articles }),
     }
   )

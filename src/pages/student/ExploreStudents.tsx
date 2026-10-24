@@ -1059,7 +1059,7 @@ export const ExploreStudentsPage: React.FC = () => {
                     </h3>
                     <div className="space-y-3">
                       {(selectedStudentModal.projects || [
-                        { title: 'PlacementOS Mobile Client', tech: 'Flutter · Firebase · REST API', desc: 'Designed and implemented real-time notifications, interactive placement roadmap, and automated resume score checker.' },
+                        { title: 'AI Campus OS Mobile Client', tech: 'Flutter · Firebase · REST API', desc: 'Designed and implemented real-time notifications, interactive placement roadmap, and automated resume score checker.' },
                         { title: 'AI Resume Compatibility Screener', tech: 'Python · PyTorch · Scikit-Learn', desc: 'NLP-based parser that evaluates resume match percentages against job descriptions with 94% accuracy.' }
                       ]).map((proj, idx) => (
                         <div key={idx} className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors">
@@ -1089,7 +1089,7 @@ export const ExploreStudentsPage: React.FC = () => {
                       {(selectedStudentModal.certifications || [
                         'Google Cloud Certified Associate Cloud Engineer',
                         'Flutter & Dart Complete Masterclass (Udemy)',
-                        'PlacementOS Verified AI Readiness Badge'
+                        'AI Campus OS Verified AI Readiness Badge'
                       ]).map((cert, idx) => (
                         <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-200 bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40">
                           <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />

@@ -10,7 +10,7 @@ export const RecruiterSettingsPage: React.FC = () => {
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [interviewReminders, setInterviewReminders] = useState(true);
   const [dailyDigest, setDailyDigest] = useState(false);
-  const [templateSubject, setTemplateSubject] = useState('Invitation to Technical Interview - PlacementOS Campus Drive');
+  const [templateSubject, setTemplateSubject] = useState('Invitation to Technical Interview - AI Campus OS Campus Drive');
   const [templateBody, setTemplateBody] = useState('Dear {Candidate_Name},\n\nWe are pleased to invite you for a Technical Interview for the position of {Job_Title} at {Company_Name}.\n\nPlease join using the meeting link provided in your candidate portal.\n\nBest regards,\nRecruitment Team');
 
   const handleSaveSettings = (e: React.FormEvent) => {

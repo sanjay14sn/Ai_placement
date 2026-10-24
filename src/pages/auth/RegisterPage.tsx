@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Zap, ArrowRight, User, Mail, Lock, Hash, 
   ShieldCheck, RefreshCw, ArrowLeft, Sparkles, Check,
-  CreditCard, UploadCloud, FileCheck, CheckCircle2, Eye, Trash2, FileText, Building2, GraduationCap
+  CreditCard, UploadCloud, FileCheck, CheckCircle2, Eye, Trash2, FileText, Building2, GraduationCap,
+  UserCheck
 } from 'lucide-react';
 import { Button, Input, Badge, Select } from '../../components/ui';
 import { toast } from 'sonner';
@@ -78,6 +79,7 @@ export const RegisterPage: React.FC = () => {
   }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSelectedCollege, setIsSelectedCollege] = useState(false);
+  const [isIndividualStudent, setIsIndividualStudent] = useState(false);
   const collegeInputContainerRef = useRef<HTMLDivElement>(null);
   const [collegeLookup, setCollegeLookup] = useState<'idle' | 'loading' | 'miss'>('idle');
 
@@ -200,7 +202,7 @@ export const RegisterPage: React.FC = () => {
 
     // Re-fetch if a college was registered by Super Admin in another window/tab
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'placementos_registered_colleges') {
+      if (e.key === 'aicampus_registered_colleges' || e.key === 'placementos_registered_colleges') {
         fetchSuperAdminColleges();
       }
     };
@@ -301,6 +303,7 @@ export const RegisterPage: React.FC = () => {
     setStudentCollegeName(college.name);
     setResolvedCollege(college);
     setIsSelectedCollege(true);
+    setIsIndividualStudent(false);
     setShowSuggestions(false);
     setStudentDept((current) => {
       if (college.departments.some((d) => d.name === current)) return current;
@@ -311,8 +314,42 @@ export const RegisterPage: React.FC = () => {
     });
   };
 
+  const handleSelectIndividualCollege = (customName?: string) => {
+    const name = (customName || studentCollegeName).trim() || 'Independent / Individual Student';
+    const individualCollege = {
+      id: 'individual',
+      name: name,
+      code: 'INDIVIDUAL',
+      city: 'Direct Candidate',
+      state: '',
+      departments: [
+        { id: 'dept-cse', name: 'Computer Science and Engineering (CSE)', code: 'CSE' },
+        { id: 'dept-it', name: 'Information Technology (IT)', code: 'IT' },
+        { id: 'dept-ece', name: 'Electronics and Communication (ECE)', code: 'ECE' },
+        { id: 'dept-eee', name: 'Electrical & Electronics (EEE)', code: 'EEE' },
+        { id: 'dept-me', name: 'Mechanical Engineering', code: 'ME' },
+        { id: 'dept-civil', name: 'Civil Engineering', code: 'Civil' },
+        { id: 'dept-ai', name: 'Artificial Intelligence & Data Science', code: 'AI&DS' },
+        { id: 'dept-mgmt', name: 'Business Administration / Management', code: 'MGMT' },
+        { id: 'dept-other', name: 'General / Other Specialization', code: 'OTHER' },
+      ],
+    };
+    setStudentCollegeName(name);
+    setResolvedCollege(individualCollege);
+    setIsSelectedCollege(true);
+    setIsIndividualStudent(true);
+    setShowSuggestions(false);
+    if (!studentDept) {
+      setStudentDept('Computer Science and Engineering (CSE)');
+    }
+    toast.success(`Enrolled as Individual Candidate (${name})`, {
+      description: 'Full direct candidate access to placement drives, resume builder & AI prep.'
+    });
+  };
+
   const handleChangeCollege = () => {
     setIsSelectedCollege(false);
+    setIsIndividualStudent(false);
     setResolvedCollege(null);
     setStudentDept('');
     setStudentCollegeName('');
@@ -360,10 +397,11 @@ export const RegisterPage: React.FC = () => {
       });
       if (match) {
         handleSelectCollege(match);
-      } else if (collegeSuggestions.length > 0) {
-        handleSelectCollege(collegeSuggestions[0]);
+      } else if (studentCollegeName.trim()) {
+        // Automatically allow user to proceed as Individual Student with their specified institution!
+        handleSelectIndividualCollege(studentCollegeName.trim());
       } else {
-        toast.error('Please select an institution registered in Super Admin');
+        toast.error('Please enter your college name or select an institution');
         return;
       }
     }
@@ -436,20 +474,22 @@ export const RegisterPage: React.FC = () => {
       const cgpaNum = parseFloat(studentCgpa) || 0;
       const deptIdx = DEPARTMENTS.indexOf(studentDept.trim());
       const matchedDepartment = resolvedCollege?.departments.find((department) => department.name === studentDept.trim());
-      const collegeId = resolvedCollege?.id || matchedCollege?.id || studentCollegeName.trim();
-      const collegeName = resolvedCollege?.name || matchedCollege?.name || studentCollegeName.trim();
+      const collegeId = resolvedCollege?.id || 'individual';
+      const collegeName = studentCollegeName.trim() || resolvedCollege?.name || 'Independent Student';
 
       const registered = await studentService.register({
         name: studentName,
         email: studentEmail,
         password: studentPassword,
-        studentId: studentIdNum || `${(resolvedCollege?.code || matchedCollege?.code || 'STU')}2021${studentDept.trim().substring(0, 2).toUpperCase()}045`,
+        studentId: studentIdNum || `${isIndividualStudent ? 'IND' : (resolvedCollege?.code || matchedCollege?.code || 'STU')}2021${studentDept.trim().substring(0, 2).toUpperCase()}045`,
         collegeId,
+        collegeName,
         department: studentDept.trim(),
         departmentId: matchedDepartment?.id || (deptIdx !== -1 ? `dept-${deptIdx + 1}` : 'dept-custom'),
         degree: studentDegree.trim(),
         batch: studentBatch.trim(),
         cgpa: cgpaNum,
+        isIndividual: isIndividualStudent,
         aadharNumber: aadharNumber ? aadharNumber.replace(/\s+/g, '') : undefined,
         aadharCard: aadharFile ? {
           fileName: aadharFile.name,
@@ -463,7 +503,9 @@ export const RegisterPage: React.FC = () => {
       setTenant(collegeId, collegeName);
 
       toast.success(`🎉 Verification Successful! Welcome ${studentName.split(' ')[0]}!`, {
-        description: `Your profile at ${collegeName} is now active.`
+        description: isIndividualStudent
+          ? `Your individual student profile (${collegeName}) is now active.`
+          : `Your profile at ${collegeName} is now active.`
       });
       navigate('/student/dashboard');
     } catch (err) {
@@ -475,39 +517,33 @@ export const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-start sm:justify-center p-4 sm:p-6 lg:p-8 font-sans antialiased overflow-y-auto">
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-start sm:justify-center p-4 sm:p-6 lg:p-8 font-sans antialiased overflow-x-hidden selection:bg-blue-100 selection:text-blue-900">
       {/* ─── FULLSCREEN CAMPUS BACKGROUND IMAGE ─── */}
-      <div className="fixed inset-0 w-full h-full -z-10 overflow-hidden pointer-events-none">
+      <div className="fixed inset-0 w-full h-full z-0 overflow-hidden pointer-events-none">
         <img
           src="/campus_registration_bg.jpg"
           alt="Modern University Campus"
-          className="w-full h-full object-cover object-center scale-105 filter brightness-[0.85] contrast-[1.05]"
+          className="w-full h-full object-cover object-center"
         />
-        {/* Soft gradient backdrop for crystal-clear readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/50 via-slate-900/40 to-slate-950/60 backdrop-blur-[2px]" />
+        {/* Crisp balanced overlay that keeps campus scene vivid while ensuring great UI contrast */}
+        <div className="absolute inset-0 bg-slate-950/35 bg-gradient-to-b from-slate-950/60 via-slate-950/25 to-slate-950/65" />
       </div>
 
       {/* Top Header Bar */}
-      <div className="w-full max-w-6xl mb-4 flex items-center justify-between">
+      <div className="relative z-10 w-full max-w-6xl mb-4 flex items-center justify-between">
         <Link
-          to="/login"
-          className="inline-flex items-center gap-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-lg border border-white/60 dark:border-slate-800 group"
+          to="/"
+          className="inline-flex items-center gap-2.5 bg-white px-4 py-2 rounded-2xl shadow-xl border border-white/90 group transition-all duration-200 hover:scale-105"
         >
-          <div className="w-8 h-8 rounded-xl bg-[#0066FF] flex items-center justify-center text-white shadow-md shadow-blue-500/25 transition-transform duration-200 group-hover:scale-105">
-            <GraduationCap className="w-4 h-4" strokeWidth={2.2} />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-base font-black tracking-tight text-slate-900 dark:text-white leading-none">
-              Placement<span className="text-[#0066FF]">OS</span>
-            </span>
-            <span className="text-[8px] font-bold tracking-[0.14em] text-slate-500 uppercase mt-0.5">
-              Student Registration
-            </span>
-          </div>
+          <img
+            src="/aicampusos.png"
+            alt="AI Campus OS"
+            className="h-12 sm:h-14 max-h-[58px] w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+          />
         </Link>
 
         {/* Stepper Header indicator */}
-        <div className="hidden sm:flex items-center px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-white/60 dark:border-slate-800 rounded-2xl shadow-lg">
+        <div className="hidden sm:flex items-center px-4 py-2 bg-white border border-white/90 rounded-2xl shadow-xl">
           <div className="flex items-center gap-2">
             <div
               className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
@@ -557,29 +593,29 @@ export const RegisterPage: React.FC = () => {
 
         <Link
           to="/login"
-          className="text-xs font-bold text-white bg-slate-900/80 hover:bg-slate-900 px-3.5 py-2 rounded-xl backdrop-blur-md border border-white/20 transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-lg hover:shadow-xl"
+          className="text-xs font-bold text-white bg-slate-900/85 hover:bg-slate-900 px-4 py-2.5 rounded-xl backdrop-blur-md border border-white/30 transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-xl hover:shadow-2xl"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
         </Link>
       </div>
 
-      {/* WIDE LANDSCAPE REGISTRATION CONTAINER */}
-      <div className="w-full max-w-6xl mx-auto">
-        <div className="relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl border border-white/80 dark:border-slate-800 shadow-2xl p-6 sm:p-8 xl:p-10 text-slate-900 dark:text-white transition-all overflow-visible">
+      {/* WIDE LANDSCAPE REGISTRATION CONTAINER (SOLID WHITE CARD FOR 100% VISIBILITY) */}
+      <div className="relative z-10 w-full max-w-6xl mx-auto">
+        <div className="relative bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 xl:p-10 text-slate-900 transition-all overflow-visible">
           {step === 'form' ? (
             /* STEP 1: STUDENT REGISTRATION FORM (LANDSCAPE 2-COLUMN) */
             <form onSubmit={handleProceedToOtp} className="space-y-6" autoComplete="off">
               {/* Form Title Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200 gap-2">
                 <div>
                   <Badge className="mb-1.5 px-3 py-0.5 bg-blue-50 text-[#0066FF] border border-blue-200 text-xs font-bold shadow-xs">
                     Self-Service Student Onboarding
                   </Badge>
-                  <h2 className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-white tracking-tight">
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
                     Student Registration
                   </h2>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-500 max-w-md">
+                <p className="text-xs sm:text-sm text-slate-600 max-w-md">
                   Enter your college code to load the institution and its departments, then complete
                   your profile credentials.
                 </p>
@@ -589,9 +625,9 @@ export const RegisterPage: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
                 {/* ─── LEFT COLUMN: Academic & Institution Details ─────────────── */}
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 pb-1 border-b border-slate-200">
                     <Building2 className="w-4 h-4 text-[#0066FF]" />
-                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
                       Academic & Institution Details
                     </h3>
                   </div>
@@ -599,16 +635,22 @@ export const RegisterPage: React.FC = () => {
                   {/* College / Institution Search */}
                   <div className="relative" ref={collegeInputContainerRef}>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-slate-800 dark:text-slate-200 font-semibold text-xs">
+                      <label className="text-slate-900 font-bold text-xs">
                         College / Institution or college code
                       </label>
-                      <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3 text-emerald-600" /> Super Admin Verified
-                      </span>
+                      {isIndividualStudent ? (
+                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 flex items-center gap-1 shadow-xs">
+                          <UserCheck className="w-3 h-3 text-[#0066FF]" /> Individual Student
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                          <ShieldCheck className="w-3 h-3 text-emerald-600" /> Super Admin Verified
+                        </span>
+                      )}
                     </div>
                     <Input
-                      className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-2 focus:ring-blue-100 font-medium text-xs sm:text-sm"
-                      placeholder="Select or search registered college (e.g. SON1, RVC1, IIT1)..."
+                      className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] focus:ring-2 focus:ring-blue-100 font-medium text-xs sm:text-sm"
+                      placeholder="Enter college code, name, or your institution..."
                       value={studentCollegeName}
                       onChange={(e) => {
                         setStudentCollegeName(e.target.value);
@@ -630,12 +672,12 @@ export const RegisterPage: React.FC = () => {
 
                     {/* Suggestions Dropdown */}
                     {showSuggestions && !isSelectedCollege && (
-                      <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden py-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                        <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80">
+                      <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden py-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div className="px-3 py-1.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/90">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                             {studentCollegeName.trim()
-                              ? `Matching Registered Colleges (${collegeSuggestions.length})`
-                              : `Registered Colleges in Super Admin (${collegeSuggestions.length})`}
+                              ? `Matching Colleges (${collegeSuggestions.length})`
+                              : `Registered Colleges (${collegeSuggestions.length})`}
                           </span>
                           {isLoadingRegisteredColleges || collegeLookup === 'loading' ? (
                             <span className="text-[10px] text-[#0066FF] font-semibold animate-pulse flex items-center gap-1">
@@ -646,19 +688,19 @@ export const RegisterPage: React.FC = () => {
                           )}
                         </div>
 
-                        <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700">
+                        <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
                           {collegeSuggestions.length > 0 ? (
                             collegeSuggestions.map((suggestion) => (
                               <button
                                 key={suggestion.id || suggestion.code}
                                 type="button"
                                 onClick={() => handleSelectCollege(suggestion)}
-                                className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50/70 dark:hover:bg-slate-700 transition-colors flex items-center justify-between group cursor-pointer"
+                                className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50/70 transition-colors flex items-center justify-between group cursor-pointer"
                               >
                                 <div className="min-w-0 pr-2">
                                   <div className="flex items-center gap-1.5">
                                     <Building2 className="w-4 h-4 text-[#0066FF] flex-shrink-0" />
-                                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#0066FF] truncate">
+                                    <span className="text-xs font-bold text-slate-900 group-hover:text-[#0066FF] truncate">
                                       {suggestion.name}
                                     </span>
                                   </div>
@@ -677,31 +719,62 @@ export const RegisterPage: React.FC = () => {
                             ))
                           ) : (
                             <div className="p-4 text-center">
-                              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                                No registered college matches{' '}
-                                <strong className="text-slate-900 dark:text-white">
-                                  "{studentCollegeName}"
-                                </strong>
+                              <p className="text-xs text-slate-800 font-semibold">
+                                "{studentCollegeName.trim()}" is not registered in Super Admin
                               </p>
-                              <p className="text-[11px] text-slate-400 mt-0.5">
-                                Only colleges registered in Super Admin can be selected.
+                              <p className="text-[11px] text-slate-500 mt-1 mb-3">
+                                You can continue and register as an Individual Student with your institution details!
                               </p>
+                              <button
+                                type="button"
+                                onClick={() => handleSelectIndividualCollege(studentCollegeName)}
+                                className="w-full py-2 px-3 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                              >
+                                <UserCheck className="w-4 h-4" /> Continue as Individual with "{studentCollegeName.trim() || 'My Institution'}"
+                              </button>
                             </div>
                           )}
                         </div>
+
+                        {/* Optional direct individual student button if typing custom college */}
+                        {collegeSuggestions.length > 0 && studentCollegeName.trim() && (
+                          <div className="p-2 border-t border-slate-100 bg-slate-50/80">
+                            <button
+                              type="button"
+                              onClick={() => handleSelectIndividualCollege(studentCollegeName)}
+                              className="w-full py-1.5 px-3 rounded-xl bg-white border border-slate-200 hover:border-[#0066FF] text-[11px] font-bold text-[#0066FF] hover:bg-blue-50/50 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" /> Not listed? Sign up as Individual Student with "{studentCollegeName.trim()}"
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {/* Selected Verified College Confirmation */}
+                    {/* Selected College Confirmation */}
                     {resolvedCollege && isSelectedCollege && (
-                      <div className="mt-1.5 flex items-center justify-between px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 rounded-xl shadow-xs">
+                      <div className={`mt-1.5 flex items-center justify-between px-3 py-1.5 ${
+                        isIndividualStudent
+                          ? 'bg-blue-50/90 border-blue-200'
+                          : 'bg-emerald-50 border-emerald-200'
+                      } border rounded-xl shadow-xs`}>
                         <div className="flex items-center gap-1.5 min-w-0 pr-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                          <span className="text-xs font-bold text-emerald-950 dark:text-emerald-300 truncate">
+                          {isIndividualStudent ? (
+                            <UserCheck className="w-3.5 h-3.5 text-[#0066FF] flex-shrink-0" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                          )}
+                          <span className={`text-xs font-bold ${
+                            isIndividualStudent ? 'text-blue-950' : 'text-emerald-950'
+                          } truncate`}>
                             {resolvedCollege.name}
                           </span>
-                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 bg-emerald-200/70 text-emerald-800 rounded">
-                            {resolvedCollege.code}
+                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 ${
+                            isIndividualStudent
+                              ? 'bg-blue-200/70 text-blue-800'
+                              : 'bg-emerald-200/70 text-emerald-800'
+                          } rounded`}>
+                            {isIndividualStudent ? 'INDIVIDUAL' : resolvedCollege.code}
                           </span>
                         </div>
                         <button
@@ -720,8 +793,8 @@ export const RegisterPage: React.FC = () => {
                     {resolvedCollege && resolvedCollege.departments.length > 0 ? (
                       <Select
                         label="Department / Branch"
-                        labelClassName="text-slate-800 dark:text-slate-200 font-semibold text-xs"
-                        className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
+                        labelClassName="text-slate-900 font-bold text-xs"
+                        className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                         placeholder="Select department"
                         value={studentDept}
                         onChange={(e) => setStudentDept(e.target.value)}
@@ -737,8 +810,8 @@ export const RegisterPage: React.FC = () => {
                     ) : (
                       <Input
                         label="Department / Branch"
-                        labelClassName="text-slate-800 dark:text-slate-200 font-semibold text-xs"
-                        className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
+                        labelClassName="text-slate-900 font-bold text-xs"
+                        className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                         placeholder="Computer Science (CSE)"
                         value={studentDept}
                         onChange={(e) => setStudentDept(e.target.value)}
@@ -751,8 +824,8 @@ export const RegisterPage: React.FC = () => {
                   <div className="grid grid-cols-3 gap-2.5">
                     <Input
                       label="Degree"
-                      labelClassName="text-slate-800 dark:text-slate-200 font-semibold text-xs"
-                      className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
+                      labelClassName="text-slate-900 font-bold text-xs"
+                      className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       placeholder="B.E."
                       value={studentDegree}
                       onChange={(e) => setStudentDegree(e.target.value)}
@@ -761,8 +834,8 @@ export const RegisterPage: React.FC = () => {
 
                     <Input
                       label="Batch / Year"
-                      labelClassName="text-slate-800 dark:text-slate-200 font-semibold text-xs"
-                      className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
+                      labelClassName="text-slate-900 font-bold text-xs"
+                      className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       placeholder="2025"
                       value={studentBatch}
                       onChange={(e) => setStudentBatch(e.target.value)}
@@ -771,8 +844,8 @@ export const RegisterPage: React.FC = () => {
 
                     <Input
                       label="CGPA"
-                      labelClassName="text-slate-800 dark:text-slate-200 font-semibold text-xs"
-                      className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
+                      labelClassName="text-slate-900 font-bold text-xs"
+                      className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       inputMode="decimal"
                       placeholder="8.5"
                       value={studentCgpa}
@@ -781,21 +854,25 @@ export const RegisterPage: React.FC = () => {
                   </div>
 
                   {/* Institution Placement Note */}
-                  <div className="p-3 bg-blue-50/70 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-2xl flex items-start gap-2.5">
-                    <ShieldCheck className="w-4 h-4 text-[#0066FF] flex-shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Entering your verified college code connects your profile directly with your
-                      institution's Training & Placement Office (TPO) for company drives, shortlist
-                      alerts, and resume verification.
+                  <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-2xl flex items-start gap-2.5">
+                    {isIndividualStudent ? (
+                      <Sparkles className="w-4 h-4 text-[#0066FF] flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <ShieldCheck className="w-4 h-4 text-[#0066FF] flex-shrink-0 mt-0.5" />
+                    )}
+                    <p className="text-[11px] text-slate-700 leading-relaxed">
+                      {isIndividualStudent
+                        ? 'Enrolling as an Individual Student provides you direct access to AI interview practice, smart resume builder, skill assessments, and off-campus recruitment drives.'
+                        : "Entering your verified college code connects your profile directly with your institution's Training & Placement Office (TPO) for company drives, shortlist alerts, and resume verification."}
                     </p>
                   </div>
                 </div>
 
                 {/* ─── RIGHT COLUMN: Personal Details, Credentials & KYC ──────── */}
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 pb-1 border-b border-slate-200">
                     <User className="w-4 h-4 text-[#0066FF]" />
-                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
                       Student Credentials & Identity KYC
                     </h3>
                   </div>
@@ -804,8 +881,8 @@ export const RegisterPage: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input
                       label="Full Name"
-                      labelClassName="text-slate-800 dark:text-slate-200 font-semibold text-xs"
-                      className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
+                      labelClassName="text-slate-900 font-bold text-xs"
+                      className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       placeholder="Rahul Sharma"
                       value={studentName}
                       onChange={(e) => setStudentName(e.target.value)}
@@ -815,8 +892,8 @@ export const RegisterPage: React.FC = () => {
 
                     <Input
                       label="Roll No / USN"
-                      labelClassName="text-slate-800 dark:text-slate-200 font-semibold text-xs"
-                      className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
+                      labelClassName="text-slate-900 font-bold text-xs"
+                      className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       placeholder="e.g. SONA2021CS045"
                       value={studentIdNum}
                       onChange={(e) => setStudentIdNum(e.target.value)}
@@ -828,8 +905,8 @@ export const RegisterPage: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input
                       label="Student Email Address"
-                      labelClassName="text-slate-800 dark:text-slate-200 font-semibold text-xs"
-                      className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
+                      labelClassName="text-slate-900 font-bold text-xs"
+                      className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       type="email"
                       name="student_registration_email"
                       autoComplete="off"
@@ -842,8 +919,8 @@ export const RegisterPage: React.FC = () => {
 
                     <Input
                       label="Password"
-                      labelClassName="text-slate-800 dark:text-slate-200 font-semibold text-xs"
-                      className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
+                      labelClassName="text-slate-900 font-bold text-xs"
+                      className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       type="password"
                       name="student_registration_password"
                       autoComplete="new-password"
@@ -856,14 +933,14 @@ export const RegisterPage: React.FC = () => {
                   </div>
 
                   {/* Aadhar Card Verification */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700 space-y-3">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-lg bg-blue-100 text-[#0066FF] flex items-center justify-center">
                           <CreditCard className="w-3.5 h-3.5" />
                         </div>
                         <div>
-                          <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
+                          <span className="text-xs font-bold text-slate-900 block leading-tight">
                             Aadhar Card Verification
                           </span>
                           <span className="text-[10px] text-slate-500 block">
@@ -880,8 +957,8 @@ export const RegisterPage: React.FC = () => {
                       <div>
                         <Input
                           label="Aadhar Card Number"
-                          labelClassName="text-slate-800 dark:text-slate-200 font-semibold text-xs"
-                          className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:bg-white focus:border-[#0066FF] font-mono text-xs sm:text-sm tracking-wider"
+                          labelClassName="text-slate-900 font-bold text-xs"
+                          className="bg-white text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-mono text-xs sm:text-sm tracking-wider"
                           placeholder="XXXX XXXX XXXX"
                           value={aadharNumber}
                           onChange={(e) => handleAadharNumberChange(e.target.value)}
@@ -894,7 +971,7 @@ export const RegisterPage: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+                        <label className="block text-xs font-bold text-slate-900 mb-1.5">
                           Upload Aadhar Card (PDF / Image)
                         </label>
                         <input
@@ -910,7 +987,7 @@ export const RegisterPage: React.FC = () => {
                             type="button"
                             onClick={() => aadharFileInputRef.current?.click()}
                             disabled={isUploadingAadhar}
-                            className="w-full h-11 px-3 border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-[#0066FF] bg-white dark:bg-slate-900 hover:bg-blue-50/40 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#0066FF] transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                            className="w-full h-11 px-3 border-2 border-dashed border-slate-300 hover:border-[#0066FF] bg-white hover:bg-blue-50/40 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-slate-700 hover:text-[#0066FF] transition-all cursor-pointer shadow-xs disabled:opacity-50"
                           >
                             {isUploadingAadhar ? (
                               <>
@@ -925,7 +1002,7 @@ export const RegisterPage: React.FC = () => {
                             )}
                           </button>
                         ) : (
-                          <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 border border-emerald-300 rounded-xl shadow-xs">
+                          <div className="flex items-center justify-between p-2 bg-white border border-emerald-300 rounded-xl shadow-xs">
                             <div className="flex items-center gap-2 min-w-0">
                               {aadharFile.previewUrl ? (
                                 <img
@@ -939,7 +1016,7 @@ export const RegisterPage: React.FC = () => {
                                 </div>
                               )}
                               <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                <p className="text-xs font-bold text-slate-900 truncate">
                                   {aadharFile.name}
                                 </p>
                                 <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
@@ -988,13 +1065,13 @@ export const RegisterPage: React.FC = () => {
                     Complete Student Setup & Launch Dashboard
                   </Button>
 
-                  <p className="text-center text-xs text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <p className="text-center text-xs text-slate-600 pt-2 border-t border-slate-200">
                     Already have an account?{' '}
                     <Link
                       to="/login"
                       className="text-[#0066FF] font-extrabold hover:underline cursor-pointer"
                     >
-                      Sign in to PlacementOS
+                      Sign in to AI Campus OS
                     </Link>
                   </p>
                 </div>

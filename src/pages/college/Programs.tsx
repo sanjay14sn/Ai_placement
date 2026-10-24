@@ -50,7 +50,7 @@ export const CollegeProgramsPage: React.FC = () => {
               Streamline Campus Drives & Scale Corporate Outreach
             </h2>
             <p className="text-sm text-purple-100 mt-2 leading-relaxed">
-              Access executive webinars, PlacementOS drive automation guides, standardized policy templates, and corporate MoU frameworks provided by Super Admin.
+              Access executive webinars, AI Campus OS drive automation guides, standardized policy templates, and corporate MoU frameworks provided by Super Admin.
             </p>
           </div>
         </div>

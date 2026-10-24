@@ -26,7 +26,7 @@ export const SuperAdminOverview: React.FC = () => {
   }, []);
 
   const recentActivity = [
-    { type: 'college', text: 'SSN College of Engineering joined PlacementOS', time: '2 min ago', icon: '🎓' },
+    { type: 'college', text: 'SSN College of Engineering joined AI Campus OS', time: '2 min ago', icon: '🎓' },
     { type: 'recruiter', text: 'Razorpay onboarded as a new recruiter company', time: '15 min ago', icon: '🏢' },
     { type: 'job', text: 'Amazon India posted 12 SDE openings across 8 colleges', time: '32 min ago', icon: '💼' },
     { type: 'subscription', text: 'VIT Vellore upgraded from Professional to Enterprise', time: '1 hr ago', icon: '⬆️' },

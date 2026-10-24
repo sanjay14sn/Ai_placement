@@ -65,7 +65,7 @@ export const SuperAdminProgramsPage: React.FC = () => {
   const [formCategory, setFormCategory] = useState('Placement Training');
   const [formAudience, setFormAudience] = useState<TargetAudience[]>(['STUDENT']);
   const [formInstructorName, setFormInstructorName] = useState('Super Admin Team');
-  const [formInstructorTitle, setFormInstructorTitle] = useState('PlacementOS Learning Director');
+  const [formInstructorTitle, setFormInstructorTitle] = useState('AI Campus OS Learning Director');
   const [formInstructorAvatar, setFormInstructorAvatar] = useState('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80');
   const [formThumbnail, setFormThumbnail] = useState(THUMBNAIL_PRESETS[0].url);
   const [formIsPublished, setFormIsPublished] = useState(true);
@@ -114,7 +114,7 @@ export const SuperAdminProgramsPage: React.FC = () => {
     setFormCategory('Placement Training');
     setFormAudience(['STUDENT']);
     setFormInstructorName('Super Admin Team');
-    setFormInstructorTitle('PlacementOS Learning Director');
+    setFormInstructorTitle('AI Campus OS Learning Director');
     setFormInstructorAvatar('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80');
     setFormThumbnail(THUMBNAIL_PRESETS[0].url);
     setFormIsPublished(true);

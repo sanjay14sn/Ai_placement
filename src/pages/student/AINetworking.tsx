@@ -135,7 +135,7 @@ export const AINetworkingPage: React.FC = () => {
               </div>
               <h2 className="text-xl sm:text-2xl font-black">Autonomous AI Peer Matchmaking</h2>
               <p className="text-xs text-indigo-200 max-w-xl">
-                PlacementOS continuously analyzes your profile, Leetcode practice history, ATS resume score, and target job roles to pair you with the highest-converting networking matches.
+                AI Campus OS continuously analyzes your profile, Leetcode practice history, ATS resume score, and target job roles to pair you with the highest-converting networking matches.
               </p>
             </div>
             <Button

@@ -29,6 +29,7 @@ const futureDate = (daysFromNow: number): string => {
 
 export const DEPARTMENTS = ['CSE', 'AI & DS', 'ECE', 'EEE', 'ME', 'Biotech', 'MCA', 'MBA'];
 
+
 const SKILLS_POOL = [
   'Java', 'Python', 'JavaScript', 'TypeScript', 'React', 'Angular', 'Vue.js',
   'Node.js', 'Spring Boot', 'Django', 'FastAPI', 'Express.js', 'SQL', 'MySQL',
@@ -728,11 +729,11 @@ export const mockAuditLogs = Array.from({ length: 45 }, (_, i) => {
   d.setMinutes(d.getMinutes() - minutesAgo);
 
   const actors = [
-    { name: 'Sanjay Admin', email: 'admin@placementos.ai', role: 'SUPER_ADMIN', ip: '106.51.78.12' },
-    { name: 'System Automation', email: 'system@placementos.ai', role: 'SUPER_ADMIN', ip: '127.0.0.1' },
+    { name: 'Sanjay Admin', email: 'admin@aicampusintelligent.com', role: 'SUPER_ADMIN', ip: '106.51.78.12' },
+    { name: 'System Automation', email: 'system@aicampusintelligent.com', role: 'SUPER_ADMIN', ip: '127.0.0.1' },
     { name: 'Vikram TPO', email: 'tpo@rvce.edu.in', role: 'COLLEGE_ADMIN', ip: '49.207.210.44' },
     { name: 'Priya Recruiter', email: 'hr@infosys.com', role: 'RECRUITER', ip: '182.72.198.2' },
-    { name: 'Security Monitor', email: 'security@placementos.ai', role: 'SUPER_ADMIN', ip: '10.0.4.15' },
+    { name: 'Security Monitor', email: 'security@aicampusintelligent.com', role: 'SUPER_ADMIN', ip: '10.0.4.15' },
   ];
 
   return {
@@ -896,13 +897,13 @@ export const mockSuperAdminAnalyticsData = {
 
 export const mockPlatformSettings = {
   general: {
-    platformName: 'PlacementOS AI SaaS Platform',
-    supportEmail: 'support@placementos.ai',
+    platformName: 'AI Campus OS SaaS Platform',
+    supportEmail: 'support@aicampusintelligent.com',
     contactPhone: '+91 80 4567 8900',
     primaryCurrency: 'INR (₹)',
     timezone: 'Asia/Kolkata (IST)',
     maintenanceMode: false,
-    announcementBanner: '🚀 PlacementOS v2.4 Live: Multi-Model AI Resume Parsing & Automated Recruiter Matching enabled!',
+    announcementBanner: '🚀 AI Campus OS v2.4 Live: Multi-Model AI Resume Parsing & Automated Recruiter Matching enabled!',
     enablePublicRegistration: true,
   },
 
@@ -930,8 +931,8 @@ export const mockPlatformSettings = {
 
   email: {
     provider: 'SendGrid API',
-    senderName: 'PlacementOS System',
-    senderEmail: 'notifications@placementos.ai',
+    senderName: 'AI Campus OS System',
+    senderEmail: 'notifications@aicampusintelligent.com',
     smtpHost: 'smtp.sendgrid.net',
     smtpPort: 587,
     enableEmailAlerts: true,
@@ -944,6 +945,6 @@ export const mockPlatformSettings = {
     gracePeriodDays: 7,
     autoSuspendOverdueTenants: false,
     paymentGateway: 'Razorpay Enterprise API',
-    webhookEndpoint: 'https://api.placementos.ai/v1/webhooks/razorpay',
+    webhookEndpoint: 'https://api.aicampusintelligent.com/v1/webhooks/razorpay',
   },
 };

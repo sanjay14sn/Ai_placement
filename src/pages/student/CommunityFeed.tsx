@@ -59,7 +59,7 @@ export const CommunityFeedPage: React.FC = () => {
         avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
         role: '3rd Year · CSE · VIT Chennai',
         isVerified: true,
-        profileSource: 'From PlacementOS profile'
+        profileSource: 'From AI Campus OS profile'
       },
       timeAgo: '2h ago',
       title: 'Completed AWS Cloud Practitioner Certification! 🎉',
@@ -80,7 +80,7 @@ export const CommunityFeedPage: React.FC = () => {
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
         role: 'Final Year · IT · Sona College of Technology',
         isVerified: false,
-        profileSource: 'From PlacementOS profile'
+        profileSource: 'From AI Campus OS profile'
       },
       timeAgo: '4h ago',
       title: 'Looking for Project Teammates',
@@ -210,7 +210,7 @@ export const CommunityFeedPage: React.FC = () => {
       .map(h => h.startsWith('#') ? h : `#${h}`);
 
     if (hashtags.length === 0) {
-      hashtags = ['#PlacementOS', '#CampusConnect'];
+      hashtags = ['#AICampusOS', '#CampusConnect'];
     }
 
     setIsPosting(true);
@@ -289,7 +289,7 @@ export const CommunityFeedPage: React.FC = () => {
                 Welcome to CampusConnect, {user?.name?.split(' ')[0] || 'there'}
               </h2>
               <p className="mt-2 text-sm text-indigo-100/90">
-                A unified student network powered by PlacementOS
+                A unified student network powered by AI Campus OS
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 {['Connect', 'Collaborate', 'Learn', 'Grow', 'Get Placed'].map((item) => (

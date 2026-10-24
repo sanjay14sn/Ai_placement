@@ -305,7 +305,7 @@ export const RecruiterCompanyPage: React.FC = () => {
                   <h3 className="font-bold text-base">Campus Partner Pro</h3>
                 </div>
                 <p className="text-xs text-indigo-100 leading-relaxed mb-4">
-                  Direct connection with 100+ AI PlacementOS institutional placement cells for prioritized drive slots.
+                  Direct connection with 100+ AI Campus OS institutional placement cells for prioritized drive slots.
                 </p>
                 <Badge variant="indigo" className="bg-white/20 text-white border-white/20 text-xs px-3 py-1">
                   Active Pro Member

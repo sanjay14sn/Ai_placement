@@ -206,7 +206,7 @@ export const SuperAdminSettingsPage: React.FC = () => {
                   </h3>
                   <p className="text-xs text-slate-400">Configure LLM providers, temperature, rate limits, and features</p>
                 </div>
-                <Badge variant="purple">PlacementOS Neural Engine</Badge>
+                <Badge variant="purple">AI Campus OS Neural Engine</Badge>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

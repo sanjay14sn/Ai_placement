@@ -338,7 +338,7 @@ export const SuperAdminCampusConnectPage: React.FC = () => {
           <span className="text-slate-400 font-medium mr-1 flex items-center gap-1">
             <Tag className="w-3 h-3" /> Quick Filter:
           </span>
-          {['#AWS', '#Cloud', '#CareerGrowth', '#Flutter', '#AI', '#PlacementOS'].map(tag => (
+          {['#AWS', '#Cloud', '#CareerGrowth', '#Flutter', '#AI', '#AICampusOS'].map(tag => (
             <button
               key={tag}
               onClick={() => setSearchQuery(searchQuery === tag ? '' : tag)}

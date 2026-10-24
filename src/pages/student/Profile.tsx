@@ -305,7 +305,7 @@ export const StudentProfilePage: React.FC = () => {
       await studentService.update(student.id, { coverImage: '' });
       setStudent(prev => prev ? { ...prev, coverImage: '' } : prev);
       setIsCoverModalOpen(false);
-      toast.success('Background reset to default PlacementOS gradient');
+      toast.success('Background reset to default AI Campus OS gradient');
     } catch (err: any) {
       toast.error(err.message || 'Failed to reset background banner');
     } finally {
@@ -1921,7 +1921,7 @@ export const StudentProfilePage: React.FC = () => {
                 className="w-full h-full flex items-center justify-center text-xs font-semibold text-white/80"
                 style={{ background: 'linear-gradient(135deg, #312e81 0%, #4c1d95 30%, #5b21b6 50%, #1d4ed8 75%, #0369a1 100%)' }}
               >
-                Default PlacementOS Gradient
+                Default AI Campus OS Gradient
               </div>
             )}
             {isUploadingCover && (

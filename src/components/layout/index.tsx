@@ -332,11 +332,11 @@ export const Sidebar: React.FC = () => {
 
   const getPortalBranding = (role: Role) => {
     switch (role) {
-      case 'SUPER_ADMIN': return { name: 'PlacementOS', sub: 'Admin Console' };
+      case 'SUPER_ADMIN': return { name: 'AI Campus OS', sub: 'Admin Console' };
       case 'COLLEGE_ADMIN':
-      case 'TPO': return { name: 'PlacementOS', sub: user.collegeCode ? `College code ${user.collegeCode}` : 'TPO Dashboard' };
-      case 'STUDENT': return { name: 'PlacementOS', sub: 'Student Portal' };
-      case 'RECRUITER': return { name: 'PlacementOS', sub: 'Recruiter Portal' };
+      case 'TPO': return { name: 'AI Campus OS', sub: user.collegeCode ? `College code ${user.collegeCode}` : 'TPO Dashboard' };
+      case 'STUDENT': return { name: 'AI Campus OS', sub: 'Student Portal' };
+      case 'RECRUITER': return { name: 'AI Campus OS', sub: 'Recruiter Portal' };
     }
   };
 
