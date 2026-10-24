@@ -9,7 +9,7 @@ import {
 import { Button, Input, Badge, Select } from '../../components/ui';
 import { toast } from 'sonner';
 import { DEPARTMENTS } from '../../mock/data';
-import { collegeService, studentService, uploadService } from '../../services';
+import { authService, collegeService, studentService, uploadService } from '../../services';
 import { useAuthStore, useTenantStore } from '../../store';
 
 export const RegisterPage: React.FC = () => {
@@ -44,8 +44,8 @@ export const RegisterPage: React.FC = () => {
   const aadharFileInputRef = useRef<HTMLInputElement>(null);
 
   // OTP Verification State
-  const [otp, setOtp] = useState<string[]>(['1', '2', '3', '4', '5', '6']);
-  const [resendTimer, setResendTimer] = useState(30);
+  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+  const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -383,8 +383,8 @@ export const RegisterPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [step, resendTimer]);
 
-  // Handle Form Submit -> Proceed to OTP Step
-  const handleProceedToOtp = (e: React.FormEvent) => {
+  // Handle Form Submit -> Register User, Send Real OTP & Proceed to OTP Step
+  const handleProceedToOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resolvedCollege) {
       const match = registeredColleges.find((c) => {
@@ -414,12 +414,51 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
-    setStep('otp');
-    setResendTimer(30);
-    setCanResend(false);
-    toast.success(`Verification code sent to ${studentEmail}`, {
-      description: 'Use demo code 123456 to verify instantly.'
-    });
+    setLoading(true);
+    try {
+      const cgpaNum = parseFloat(studentCgpa) || 0;
+      const deptIdx = DEPARTMENTS.indexOf(studentDept.trim());
+      const matchedDepartment = resolvedCollege?.departments.find((department) => department.name === studentDept.trim());
+      const collegeId = resolvedCollege?.id || 'individual';
+      const collegeName = studentCollegeName.trim() || resolvedCollege?.name || 'Independent Student';
+      const studentRoll = studentIdNum || `${isIndividualStudent ? 'IND' : (resolvedCollege?.code || matchedCollege?.code || 'STU')}2021${studentDept.trim().substring(0, 2).toUpperCase()}045`;
+
+      // Call real backend API to register student profile and dispatch cryptographic OTP via email
+      await authService.registerStudent({
+        name: studentName.trim(),
+        email: studentEmail.trim().toLowerCase(),
+        password: studentPassword,
+        studentId: studentRoll,
+        collegeId,
+        collegeName,
+        department: studentDept.trim(),
+        departmentId: matchedDepartment?.id || (deptIdx !== -1 ? `dept-${deptIdx + 1}` : 'dept-custom'),
+        degree: studentDegree.trim(),
+        batch: studentBatch.trim(),
+        cgpa: cgpaNum,
+        isIndividual: isIndividualStudent,
+        aadharNumber: aadharNumber ? aadharNumber.replace(/\s+/g, '') : undefined,
+        aadharCard: aadharFile ? {
+          fileName: aadharFile.name,
+          fileUrl: aadharFile.url,
+          fileSize: aadharFile.size,
+          uploadedAt: new Date().toISOString(),
+        } : undefined,
+      });
+
+      setOtp(['', '', '', '', '', '']);
+      setStep('otp');
+      setResendTimer(60);
+      setCanResend(false);
+      toast.success(`Verification code sent to ${studentEmail.trim()}`, {
+        description: 'Please check your email inbox and spam folder for the 6-digit code.'
+      });
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : 'Failed to register and send verification code';
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle OTP digit changes with auto-focus & paste
@@ -452,17 +491,30 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
-  const handleResendOtp = () => {
-    if (!canResend) return;
-    setResendTimer(30);
-    setCanResend(false);
-    toast.success(`New verification code sent to ${studentEmail}`);
+  // Handle Real Resend OTP API Call
+  const handleResendOtp = async () => {
+    if (!canResend || loading) return;
+    setLoading(true);
+    try {
+      await authService.resendOtp(studentEmail.trim().toLowerCase());
+      setResendTimer(60);
+      setCanResend(false);
+      setOtp(['', '', '', '', '', '']);
+      toast.success(`New verification code sent to ${studentEmail.trim()}`, {
+        description: 'Check your email inbox or spam folder.'
+      });
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : 'Failed to resend verification code';
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Handle Final Registration Verification
+  // Handle Final Real Registration Verification
   const handleVerifyAndRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const otpCode = otp.join('');
+    const otpCode = otp.join('').trim();
     
     if (otpCode.length < 6) {
       toast.error('Please enter the full 6-digit OTP code');
@@ -471,45 +523,24 @@ export const RegisterPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const cgpaNum = parseFloat(studentCgpa) || 0;
-      const deptIdx = DEPARTMENTS.indexOf(studentDept.trim());
-      const matchedDepartment = resolvedCollege?.departments.find((department) => department.name === studentDept.trim());
+      // Call REAL backend verify OTP API
+      const response = await authService.verifyOtp(studentEmail.trim().toLowerCase(), otpCode);
+      const user = response.user;
+      const token = response.token;
+
+      setUser(user, token);
       const collegeId = resolvedCollege?.id || 'individual';
       const collegeName = studentCollegeName.trim() || resolvedCollege?.name || 'Independent Student';
-
-      const registered = await studentService.register({
-        name: studentName,
-        email: studentEmail,
-        password: studentPassword,
-        studentId: studentIdNum || `${isIndividualStudent ? 'IND' : (resolvedCollege?.code || matchedCollege?.code || 'STU')}2021${studentDept.trim().substring(0, 2).toUpperCase()}045`,
-        collegeId,
-        collegeName,
-        department: studentDept.trim(),
-        departmentId: matchedDepartment?.id || (deptIdx !== -1 ? `dept-${deptIdx + 1}` : 'dept-custom'),
-        degree: studentDegree.trim(),
-        batch: studentBatch.trim(),
-        cgpa: cgpaNum,
-        isIndividual: isIndividualStudent,
-        aadharNumber: aadharNumber ? aadharNumber.replace(/\s+/g, '') : undefined,
-        aadharCard: aadharFile ? {
-          fileName: aadharFile.name,
-          fileUrl: aadharFile.url,
-          fileSize: aadharFile.size,
-          uploadedAt: new Date().toISOString(),
-        } : undefined,
-      });
-
-      setUser(registered.user, registered.token);
       setTenant(collegeId, collegeName);
 
-      toast.success(`🎉 Verification Successful! Welcome ${studentName.split(' ')[0]}!`, {
+      toast.success(`🎉 Verification Successful! Welcome ${studentName.split(' ')[0] || user.name}!`, {
         description: isIndividualStudent
-          ? `Your individual student profile (${collegeName}) is now active.`
-          : `Your profile at ${collegeName} is now active.`
+          ? `Your individual student profile (${collegeName}) is now verified and active.`
+          : `Your student profile at ${collegeName} is now verified and active.`
       });
       navigate('/student/dashboard');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to complete verification and register account';
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : 'Failed to verify OTP';
       toast.error(message);
     } finally {
       setLoading(false);
@@ -1058,6 +1089,7 @@ export const RegisterPage: React.FC = () => {
                   {/* Submit Button */}
                   <Button
                     type="submit"
+                    loading={loading}
                     className="w-full h-12 text-sm sm:text-base font-extrabold mt-3 bg-[#0066FF] hover:bg-[#0052cc] text-white shadow-md shadow-blue-500/20 rounded-xl transition-all duration-200 active:scale-[0.99] cursor-pointer"
                     size="lg"
                     rightIcon={<ArrowRight className="w-5 h-5" />}
@@ -1082,95 +1114,99 @@ export const RegisterPage: React.FC = () => {
             <div className="max-w-md mx-auto py-4">
               <form onSubmit={handleVerifyAndRegister} className="space-y-5 animate-fade-in text-slate-900">
                 <div className="text-center space-y-2">
-                <div className="mx-auto w-14 h-14 bg-cyan-50 border border-cyan-200/80 text-[#08546c] rounded-2xl flex items-center justify-center shadow-sm">
-                  <ShieldCheck className="w-7 h-7" />
+                  <div className="mx-auto w-14 h-14 bg-blue-50 border border-blue-200 text-[#0066FF] rounded-2xl flex items-center justify-center shadow-xs">
+                    <ShieldCheck className="w-7 h-7" />
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
+                    Verify Email Address
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 max-w-xs mx-auto leading-relaxed">
+                    We've sent a 6-digit OTP verification code to{' '}
+                    <span className="font-bold text-slate-900 underline decoration-[#0066FF]/60">
+                      {studentEmail}
+                    </span>
+                  </p>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
-                  Verify Email Address
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-600 max-w-xs mx-auto leading-relaxed">
-                  We've sent a 6-digit OTP verification code to{' '}
-                  <span className="font-bold text-slate-900 underline decoration-[#08546c]/60">
-                    {studentEmail}
-                  </span>
+
+                {/* Email Verification Security Callout */}
+                <div className="bg-blue-50 border border-blue-200/80 text-blue-900 rounded-2xl p-3.5 text-xs flex items-start gap-2.5 shadow-xs">
+                  <Mail className="w-4 h-4 shrink-0 text-[#0066FF] mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-semibold text-slate-900">
+                      Security Code Sent
+                    </p>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Please enter the 6-digit code sent to <strong className="text-slate-900 font-bold">{studentEmail}</strong>. If you don't see it in your primary inbox, please check your Spam or Promotions folder.
+                    </p>
+                  </div>
+                </div>
+
+                {/* 6-Digit OTP Inputs */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider text-center">
+                    Enter 6-Digit Verification Code
+                  </label>
+                  <div className="flex justify-between gap-1.5 sm:gap-2 py-1">
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={(el) => { otpInputRefs.current[index] = el; }}
+                        type="text"
+                        maxLength={6}
+                        value={digit}
+                        placeholder="•"
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold font-mono rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-[#0066FF] outline-none transition-all shadow-xs"
+                        autoFocus={index === 0}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Resend & Timer options */}
+                <div className="flex items-center justify-between text-xs text-slate-600 px-1">
+                  <button
+                    type="button"
+                    onClick={() => setStep('form')}
+                    className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 font-semibold transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Edit Details
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={!canResend || loading}
+                    className={`flex items-center gap-1.5 font-bold transition-colors ${
+                      canResend && !loading
+                        ? 'text-[#0066FF] hover:underline cursor-pointer' 
+                        : 'text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                    {canResend ? 'Resend OTP Code' : `Resend in ${resendTimer}s`}
+                  </button>
+                </div>
+
+                {/* Submit Verification Button */}
+                <Button
+                  type="submit"
+                  size="lg"
+                  loading={loading}
+                  className="w-full h-12 text-sm sm:text-base font-extrabold bg-[#0066FF] hover:bg-[#0052cc] shadow-md shadow-blue-500/20 text-white rounded-xl cursor-pointer"
+                  rightIcon={<ArrowRight className="w-5 h-5" />}
+                >
+                  Verify OTP & Launch Dashboard
+                </Button>
+
+                <p className="text-center text-xs text-slate-500 pt-1">
+                  Didn't receive the email? Check spam or contact support@aicampusintelligent.com.
                 </p>
-              </div>
-
-              {/* Demo Helper Badge */}
-              <div className="bg-amber-50 border border-amber-200/80 text-amber-800 rounded-2xl p-3 text-xs flex items-center gap-2.5 shadow-sm">
-                <Sparkles className="w-4 h-4 shrink-0 text-amber-600" />
-                <div>
-                  <span className="font-semibold">Demo Hint:</span> Use code{' '}
-                  <strong className="font-mono text-sm px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-900">123456</strong>{' '}
-                  to verify immediately.
-                </div>
-              </div>
-
-              {/* 6-Digit OTP Inputs */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider text-center">
-                  Enter 6-Digit Verification Code
-                </label>
-                <div className="flex justify-between gap-1.5 sm:gap-2 py-1">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      ref={(el) => { otpInputRefs.current[index] = el; }}
-                      type="text"
-                      maxLength={6}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold font-mono rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:bg-white focus:ring-2 focus:ring-cyan-500 focus:border-[#08546c] outline-none transition-all shadow-sm"
-                      autoFocus={index === 0}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Resend & Timer options */}
-              <div className="flex items-center justify-between text-xs text-slate-600 px-1">
-                <button
-                  type="button"
-                  onClick={() => setStep('form')}
-                  className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 font-semibold transition-colors cursor-pointer"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  Edit Details
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  disabled={!canResend}
-                  className={`flex items-center gap-1.5 font-bold transition-colors ${
-                    canResend 
-                      ? 'text-[#08546c] hover:underline cursor-pointer' 
-                      : 'text-slate-400 cursor-not-allowed'
-                  }`}
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${!canResend ? 'animate-spin-slow' : ''}`} />
-                  {canResend ? 'Resend OTP Code' : `Resend in 00:${resendTimer.toString().padStart(2, '0')}`}
-                </button>
-              </div>
-
-              {/* Submit Verification Button */}
-              <Button
-                type="submit"
-                size="lg"
-                loading={loading}
-                className="w-full h-12 text-sm sm:text-base font-extrabold bg-[#08546c] hover:bg-[#064255] shadow-xl text-white rounded-xl"
-                rightIcon={<ArrowRight className="w-5 h-5" />}
-              >
-                Verify OTP & Launch Dashboard
-              </Button>
-
-              <p className="text-center text-xs text-slate-400 pt-1">
-                Didn't receive the email? Check spam or contact administrator.
-              </p>
-            </form>
-          </div>
-        )}
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </div>
