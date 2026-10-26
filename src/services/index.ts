@@ -161,6 +161,22 @@ export const userService = {
     return res; // returns { data, stats, success }
   },
 
+  getById: async (id: string) => {
+    const res = await api<{
+      success: boolean;
+      data: {
+        user: import('../types').User & { [key: string]: any };
+        student?: import('../types').Student | null;
+        college?: any;
+        recruiter?: any;
+        applications?: any[];
+      };
+    }>(`/users/${id}`, {
+      auth: true,
+    });
+    return res;
+  },
+
   toggleStatus: async (id: string) => {
     const res = await api<{ data: import('../types').User }>(`/users/${id}/toggle-status`, {
       method: 'PATCH',
@@ -852,6 +868,14 @@ export const collegeService = {
     saveLocalRegisteredColleges(updated);
 
     return updatedCollege || { id, isActive: newIsActive };
+  },
+
+  resetPassword: async (id: string, password: string) => {
+    const res = await api<{ success: boolean; message: string; data: any }>(`/colleges/${id}/reset-password`, {
+      method: 'POST',
+      body: { password },
+    });
+    return res;
   },
 };
 

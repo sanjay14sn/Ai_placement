@@ -53,8 +53,8 @@ const getSidebarNav = (role: Role): NavSection[] => {
         {
           title: 'Billing',
           items: [
-            { label: 'Subscriptions', icon: <CreditCard className="w-4 h-4" />, to: '/super-admin/subscriptions' },
-            { label: 'Plans', icon: <Layers className="w-4 h-4" />, to: '/super-admin/plans' },
+            { label: 'Subscriptions', icon: <CreditCard className="w-4 h-4" />, to: '/super-admin/subscriptions', badge: 'Soon' },
+            { label: 'Plans', icon: <Layers className="w-4 h-4" />, to: '/super-admin/plans', badge: 'Soon' },
             { label: 'Usage', icon: <Activity className="w-4 h-4" />, to: '/super-admin/usage' },
           ]
         },

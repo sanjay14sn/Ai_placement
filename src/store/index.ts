@@ -129,8 +129,8 @@ export const useTenantStore = create<TenantStore>()(
 export const DEMO_USERS: Record<Role, User> = {
   SUPER_ADMIN: {
     id: 'user-super-1',
-    email: 'admin@aicampusintelligent.com',
-    name: 'Rajesh Kumar',
+    email: 'skeerthi@gmail.com',
+    name: 'Keerthi',
     role: 'SUPER_ADMIN',
     isActive: true,
     createdAt: '2024-01-01',

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Search, Filter, Mail, Phone, ArrowUpRight, ShieldAlert, Sparkles, Check, X, Plus, Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
+import { Building2, Search, Filter, Mail, Phone, ArrowUpRight, ShieldAlert, Sparkles, Check, X, Plus, Eye, EyeOff, Pencil, Trash2, Key } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Input, Select, Pagination, EmptyState, Skeleton, Modal } from '../../components/ui';
 import { collegeService } from '../../services';
@@ -22,6 +22,28 @@ export const SuperAdminCollegesPage: React.FC = () => {
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({});
   const [deleteTarget, setDeleteTarget] = useState<College | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [resetTarget, setResetTarget] = useState<College | null>(null);
+  const [resetPasswordVal, setResetPasswordVal] = useState('password123');
+  const [resetting, setResetting] = useState(false);
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetTarget) return;
+    setResetting(true);
+    try {
+      await collegeService.resetPassword(resetTarget.id, resetPasswordVal);
+      toast.success(`Password reset successfully for ${resetTarget.name}!`, {
+        description: `TPO Email: ${resetTarget.tpoEmail} | New Password: ${resetPasswordVal}`,
+        duration: 8000,
+      });
+      setResetTarget(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to reset password';
+      toast.error(msg);
+    } finally {
+      setResetting(false);
+    }
+  };
 
   useEffect(() => {
     collegeService.getStudentCounts().then(setStudentCounts).catch(() => setStudentCounts({}));
@@ -428,6 +450,19 @@ export const SuperAdminCollegesPage: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="icon"
+                      title="Reset TPO Login Password"
+                      className="text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setResetTarget(college);
+                        setResetPasswordVal('password123');
+                      }}
+                    >
+                      <Key className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       title="Quick Upgrade / Edit Plan"
                       className="text-brand-600 hover:bg-brand-50"
                       onClick={(e) => { e.stopPropagation(); handleOpenEdit(college); }}
@@ -726,6 +761,48 @@ export const SuperAdminCollegesPage: React.FC = () => {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* RESET TPO PASSWORD MODAL */}
+      <Modal
+        isOpen={!!resetTarget}
+        onClose={() => !resetting && setResetTarget(null)}
+        title={`Reset TPO Password — ${resetTarget?.name}`}
+        size="md"
+      >
+        <form onSubmit={handleResetPassword} className="space-y-4">
+          <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300">
+            🔑 <strong>Manage Login Credentials:</strong> This will update or create the login password for <strong>{resetTarget?.tpoEmail}</strong> ({resetTarget?.tpoName || 'College Admin'}). They can immediately use this password to sign in.
+          </div>
+
+          <div className="space-y-1.5 text-xs">
+            <p className="text-slate-500">College: <strong className="text-slate-800 dark:text-slate-200">{resetTarget?.name}</strong> ({resetTarget?.code})</p>
+            <p className="text-slate-500">Login Email: <strong className="text-slate-800 dark:text-slate-200">{resetTarget?.tpoEmail}</strong></p>
+          </div>
+
+          <Input
+            label="New TPO Login Password *"
+            type="text"
+            placeholder="Enter new password (min 6 characters)"
+            value={resetPasswordVal}
+            onChange={(e) => setResetPasswordVal(e.target.value)}
+            required
+            hint="The TPO will sign in with their email and this password."
+          />
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setResetTarget(null)} disabled={resetting}>Cancel</Button>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={resetting}
+              leftIcon={<Key className="w-4 h-4" />}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Update Password
+            </Button>
+          </div>
+        </form>
       </Modal>
 
     </PageWrapper>

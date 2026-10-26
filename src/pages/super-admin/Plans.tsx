@@ -1,376 +1,153 @@
-import React, { useEffect, useState } from 'react';
-import { Layers, Plus, Check, Star, Sparkles, Edit3, Settings, Shield, Trash2, Wand2 } from 'lucide-react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Layers, Sparkles, Clock, ShieldCheck, 
+  Sliders, Star, Zap, Building2, BellRing, ChevronRight
+} from 'lucide-react';
 import { PageWrapper } from '../../layouts';
-import { Card, Button, Badge, Input, Select, Modal, Skeleton, Textarea } from '../../components/ui';
-import { billingService } from '../../services';
-import { formatNumber } from '../../utils';
+import { Card, Button, Badge } from '../../components/ui';
 import { toast } from 'sonner';
 
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  annualPrice: number;
-  studentsLimit: number;
-  aiCreditsLimit: number;
-  recruitersLimit: number;
-  jobsLimit: number;
-  features: string[];
-  isPopular?: boolean;
-  isCustom?: boolean;
-}
-
-const DEFAULT_CUSTOM_PLAN: Plan = {
-  id: 'custom-1',
-  name: 'Custom Enterprise Tier',
-  price: 50000,
-  annualPrice: 500000,
-  studentsLimit: 15000,
-  aiCreditsLimit: 100000,
-  recruitersLimit: 200,
-  jobsLimit: 1000,
-  features: [
-    'Tailored student & recruiter limits',
-    'Custom AI credits allocation',
-    'Dedicated database isolation & SSO NetID',
-    'Multi-campus Directorate analytics',
-    'Custom SLA & 24/7 priority hotline',
-    'Dedicated account & onboarding team',
-  ],
-  isCustom: true,
-};
-
 export const SuperAdminPlansPage: React.FC = () => {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const navigate = useNavigate();
 
-  // Form State
-  const [planName, setPlanName] = useState('');
-  const [price, setPrice] = useState('');
-  const [studentsLimit, setStudentsLimit] = useState('');
-  const [aiCreditsLimit, setAiCreditsLimit] = useState('');
-  const [recruitersLimit, setRecruitersLimit] = useState('');
-  const [featuresText, setFeaturesText] = useState('');
-  const [isPopular, setIsPopular] = useState(false);
-
-  const fetchPlans = async () => {
-    setLoading(true);
-    try {
-      const res = await billingService.getPlans();
-      // Append default custom plan alongside standard plans
-      const fetchedWithCustom: Plan[] = [
-        ...res.map(p => ({ ...p, id: String(p.id) })),
-        DEFAULT_CUSTOM_PLAN,
-      ];
-      setPlans(fetchedWithCustom);
-    } catch {
-      toast.error('Failed to load pricing plans');
-    } finally {
-      setLoading(false);
-    }
+  const handleNotifyMe = () => {
+    toast.success('Interest registered!', {
+      description: 'You will receive an update as soon as the SaaS Plans engine is deployed.',
+    });
   };
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  const handleEditClick = (plan: Plan) => {
-    setIsCreatingNew(false);
-    setSelectedPlan(plan);
-    setPlanName(plan.name);
-    setPrice(plan.price.toString());
-    setStudentsLimit(plan.studentsLimit.toString());
-    setAiCreditsLimit(plan.aiCreditsLimit.toString());
-    setRecruitersLimit(plan.recruitersLimit.toString());
-    setFeaturesText(plan.features.join('\n'));
-    setIsPopular(!!plan.isPopular);
-    setIsModalOpen(true);
-  };
-
-  const handleCreateCustomClick = () => {
-    setIsCreatingNew(true);
-    const newId = `custom-${Date.now()}`;
-    const newPlan: Plan = {
-      id: newId,
-      name: 'Custom University Tier',
-      price: 45000,
-      annualPrice: 450000,
-      studentsLimit: 10000,
-      aiCreditsLimit: 75000,
-      recruitersLimit: 150,
-      jobsLimit: 800,
-      features: [
-        'Custom student & recruiter capacity',
-        '75,000 AI credits per month',
-        'Custom SSO & SRM NetID integration',
-        'Dedicated SLA & 24/7 priority support',
-      ],
-      isCustom: true,
-    };
-    setSelectedPlan(newPlan);
-    setPlanName(newPlan.name);
-    setPrice(newPlan.price.toString());
-    setStudentsLimit(newPlan.studentsLimit.toString());
-    setAiCreditsLimit(newPlan.aiCreditsLimit.toString());
-    setRecruitersLimit(newPlan.recruitersLimit.toString());
-    setFeaturesText(newPlan.features.join('\n'));
-    setIsPopular(false);
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteCustom = (planId: string) => {
-    setPlans(prev => prev.filter(p => p.id !== planId));
-    toast.success('Custom plan removed');
-  };
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPlan) return;
-
-    const parsedFeatures = featuresText
-      .split('\n')
-      .map(f => f.trim())
-      .filter(Boolean);
-
-    const updatedPlan: Plan = {
-      ...selectedPlan,
-      name: planName || selectedPlan.name,
-      price: parseFloat(price) || 0,
-      annualPrice: (parseFloat(price) || 0) * 10,
-      studentsLimit: parseInt(studentsLimit) || 1000,
-      aiCreditsLimit: parseInt(aiCreditsLimit) || 5000,
-      recruitersLimit: parseInt(recruitersLimit) || 10,
-      features: parsedFeatures.length > 0 ? parsedFeatures : selectedPlan.features,
-      isPopular,
-    };
-
-    if (isCreatingNew) {
-      setPlans(prev => [...prev, updatedPlan]);
-      toast.success(`🎉 Custom Plan "${updatedPlan.name}" created successfully!`);
-    } else {
-      setPlans(prev => prev.map(p => p.id === selectedPlan.id ? updatedPlan : p));
-      toast.success(`Plan "${updatedPlan.name}" updated successfully!`);
-    }
-
-    setIsModalOpen(false);
-  };
+  const upcomingFeatures = [
+    {
+      icon: <Sliders className="w-5 h-5 text-brand-600 dark:text-brand-400" />,
+      title: 'Bespoke Quota Customization',
+      description: 'Configure custom student seat allocations, AI interview credits, and recruiter drive caps per campus.',
+    },
+    {
+      icon: <Star className="w-5 h-5 text-amber-600 dark:text-amber-400" />,
+      title: 'Tiered Pricing Schedules',
+      description: 'Define monthly, semester, and annual subscription packages with automated multi-year discounts.',
+    },
+    {
+      icon: <Zap className="w-5 h-5 text-purple-600 dark:text-purple-400" />,
+      title: 'Granular Feature Gating',
+      description: 'Map system features (AI Mock Interviews, Advanced Analytics, White-labeling) to specific tiers.',
+    },
+    {
+      icon: <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
+      title: 'Directorate & Group Licensing',
+      description: 'Special pricing packages for multi-campus university networks and state education directorates.',
+    },
+  ];
 
   return (
-    <PageWrapper
-      title="SaaS Plans"
-      subtitle="Configure pricing tiers, custom plans & resource limits"
+    <PageWrapper 
+      title="Plans" 
+      subtitle="Tiered SaaS pricing, custom quota limits & feature gating engine"
       breadcrumbs={[{ label: 'Super Admin' }, { label: 'Plans' }]}
-      actions={
-        <Button 
-          variant="primary" 
-          leftIcon={<Plus className="w-4 h-4" />}
-          onClick={handleCreateCustomClick}
-          className="bg-[#08546c] hover:bg-[#064255] font-extrabold text-xs sm:text-sm px-4 py-2"
-        >
-          Add Custom Tier
-        </Button>
-      }
     >
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="h-96"><Skeleton className="h-full w-full rounded-2xl" /></Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {plans.map((plan) => (
-            <Card
-              key={plan.id}
-              className={`p-6 sm:p-8 hover:shadow-elevated transition-all duration-200 border-2 relative flex flex-col justify-between h-full rounded-3xl ${
-                plan.isPopular 
-                  ? 'border-brand-600 bg-brand-50/20 dark:bg-brand-900/10' 
-                  : plan.isCustom 
-                    ? 'border-cyan-500/80 bg-cyan-50/30 dark:bg-slate-800/80 shadow-md' 
-                    : 'border-slate-200 dark:border-slate-700'
-              }`}
-            >
-              {plan.isPopular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-600 text-white text-[10px] font-bold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-sm">
-                  Most Popular
-                </div>
-              )}
+      <div className="max-w-4xl mx-auto space-y-8 py-6">
+        {/* Main Hero Card */}
+        <Card className="p-8 md:p-12 text-center relative overflow-hidden border border-slate-200/80 dark:border-slate-700/80 bg-gradient-to-b from-white via-slate-50/50 to-indigo-50/20 dark:from-slate-800 dark:via-slate-800/90 dark:to-indigo-950/20 shadow-sm">
+          {/* Background Ambient Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
 
-              {plan.isCustom && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#08546c] text-white text-[10px] font-extrabold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-md flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-amber-300" />
-                  <span>Custom Tier</span>
-                </div>
-              )}
+          <div className="relative z-10 flex flex-col items-center max-w-2xl mx-auto">
+            {/* Pulsing Coming Soon Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold mb-6 shadow-xs animate-pulse">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>Feature Under Development • Coming Soon</span>
+            </div>
 
-              <div>
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">{plan.name}</h3>
-                    <Badge variant={plan.isCustom ? 'ai' : plan.id === 'enterprise' ? 'purple' : 'slate'} className="text-[10px]">
-                      {plan.isCustom ? 'CUSTOM TIER' : `${plan.id.toUpperCase()} TIER`}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => handleEditClick(plan)} title="Edit Plan">
-                      <Edit3 className="w-4 h-4 text-slate-500" />
-                    </Button>
-                    {plan.isCustom && (
-                      <Button variant="ghost" size="icon" className="hover:bg-red-50 text-red-500 hover:text-red-700" onClick={() => handleDeleteCustom(plan.id)} title="Delete Custom Plan">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
+            {/* Icon Bubble */}
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25 mb-6 ring-8 ring-indigo-50 dark:ring-indigo-950/40">
+              <Layers className="w-10 h-10" />
+            </div>
 
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-3xl font-black text-slate-900 dark:text-white">₹{formatNumber(plan.price)}</span>
-                  <span className="text-slate-400 text-xs">/ month</span>
-                </div>
+            {/* Headline & Description */}
+            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight mb-3">
+              SaaS Plans & Quota Engine
+            </h2>
+            <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
+              We are engineering a dynamic pricing and resource quota management system to let Super Admins craft custom pricing tiers, allocate AI credits, and manage multi-campus contracts. This module will launch soon.
+            </p>
 
-                <div className="space-y-3 mb-6">
-                  <div className="flex justify-between text-xs border-b border-slate-100 dark:border-slate-800 pb-2">
-                    <span className="text-slate-500">Student Limit</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{plan.studentsLimit >= 999999 ? 'Unlimited' : formatNumber(plan.studentsLimit)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs border-b border-slate-100 dark:border-slate-800 pb-2">
-                    <span className="text-slate-500">AI Credits Limit</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{formatNumber(plan.aiCreditsLimit)} / mo</span>
-                  </div>
-                  <div className="flex justify-between text-xs border-b border-slate-100 dark:border-slate-800 pb-2">
-                    <span className="text-slate-500">Recruiter Seats</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{plan.recruitersLimit >= 999 ? 'Unlimited' : plan.recruitersLimit}</span>
-                  </div>
-                </div>
-
-                <h4 className="font-semibold text-xs text-slate-500 uppercase tracking-wider mb-3">Core Features Included</h4>
-                <ul className="space-y-2">
-                  {plan.features.map((f, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
-                      <Check className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
+            {/* Development Progress Indicator */}
+            <div className="w-full max-w-md bg-slate-100 dark:bg-slate-700/60 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700 mb-8">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-indigo-500" /> Release Status
+                </span>
+                <span className="text-indigo-600 dark:text-indigo-400">In Development (70%)</span>
               </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <Button 
-                  variant={plan.isCustom ? 'ai' : 'outline'} 
-                  size="sm" 
-                  className="w-full text-xs font-bold justify-center"
-                  onClick={() => handleEditClick(plan)}
-                >
-                  {plan.isCustom ? 'Configure Custom Tier' : 'Edit Tier Limits'}
-                </Button>
+              <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-600 overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full w-[70%] animate-pulse" />
               </div>
-            </Card>
-          ))}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Button
+                variant="primary"
+                onClick={handleNotifyMe}
+                leftIcon={<BellRing className="w-4 h-4" />}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+              >
+                Notify Me When Ready
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/super-admin/overview')}
+              >
+                Back to Dashboard
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Feature Previews Grid */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              What's Coming in this Module
+            </h3>
+            <Badge variant="purple" className="text-xs">Preview</Badge>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {upcomingFeatures.map((feat, idx) => (
+              <div 
+                key={idx}
+                className="p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors flex items-start gap-4"
+              >
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200/60 dark:border-slate-700 flex-shrink-0">
+                  {feat.icon}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm text-slate-900 dark:text-slate-100 mb-1">
+                    {feat.title}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {feat.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
 
-      {/* Edit / Create Tier Modal */}
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title={isCreatingNew ? 'Create New Custom Tier' : `Configure Plan: ${selectedPlan?.name}`}
-        size="lg"
-      >
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="bg-cyan-50 dark:bg-slate-800/80 border border-cyan-200/80 dark:border-slate-700 p-3.5 rounded-2xl text-xs text-[#08546c] dark:text-cyan-300 font-medium leading-relaxed">
-            ✨ <strong>Custom Pricing & Resource Allocation:</strong> Adjust pricing, student capacity, recruiter seats, monthly AI credits, and custom feature bullet points.
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Plan Name *</label>
-              <Input
-                value={planName}
-                onChange={e => setPlanName(e.target.value)}
-                placeholder="e.g. Custom Enterprise Tier"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Monthly Price (INR) *</label>
-              <Input
-                type="number"
-                value={price}
-                onChange={e => setPrice(e.target.value)}
-                placeholder="e.g. 50000"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Students Limit</label>
-              <Input
-                type="number"
-                value={studentsLimit}
-                onChange={e => setStudentsLimit(e.target.value)}
-                placeholder="e.g. 15000"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Recruiter Seats</label>
-              <Input
-                type="number"
-                value={recruitersLimit}
-                onChange={e => setRecruitersLimit(e.target.value)}
-                placeholder="e.g. 200"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Monthly AI Credits</label>
-              <Input
-                type="number"
-                value={aiCreditsLimit}
-                onChange={e => setAiCreditsLimit(e.target.value)}
-                placeholder="e.g. 100000"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Custom Features Included (One per line)</label>
-            <Textarea
-              rows={5}
-              value={featuresText}
-              onChange={e => setFeaturesText(e.target.value)}
-              placeholder="e.g.&#10;Up to 15,000 students&#10;Custom SSO NetID integration&#10;Dedicated SLA & 24/7 Hotline"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 pt-2">
-            <input
-              type="checkbox"
-              id="popularCheck"
-              checked={isPopular}
-              onChange={e => setIsPopular(e.target.checked)}
-              className="w-4 h-4 rounded text-[#08546c] focus:ring-cyan-500 cursor-pointer"
-            />
-            <label htmlFor="popularCheck" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-              Mark as "Most Popular" plan
-            </label>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="submit" className="bg-[#08546c] hover:bg-[#064255] text-white font-extrabold px-6">
-              {isCreatingNew ? 'Create Custom Tier' : 'Save Plan Configuration'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        {/* Quick Links Footer */}
+        <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 text-xs text-slate-500">
+          <span>Need to configure existing campus plan assignments?</span>
+          <button 
+            onClick={() => navigate('/super-admin/colleges')} 
+            className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+          >
+            Manage Colleges <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
     </PageWrapper>
   );
 };
-

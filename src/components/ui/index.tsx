@@ -165,12 +165,14 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   labelClassName?: string;
   error?: string;
   hint?: string;
+  helperText?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, labelClassName, error, hint, leftIcon, rightIcon, className, ...props }, ref) => {
+  ({ label, labelClassName, error, hint, helperText, leftIcon, rightIcon, className, ...props }, ref) => {
+    const hintText = hint || helperText;
     return (
       <div className="w-full">
         {label && (
@@ -202,7 +204,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
-        {hint && !error && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</p>}
+        {hintText && !error && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hintText}</p>}
       </div>
     );
   }
