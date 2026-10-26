@@ -277,98 +277,28 @@ export const StudentCampusOSDrivesPage: React.FC = () => {
       breadcrumbs={[{ label: 'Student' }, { label: 'Placements' }, { label: 'CampusOS Drives' }]}
     >
       <div className="space-y-6">
-        {/* Hero Banner */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 border border-indigo-500/20 p-6 md:p-8 text-white shadow-xl">
-          <div className="absolute -right-16 -top-16 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute right-32 -bottom-20 w-60 h-60 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-semibold tracking-wide">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-                AI CampusOS Enterprise Partner Network
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
-                Direct Enterprise Drives & High-Package Opportunities
-              </h1>
-              <p className="text-sm md:text-base text-slate-300 leading-relaxed">
-                Connect directly with top Super Admin tier-1 partner companies like Google, Infosys, and Wipro. Apply with 1-click using your verified AI CampusOS student profile and fast-track to technical assessments.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4 shrink-0">
-              <div className="p-3 md:p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-center">
-                <div className="text-2xl font-black text-indigo-400">₹35 LPA</div>
-                <div className="text-xs text-slate-400 mt-0.5">Top CTC Package</div>
-              </div>
-              <div className="p-3 md:p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-center">
-                <div className="text-2xl font-black text-emerald-400">100%</div>
-                <div className="text-xs text-slate-400 mt-0.5">Direct AI Connect</div>
-              </div>
-              <div className="col-span-2 sm:col-span-1 p-3 md:p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-center">
-                <div className="text-2xl font-black text-purple-400">Fast-Track</div>
-                <div className="text-xs text-slate-400 mt-0.5">Hiring Pipeline</div>
-              </div>
-            </div>
+        {/* Search and Sort Bar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-card p-4 rounded-xl border border-border shadow-sm">
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search partner, role, skills..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+            />
           </div>
-        </div>
-
-        {/* Filters and Search Bar */}
-        <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-card p-4 rounded-xl border border-border shadow-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            {(
-              [
-                { key: 'all', label: 'All Drives', count: counts.all },
-                { key: 'open', label: 'Open Now', count: counts.open },
-                { key: 'eligible', label: 'Eligible for You', count: counts.eligible },
-                { key: 'premium', label: '₹10+ LPA Premium', count: counts.premium },
-                { key: 'registered', label: 'Applied', count: counts.registered },
-              ] as const
-            ).map(tab => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setView(tab.key)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  view === tab.key
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                    view === tab.key ? 'bg-white/20 text-white' : 'bg-background text-muted-foreground'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 md:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search partner, role, skills..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-              />
-            </div>
-            <select
-              value={sortOrder}
-              onChange={e => setSortOrder(e.target.value as SortOrder)}
-              aria-label="Sort drives"
-              className="px-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-            >
-              <option value="package">Highest Package</option>
-              <option value="soonest">Drive Date (Soonest)</option>
-              <option value="recent">Recently Added</option>
-            </select>
-          </div>
+          <select
+            value={sortOrder}
+            onChange={e => setSortOrder(e.target.value as SortOrder)}
+            aria-label="Sort drives"
+            className="px-3 py-2 text-xs rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500/20 w-full sm:w-52"
+          >
+            <option value="package">Highest Package</option>
+            <option value="soonest">Drive Date (Soonest)</option>
+            <option value="recent">Recently Added</option>
+          </select>
         </div>
 
         {/* Drives List */}

@@ -37,7 +37,6 @@ interface PostItem {
 
 export const CommunityFeedPage: React.FC = () => {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'foryou' | 'following' | 'college' | 'trending'>('foryou');
   const [postInputText, setPostInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
@@ -103,7 +102,7 @@ export const CommunityFeedPage: React.FC = () => {
 
   useEffect(() => {
     fetchFeed();
-  }, [activeTab]);
+  }, []);
 
   const fetchFeed = async () => {
     setIsLoading(true);
@@ -374,35 +373,6 @@ export const CommunityFeedPage: React.FC = () => {
             </div>
           </form>
         </Card>
-
-        {/* ── 3. Feed Navigation Tabs & Filter ───────────────────────────── */}
-        <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-1">
-          <div className="flex items-center gap-6">
-            {[
-              { id: 'foryou', label: 'For You' },
-              { id: 'following', label: 'Following' },
-              { id: 'college', label: 'My College' },
-              { id: 'trending', label: 'Trending' },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`pb-2.5 text-xs sm:text-sm font-bold transition-all border-b-2 cursor-pointer ${
-                  activeTab === tab.id
-                    ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-extrabold'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs">
-            <Filter className="w-3.5 h-3.5 text-slate-500" />
-            Filter
-          </button>
-        </div>
 
         {/* ── 4. Feed Posts List ─────────────────────────────────────────── */}
         <div className="space-y-4">
