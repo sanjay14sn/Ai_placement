@@ -103,7 +103,7 @@ export const SolutionsPage: React.FC = () => {
         "High-concurrency infrastructure supporting 100k+ simultaneous test takers",
         "District-level, gender, and socio-economic employability analytics",
         "Local language assessment options and low-bandwidth resilience",
-        "DPDP (Digital Personal Data Protection) and ISO 27001 compliant storage"
+        "DPDP (Digital Personal Data Protection) Act compliant storage with cybersecurity safeguards"
       ],
       useCase: "Designed for state technical education boards, national skill development councils, and regional vocational directorates."
     }
@@ -115,7 +115,7 @@ export const SolutionsPage: React.FC = () => {
   const faqs = [
     {
       q: "Can AI Campus OS be deployed in private on-premise cloud environments?",
-      a: "Yes. While our standard deployment operates on AWS India data centers with ISO 27001 and SOC-2 Type II standards, enterprise customers can request Dedicated VPC or Private Cloud deployments with customized data residency controls."
+      a: "Yes. While our standard deployment operates on AWS India data centers adhering to strict cybersecurity protocols and DPDP Act data protection standards, enterprise customers can request Dedicated VPC or Private Cloud deployments with customized data residency controls."
     },
     {
       q: "How does the system ensure zero downtime during peak national assessment hours?",
@@ -189,8 +189,8 @@ export const SolutionsPage: React.FC = () => {
                   <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-wider uppercase mt-1">CONCURRENT TESTS</div>
                 </div>
                 <div className="border-l border-slate-200/80 pl-4 sm:pl-8">
-                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight">SOC-2</div>
-                  <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-wider uppercase mt-1">TYPE II CERTIFIED</div>
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight">DPDP</div>
+                  <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-wider uppercase mt-1">DATA PROTECTION ACT</div>
                 </div>
               </div>
             </div>
@@ -242,7 +242,7 @@ export const SolutionsPage: React.FC = () => {
                   <span className="flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5 text-emerald-600" /> End-to-End Encrypted
                   </span>
-                  <span className="font-semibold text-slate-700">ISO 27001 Certified</span>
+                  <span className="font-semibold text-slate-700">DPDP Act Compliant</span>
                 </div>
               </div>
             </div>
@@ -402,8 +402,8 @@ export const SolutionsPage: React.FC = () => {
               },
               {
                 icon: ShieldCheck,
-                title: "SOC-2 Type II & ISO 27001 Security",
-                desc: "End-to-end data encryption at rest and in transit, multi-factor authentication, immutable audit logging, and Indian data residency."
+                title: "Cybersecurity & Data Protection",
+                desc: "Adherence to industry cybersecurity standards, end-to-end data encryption at rest and in transit, multi-factor authentication, and Digital Personal Data Protection (DPDP) Act compliance."
               },
               {
                 icon: Workflow,
@@ -452,7 +452,7 @@ export const SolutionsPage: React.FC = () => {
               onClick={() => setContactModalOpen(true)}
               className="px-8 py-3.5 bg-[#0066FF] hover:bg-blue-600 text-white rounded-full font-semibold text-sm whitespace-nowrap transition-colors cursor-pointer shadow-lg shadow-blue-500/20"
             >
-              Request Security & SOC-2 Whitepaper
+              Request Security & DPDP Whitepaper
             </button>
           </div>
         </div>

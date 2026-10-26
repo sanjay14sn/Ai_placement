@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { GraduationCap, ArrowRight, CheckCircle2, Shield, Heart } from 'lucide-react';
+import { GraduationCap, ArrowRight, Heart } from 'lucide-react';
 import { ContactSalesModal } from './ContactSalesModal';
 
 export const PublicFooter: React.FC = () => {
@@ -21,17 +21,9 @@ export const PublicFooter: React.FC = () => {
                   className="h-14 sm:h-18 max-h-[72px] w-auto object-contain transition-transform duration-200 group-hover:scale-105"
                 />
               </Link>
-              <p className="text-sm text-slate-500 leading-relaxed mb-6 max-w-sm">
+              <p className="text-sm text-slate-500 leading-relaxed max-w-sm">
                 India's all-in-one campus recruitment infrastructure powering 450+ colleges, 12,000+ recruiters, and over 2 million student placements.
               </p>
-              <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> SOC-2 Type II Certified
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700">
-                  <Shield className="w-3.5 h-3.5" /> ISO 27001
-                </span>
-              </div>
             </div>
 
             {/* Col 2: Solutions & Roles */}

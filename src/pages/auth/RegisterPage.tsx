@@ -405,23 +405,98 @@ export const RegisterPage: React.FC = () => {
         return;
       }
     }
-    if (!studentName || !studentEmail || !studentPassword || !studentCollegeName.trim() || !studentDept.trim() || !studentDegree.trim() || !studentBatch.trim()) {
-      toast.error('Please fill in all required fields');
+    // 1. Institution Check
+    if (!studentCollegeName.trim()) {
+      toast.error('Please enter or select your College / Institution');
       return;
     }
-    if (!studentEmail.includes('@')) {
-      toast.error('Please enter a valid email address');
+
+    // 2. Department & Degree Checks
+    if (!studentDept.trim()) {
+      toast.error('Please select or specify your Department / Branch');
+      return;
+    }
+
+    if (!studentDegree.trim()) {
+      toast.error('Please enter your Degree (e.g. B.E., B.Tech, MCA)');
+      return;
+    }
+
+    // 3. Batch / Year Check (must be a valid 4-digit graduating year)
+    const cleanBatch = studentBatch.trim();
+    if (!cleanBatch) {
+      toast.error('Please enter your Batch / Year of passing (e.g. 2025)');
+      return;
+    }
+    const batchYearNum = parseInt(cleanBatch, 10);
+    if (!/^\d{4}$/.test(cleanBatch) || isNaN(batchYearNum) || batchYearNum < 2000 || batchYearNum > 2040) {
+      toast.error('Please enter a valid 4-digit Batch Year (e.g. 2025)');
+      return;
+    }
+
+    // 4. CGPA Check (must be between 0.0 and 10.0)
+    const cleanCgpa = studentCgpa.trim();
+    if (!cleanCgpa) {
+      toast.error('Please enter your current CGPA (e.g. 8.5)');
+      return;
+    }
+    const cgpaNum = parseFloat(cleanCgpa);
+    if (isNaN(cgpaNum) || cgpaNum < 0 || cgpaNum > 10) {
+      toast.error('CGPA must be a valid number between 0.0 and 10.0');
+      return;
+    }
+
+    // 5. Full Name & Roll Number Checks
+    if (!studentName.trim() || studentName.trim().length < 2) {
+      toast.error('Please enter your full name (minimum 2 characters)');
+      return;
+    }
+
+    if (!studentIdNum.trim()) {
+      toast.error('Please enter your Roll No / USN (University Serial Number)');
+      return;
+    }
+
+    // 6. Email & Password Checks
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!studentEmail.trim() || !emailRegex.test(studentEmail.trim())) {
+      toast.error('Please enter a valid student email address (e.g. name@domain.com)');
+      return;
+    }
+
+    if (!studentPassword || studentPassword.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+
+    // 7. MANDATORY AADHAR CARD VERIFICATION & KYC
+    const rawAadhar = aadharNumber.replace(/\s+/g, '');
+    if (!rawAadhar) {
+      toast.error('Aadhar Card Number is mandatory for KYC identity verification');
+      return;
+    }
+    if (rawAadhar.length !== 12 || !/^\d{12}$/.test(rawAadhar)) {
+      toast.error('Aadhar Card Number must be exactly 12 digits (e.g. 3454 2345 6545)');
+      return;
+    }
+
+    if (isUploadingAadhar) {
+      toast.error('Please wait for your Aadhar Card document upload to complete');
+      return;
+    }
+
+    if (!aadharFile || !aadharFile.url) {
+      toast.error('Aadhar Card document upload is mandatory. Please upload your Aadhar Card (PDF, JPG or PNG)');
       return;
     }
 
     setLoading(true);
     try {
-      const cgpaNum = parseFloat(studentCgpa) || 0;
       const deptIdx = DEPARTMENTS.indexOf(studentDept.trim());
       const matchedDepartment = resolvedCollege?.departments.find((department) => department.name === studentDept.trim());
       const collegeId = resolvedCollege?.id || 'individual';
       const collegeName = studentCollegeName.trim() || resolvedCollege?.name || 'Independent Student';
-      const studentRoll = studentIdNum || `${isIndividualStudent ? 'IND' : (resolvedCollege?.code || matchedCollege?.code || 'STU')}2021${studentDept.trim().substring(0, 2).toUpperCase()}045`;
+      const studentRoll = studentIdNum.trim();
 
       // Call real backend API to register student profile and dispatch cryptographic OTP via email
       await authService.registerStudent({
@@ -434,16 +509,16 @@ export const RegisterPage: React.FC = () => {
         department: studentDept.trim(),
         departmentId: matchedDepartment?.id || (deptIdx !== -1 ? `dept-${deptIdx + 1}` : 'dept-custom'),
         degree: studentDegree.trim(),
-        batch: studentBatch.trim(),
+        batch: cleanBatch,
         cgpa: cgpaNum,
         isIndividual: isIndividualStudent,
-        aadharNumber: aadharNumber ? aadharNumber.replace(/\s+/g, '') : undefined,
-        aadharCard: aadharFile ? {
+        aadharNumber: rawAadhar,
+        aadharCard: {
           fileName: aadharFile.name,
           fileUrl: aadharFile.url,
           fileSize: aadharFile.size,
           uploadedAt: new Date().toISOString(),
-        } : undefined,
+        },
       });
 
       setOtp(['', '', '', '', '', '']);
@@ -667,7 +742,7 @@ export const RegisterPage: React.FC = () => {
                   <div className="relative" ref={collegeInputContainerRef}>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-slate-900 font-bold text-xs">
-                        College / Institution or college code
+                        College / Institution or college code <span className="text-rose-500">*</span>
                       </label>
                       {isIndividualStudent ? (
                         <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 flex items-center gap-1 shadow-xs">
@@ -823,7 +898,7 @@ export const RegisterPage: React.FC = () => {
                   <div>
                     {resolvedCollege && resolvedCollege.departments.length > 0 ? (
                       <Select
-                        label="Department / Branch"
+                        label="Department / Branch *"
                         labelClassName="text-slate-900 font-bold text-xs"
                         className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                         placeholder="Select department"
@@ -840,7 +915,7 @@ export const RegisterPage: React.FC = () => {
                       />
                     ) : (
                       <Input
-                        label="Department / Branch"
+                        label="Department / Branch *"
                         labelClassName="text-slate-900 font-bold text-xs"
                         className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                         placeholder="Computer Science (CSE)"
@@ -854,7 +929,7 @@ export const RegisterPage: React.FC = () => {
                   {/* Degree, Batch / Year, CGPA */}
                   <div className="grid grid-cols-3 gap-2.5">
                     <Input
-                      label="Degree"
+                      label="Degree *"
                       labelClassName="text-slate-900 font-bold text-xs"
                       className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       placeholder="B.E."
@@ -864,7 +939,7 @@ export const RegisterPage: React.FC = () => {
                     />
 
                     <Input
-                      label="Batch / Year"
+                      label="Batch / Year *"
                       labelClassName="text-slate-900 font-bold text-xs"
                       className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       placeholder="2025"
@@ -874,13 +949,14 @@ export const RegisterPage: React.FC = () => {
                     />
 
                     <Input
-                      label="CGPA"
+                      label="CGPA *"
                       labelClassName="text-slate-900 font-bold text-xs"
                       className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       inputMode="decimal"
                       placeholder="8.5"
                       value={studentCgpa}
                       onChange={(e) => setStudentCgpa(e.target.value)}
+                      required
                     />
                   </div>
 
@@ -911,7 +987,7 @@ export const RegisterPage: React.FC = () => {
                   {/* Full Name & Roll No */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input
-                      label="Full Name"
+                      label="Full Name *"
                       labelClassName="text-slate-900 font-bold text-xs"
                       className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       placeholder="Rahul Sharma"
@@ -922,20 +998,21 @@ export const RegisterPage: React.FC = () => {
                     />
 
                     <Input
-                      label="Roll No / USN"
+                      label="Roll No / USN *"
                       labelClassName="text-slate-900 font-bold text-xs"
                       className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       placeholder="e.g. SONA2021CS045"
                       value={studentIdNum}
                       onChange={(e) => setStudentIdNum(e.target.value)}
                       leftIcon={<Hash className="w-4 h-4 text-[#0066FF]" />}
+                      required
                     />
                   </div>
 
                   {/* Student Email Address & Password */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input
-                      label="Student Email Address"
+                      label="Student Email Address *"
                       labelClassName="text-slate-900 font-bold text-xs"
                       className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       type="email"
@@ -949,7 +1026,7 @@ export const RegisterPage: React.FC = () => {
                     />
 
                     <Input
-                      label="Password"
+                      label="Password (min 6 characters) *"
                       labelClassName="text-slate-900 font-bold text-xs"
                       className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
                       type="password"
@@ -972,38 +1049,58 @@ export const RegisterPage: React.FC = () => {
                         </div>
                         <div>
                           <span className="text-xs font-bold text-slate-900 block leading-tight">
-                            Aadhar Card Verification
+                            Aadhar Card Verification <span className="text-rose-500">*</span>
                           </span>
                           <span className="text-[10px] text-slate-500 block">
                             Government Identity Proof for Placement Drives & KYC
                           </span>
                         </div>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-[#0066FF] border border-blue-200">
-                        KYC Document
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1 shadow-xs">
+                        <ShieldCheck className="w-3 h-3 text-rose-600" /> Mandatory KYC Proof
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <Input
-                          label="Aadhar Card Number"
+                          label="Aadhar Card Number *"
                           labelClassName="text-slate-900 font-bold text-xs"
-                          className="bg-white text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-mono text-xs sm:text-sm tracking-wider"
-                          placeholder="XXXX XXXX XXXX"
+                          className={`bg-white text-slate-900 border ${
+                            aadharNumber.replace(/\D/g, '').length === 12
+                              ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-100'
+                              : 'border-slate-300 focus:border-[#0066FF]'
+                          } focus:bg-white font-mono text-xs sm:text-sm tracking-wider`}
+                          placeholder="3454 2345 6545"
                           value={aadharNumber}
                           onChange={(e) => handleAadharNumberChange(e.target.value)}
                           maxLength={14}
                           leftIcon={<CreditCard className="w-4 h-4 text-[#0066FF]" />}
+                          required
                         />
-                        <p className="mt-1 text-[10px] text-slate-500">
-                          12-digit UIDAI identity number
-                        </p>
+                        <div className="flex items-center justify-between mt-1 px-0.5">
+                          <span className="text-[10px] text-slate-500">
+                            12-digit UIDAI identity number
+                          </span>
+                          <span className={`text-[10px] font-mono font-bold ${
+                            aadharNumber.replace(/\D/g, '').length === 12
+                              ? 'text-emerald-600 flex items-center gap-0.5'
+                              : 'text-slate-400'
+                          }`}>
+                            {aadharNumber.replace(/\D/g, '').length === 12 ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" /> 12 / 12 Digits
+                              </>
+                            ) : (
+                              `${aadharNumber.replace(/\D/g, '').length} / 12 Digits`
+                            )}
+                          </span>
+                        </div>
                       </div>
 
                       <div>
                         <label className="block text-xs font-bold text-slate-900 mb-1.5">
-                          Upload Aadhar Card (PDF / Image)
+                          Upload Aadhar Card (PDF / Image) <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="file"
@@ -1018,17 +1115,17 @@ export const RegisterPage: React.FC = () => {
                             type="button"
                             onClick={() => aadharFileInputRef.current?.click()}
                             disabled={isUploadingAadhar}
-                            className="w-full h-11 px-3 border-2 border-dashed border-slate-300 hover:border-[#0066FF] bg-white hover:bg-blue-50/40 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-slate-700 hover:text-[#0066FF] transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                            className="w-full h-11 px-3 border-2 border-dashed border-rose-300/80 hover:border-[#0066FF] bg-rose-50/20 hover:bg-blue-50/40 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-slate-700 hover:text-[#0066FF] transition-all cursor-pointer shadow-xs disabled:opacity-50"
                           >
                             {isUploadingAadhar ? (
                               <>
                                 <RefreshCw className="w-4 h-4 animate-spin text-[#0066FF]" />
-                                <span>Uploading Aadhar...</span>
+                                <span>Uploading Document...</span>
                               </>
                             ) : (
                               <>
-                                <UploadCloud className="w-4 h-4 text-slate-400 group-hover:text-[#0066FF] transition-colors" />
-                                <span>Upload Aadhar Card (PDF/Image)</span>
+                                <UploadCloud className="w-4 h-4 text-rose-500 transition-colors" />
+                                <span>Upload Aadhar <strong className="text-rose-600">(Mandatory)</strong></span>
                               </>
                             )}
                           </button>
@@ -1052,7 +1149,7 @@ export const RegisterPage: React.FC = () => {
                                 </p>
                                 <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
                                   <CheckCircle2 className="w-3 h-3" />
-                                  {(aadharFile.size / 1024).toFixed(0)} KB · Ready
+                                  {(aadharFile.size / 1024).toFixed(0)} KB · Verified & Ready
                                 </p>
                               </div>
                             </div>

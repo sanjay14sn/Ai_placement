@@ -54,7 +54,7 @@ export const InstitutionsPage: React.FC = () => {
     },
     {
       q: "Is candidate data kept confidential and secure between different recruiters?",
-      a: "Yes. AI Campus OS is SOC-2 Type II and ISO 27001 certified. Recruiters only see candidates who explicitly apply to their approved drive or meet the institution's verified shortlisting criteria. Contact details can be masked until shortlisting."
+      a: "Yes. AI Campus OS strictly adheres to enterprise cybersecurity standards and the Digital Personal Data Protection (DPDP) Act. Recruiters only see candidates who explicitly apply to their approved drive or meet the institution's verified shortlisting criteria. Contact details can be masked until shortlisting."
     },
     {
       q: "How long does it take for a university to go live with AI Campus OS?",
