@@ -5,10 +5,10 @@ import {
 } from 'recharts';
 import {
   Building2, Users, Briefcase, TrendingUp, DollarSign, Activity,
-  CreditCard, AlertCircle, Zap, ArrowUpRight, MoreHorizontal, Globe, Bot
+  CreditCard, AlertCircle, ArrowUpRight, MoreHorizontal, Globe
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
-import { StatCard, Card, Badge, Button, Skeleton, AIBadge } from '../../components/ui';
+import { StatCard, Card, Badge, Skeleton } from '../../components/ui';
 import { analyticsService } from '../../services';
 import { formatNumber } from '../../utils';
 
@@ -24,15 +24,6 @@ export const SuperAdminOverview: React.FC = () => {
       .then(([s, c]) => { setStats(s); setCharts(c); })
       .finally(() => setLoading(false));
   }, []);
-
-  const recentActivity = [
-    { type: 'college', text: 'SSN College of Engineering joined AI Campus OS', time: '2 min ago', icon: '🎓' },
-    { type: 'recruiter', text: 'Razorpay onboarded as a new recruiter company', time: '15 min ago', icon: '🏢' },
-    { type: 'job', text: 'Amazon India posted 12 SDE openings across 8 colleges', time: '32 min ago', icon: '💼' },
-    { type: 'subscription', text: 'VIT Vellore upgraded from Professional to Enterprise', time: '1 hr ago', icon: '⬆️' },
-    { type: 'drive', text: 'Google Campus Drive at RVCE completed — 18 selected', time: '2 hr ago', icon: '🚀' },
-    { type: 'system', text: 'AI model updated — match accuracy improved by 3.2%', time: '4 hr ago', icon: '🤖' },
-  ];
 
   return (
     <PageWrapper
@@ -170,61 +161,6 @@ export const SuperAdminOverview: React.FC = () => {
               </LineChart>
             </ResponsiveContainer>
           )}
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Platform Activity</h3>
-            <Button variant="ghost" size="sm">View all</Button>
-          </div>
-          <div className="space-y-3">
-            {recentActivity.map((item, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center flex-shrink-0 text-sm">
-                  {item.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-700 dark:text-slate-300">{item.text}</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{item.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* AI Platform Insights */}
-        <Card className="p-6 border-ai-200 dark:border-ai-800/50">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-ai-500 to-brand-500 rounded-xl flex items-center justify-center">
-                <Bot className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900 dark:text-slate-100">AI Platform Insights</h3>
-                <AIBadge className="mt-0.5" />
-              </div>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {[
-              { emoji: '📈', text: 'Placement rates are 12.3% higher on colleges using AI matching vs manual process', type: 'success' },
-              { emoji: '⚠️', text: '3 colleges have less than 40% profile completion — high churn risk', type: 'warning' },
-              { emoji: '🎯', text: 'Infosys, TCS, and Wipro account for 38% of all placements this month', type: 'info' },
-              { emoji: '💡', text: 'AI predicts 23 additional placements if 12 at-risk students improve profiles', type: 'info' },
-              { emoji: '🔥', text: 'Razorpay has the highest offer acceptance rate at 96% across all recruiters', type: 'success' },
-            ].map((insight, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                <span className="text-lg">{insight.emoji}</span>
-                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{insight.text}</p>
-              </div>
-            ))}
-          </div>
-          <Button variant="ai" className="w-full mt-4" size="sm" leftIcon={<Zap className="w-3.5 h-3.5" />}>
-            Get Detailed AI Report
-          </Button>
         </Card>
       </div>
     </PageWrapper>

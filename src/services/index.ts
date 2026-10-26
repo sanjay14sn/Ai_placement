@@ -274,7 +274,7 @@ export const studentService = {
 
 export const jobService = {
   getAll: async (params?: import('../types').FilterParams) => {
-    const res = await api<{ data: import('../types').PaginatedResponse<import('../types').Job> }>('/jobs', { params: params as Record<string, string>, auth: false });
+    const res = await api<{ data: import('../types').PaginatedResponse<import('../types').Job> }>('/jobs', { params: params as Record<string, string>, auth: true });
     return res.data;
   },
 
@@ -284,7 +284,7 @@ export const jobService = {
   },
 
   create: async (data: Partial<import('../types').Job>) => {
-    const res = await api<{ data: import('../types').Job }>('/jobs', { method: 'POST', body: data, auth: false });
+    const res = await api<{ data: import('../types').Job }>('/jobs', { method: 'POST', body: data, auth: true });
     return res.data;
   },
 
@@ -385,7 +385,7 @@ export const companyService = {
   getAll: async (params?: import('../types').FilterParams) => {
     const res = await api<{ data: import('../types').PaginatedResponse<import('../types').Company> }>('/companies', {
       params: params as Record<string, string>,
-      auth: false,
+      auth: true,
     });
     return res.data;
   },
@@ -396,7 +396,7 @@ export const companyService = {
   },
 
   create: async (data: Partial<import('../types').Company>) => {
-    const res = await api<{ data: import('../types').Company }>('/companies', { method: 'POST', body: data, auth: false });
+    const res = await api<{ data: import('../types').Company }>('/companies', { method: 'POST', body: data, auth: true });
     return res.data;
   },
 
@@ -447,6 +447,13 @@ export const applicationService = {
     return res.data;
   },
 
+  shortlistCandidate: async (studentId: string, jobId?: string) => {
+    const res = await api<{ data: import('../types').Application }>('/applications', {
+      method: 'POST', body: { studentId, jobId, status: 'shortlisted', isShortlisted: true }, auth: true,
+    });
+    return res.data;
+  },
+
   updateStatus: async (id: string, status: string, recruiterNotes?: string) => {
     const res = await api<{ data: import('../types').Application }>(`/applications/${id}/status`, {
       method: 'PUT', body: { status, recruiterNotes }, auth: true,
@@ -493,6 +500,14 @@ export const interviewService = {
 export const driveService = {
   getAll: async (params?: import('../types').FilterParams) => {
     const res = await api<{ data: import('../types').PlacementDrive[] }>('/drives', { params: params as Record<string, string>, auth: true });
+    return res.data;
+  },
+
+  getCampusOSDrives: async (params?: Record<string, any>) => {
+    const res = await api<{ data: import('../types').PlacementDrive[] }>('/drives', {
+      params: { ...params, campusos: 'true' } as Record<string, string>,
+      auth: true,
+    });
     return res.data;
   },
 
@@ -956,16 +971,17 @@ export const rememberNoticeRead = (ids: string[]) => {
   window.dispatchEvent(new Event('notifications-updated'));
 };
 
-export const getNoticeFeed = async (role?: string) => {
+export const getNoticeFeed = async (role?: string, collegeId?: string) => {
   const seen = readNoticeIds();
   const stored = await notificationService.getAll().catch(() => [] as import('../types').Notification[]);
   const saved = stored.map((item) => ({ ...item, isRead: item.isRead || seen.has(item.id) }));
   if (role !== 'TPO' && role !== 'COLLEGE_ADMIN') return saved;
 
+  const filterParams = (collegeId ? { collegeId, limit: 12 } : { limit: 12 }) as import('../types').FilterParams;
   const [applications, interviews, drives, announcements] = await Promise.all([
-    applicationService.getAll({ limit: 12 } as import('../types').FilterParams).catch(() => ({ data: [] as import('../types').Application[] })),
-    interviewService.getAll({ limit: 12 } as import('../types').FilterParams).catch(() => ({ data: [] as import('../types').Interview[] })),
-    driveService.getAll().catch(() => [] as import('../types').PlacementDrive[]),
+    applicationService.getAll(filterParams).catch(() => ({ data: [] as import('../types').Application[] })),
+    interviewService.getAll(filterParams).catch(() => ({ data: [] as import('../types').Interview[] })),
+    driveService.getAll(collegeId ? ({ collegeId } as any) : undefined).catch(() => [] as import('../types').PlacementDrive[]),
     announcementService.getAll().catch(() => [] as import('../types').NewsArticle[]),
   ]);
 

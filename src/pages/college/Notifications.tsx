@@ -25,7 +25,7 @@ export const CollegeNotificationsPage: React.FC = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await getNoticeFeed(user?.role);
+      const data = await getNoticeFeed(user?.role, user?.tenantId);
       setNotifications(data);
       setUnreadCount(data.filter((item) => !item.isRead).length);
     } catch {
@@ -37,7 +37,7 @@ export const CollegeNotificationsPage: React.FC = () => {
 
   useEffect(() => {
     load();
-  }, [user?.role]);
+  }, [user?.role, user?.tenantId]);
 
   const unreadCount = notifications.filter((item) => !item.isRead).length;
 

@@ -19,26 +19,44 @@ export const RecruiterCompanyPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Edit Form State
-  const [editName, setEditName] = useState(company.name);
-  const [editIndustry, setEditIndustry] = useState(company.industry);
-  const [editHq, setEditHq] = useState(company.hq);
-  const [editWebsite, setEditWebsite] = useState(company.website);
-  const [editDesc, setEditDesc] = useState(company.description);
+  const [editName, setEditName] = useState('');
+  const [editIndustry, setEditIndustry] = useState('');
+  const [editHq, setEditHq] = useState('');
+  const [editWebsite, setEditWebsite] = useState('');
+  const [editDesc, setEditDesc] = useState('');
 
   useEffect(() => {
-    if (user?.tenantId) {
-      companyService.getById(user.tenantId)
-        .then(res => {
-          setCompany(res);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error(err);
-          setCompany(mockCompanies[0]); // fallback for testing
-          setLoading(false);
-        });
-    }
-  }, [user]);
+    let cancelled = false;
+    const loadCompany = async () => {
+      setLoading(true);
+      try {
+        if (user?.tenantId) {
+          const res = await companyService.getById(user.tenantId);
+          if (res && !cancelled) {
+            setCompany(res);
+            return;
+          }
+        }
+        // Fallback: fetch first available company or mock
+        const list = await companyService.getAll({ limit: 1 });
+        if (!cancelled) {
+          if (list?.data && list.data.length > 0) {
+            setCompany(list.data[0]);
+          } else {
+            setCompany(mockCompanies[0]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load recruiter company', err);
+        if (!cancelled) setCompany(mockCompanies[0]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadCompany();
+    return () => { cancelled = true; };
+  }, [user?.tenantId]);
 
   useEffect(() => {
     if (company) {
@@ -110,7 +128,7 @@ export const RecruiterCompanyPage: React.FC = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
             <div className="flex items-center gap-5">
               <div className="w-20 h-20 bg-gradient-to-br from-brand-600 to-indigo-600 rounded-3xl flex items-center justify-center text-3xl font-black shadow-lg ring-4 ring-white/10">
-                {company.name.charAt(0)}
+                {(company.name || 'C').charAt(0)}
               </div>
 
               <div className="space-y-1.5">
@@ -121,27 +139,29 @@ export const RecruiterCompanyPage: React.FC = () => {
                     Verified Employer
                   </Badge>
                   <Badge variant="slate" className="text-xs capitalize bg-white/10 text-slate-300 border-white/10">
-                    {company.type}
+                    {company.type || 'Product'}
                   </Badge>
                 </div>
 
-                <p className="text-slate-300 text-sm">{company.industry} · Founded {company.founded}</p>
+                <p className="text-slate-300 text-sm">{company.industry || 'Technology'} · Founded {company.founded || 2020}</p>
 
                 <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
                   <span className="flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-brand-400" />
-                    {company.hq}, India
+                    {company.hq || 'Bengaluru'}, India
                   </span>
-                  <a 
-                    href={company.website} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="flex items-center gap-1.5 text-brand-400 hover:underline"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    {company.website.replace('https://', '')}
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  {company.website && (
+                    <a 
+                      href={company.website} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="flex items-center gap-1.5 text-brand-400 hover:underline"
+                    >
+                      <Globe className="w-3.5 h-3.5" />
+                      {company.website.replace('https://', '')}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -245,7 +265,10 @@ export const RecruiterCompanyPage: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {company.techStack.map((tech) => (
+                  {(company.techStack && company.techStack.length > 0
+                    ? company.techStack
+                    : ['React', 'TypeScript', 'Node.js', 'Python', 'AWS', 'Docker', 'PostgreSQL', 'Kubernetes']
+                  ).map((tech: string) => (
                     <Badge key={tech} variant="slate" className="px-3 py-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800">
                       {tech}
                     </Badge>
@@ -278,10 +301,10 @@ export const RecruiterCompanyPage: React.FC = () => {
                 <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Campus Drive Contact</h3>
                 <div className="space-y-3.5 text-sm">
                   <div className="flex items-center gap-3">
-                    <Avatar name={company.recruiters[0]?.name || 'Priya Sharma'} size="sm" />
+                    <Avatar name={company.recruiters?.[0]?.name || user?.name || 'Priya Sharma'} size="sm" />
                     <div>
                       <h4 className="font-bold text-slate-900 dark:text-white text-xs">
-                        {company.recruiters[0]?.name || 'Dr. Priya Sharma'}
+                        {company.recruiters?.[0]?.name || user?.name || 'Dr. Priya Sharma'}
                       </h4>
                       <p className="text-[11px] text-slate-500">Lead Campus Talent Partner</p>
                     </div>
@@ -289,11 +312,11 @@ export const RecruiterCompanyPage: React.FC = () => {
                   <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 text-xs text-slate-600 dark:text-slate-300">
                     <p className="flex items-center gap-2">
                       <Mail className="w-3.5 h-3.5 text-slate-400" />
-                      {company.recruiters[0]?.email || `campus@${company.name.toLowerCase().replace(/\s+/g, '')}.com`}
+                      {company.recruiters?.[0]?.email || user?.email || `campus@${(company.name || 'company').toLowerCase().replace(/\s+/g, '')}.com`}
                     </p>
                     <p className="flex items-center gap-2">
                       <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      {company.recruiters[0]?.phone || '+91 98765 43210'}
+                      {company.recruiters?.[0]?.phone || user?.phone || '+91 98765 43210'}
                     </p>
                   </div>
                 </div>
@@ -318,13 +341,28 @@ export const RecruiterCompanyPage: React.FC = () => {
         {/* TAB 2: RECRUITMENT TEAM */}
         {activeTab === 'team' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {company.recruiters.concat([
+            {(company.recruiters && company.recruiters.length > 0 ? company.recruiters : [
+              {
+                id: 'rec-main',
+                userId: user?.id || 'user-1',
+                companyId: company.id,
+                name: user?.name || 'Lead Corporate Recruiter',
+                email: user?.email || `recruiter@${(company.name || 'company').toLowerCase().replace(/\s+/g, '')}.com`,
+                phone: user?.phone || '+91 98765 43210',
+                designation: 'Head of Campus Talent Acquisition',
+                department: 'Talent Acquisition',
+                isActive: true,
+                activeJobs: company.activeJobs || 2,
+                totalHired: company.totalHired || 18,
+                joinedAt: '2023-01-15',
+              }
+            ]).concat([
               {
                 id: 'rec-2',
                 userId: 'user-rec-2',
                 companyId: company.id,
                 name: 'Vikram Sethi',
-                email: `v.sethi@${company.name.toLowerCase().replace(/\s+/g, '')}.com`,
+                email: `v.sethi@${(company.name || 'company').toLowerCase().replace(/\s+/g, '')}.com`,
                 phone: '+91 98123 45678',
                 designation: 'Senior Technical Recruiter',
                 department: 'Talent Acquisition',
@@ -338,7 +376,7 @@ export const RecruiterCompanyPage: React.FC = () => {
                 userId: 'user-rec-3',
                 companyId: company.id,
                 name: 'Ananya Roy',
-                email: `a.roy@${company.name.toLowerCase().replace(/\s+/g, '')}.com`,
+                email: `a.roy@${(company.name || 'company').toLowerCase().replace(/\s+/g, '')}.com`,
                 phone: '+91 97890 12345',
                 designation: 'University Relations Lead',
                 department: 'University Hiring',
@@ -347,7 +385,7 @@ export const RecruiterCompanyPage: React.FC = () => {
                 totalHired: 45,
                 joinedAt: '2022-06-10',
               }
-            ]).map((recruiter) => (
+            ]).map((recruiter: any) => (
               <Card key={recruiter.id} className="p-5 hover:shadow-elevated transition-all">
                 <div className="flex items-start gap-4">
                   <Avatar name={recruiter.name} size="md" />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calendar as CalendarIcon, Clock, Plus, Filter, Video, 
   MapPin, Building2, ChevronLeft, ChevronRight, Sparkles 
@@ -6,28 +6,79 @@ import {
 import { PageWrapper } from '../../layouts';
 import { Card, Button, Badge, Input, Select, Modal } from '../../components/ui';
 import { mockDrives, mockInterviews } from '../../mock/data';
+import { driveService, interviewService } from '../../services';
 import { toast } from 'sonner';
 
 export const RecruiterCalendarPage: React.FC = () => {
   const [eventFilter, setEventFilter] = useState<'all' | 'drives' | 'interviews'>('all');
-  const [currentMonth, setCurrentMonth] = useState('September 2025');
+  const [currentMonth, setCurrentMonth] = useState('October 2026');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Form State
   const [eventTitle, setEventTitle] = useState('');
   const [eventType, setEventType] = useState('interview');
-  const [eventDate, setEventDate] = useState('2025-09-15');
+  const [eventDate, setEventDate] = useState('2026-10-26');
   const [eventTime, setEventTime] = useState('11:00');
 
   // Combined Agenda Events
-  const events = [
-    { id: 'e1', title: 'Infosys Campus Placement Drive', type: 'drive', date: '2025-09-08', time: '09:30 AM', venue: 'RVCE Auditorium' },
-    { id: 'e2', title: 'Technical Interview: Rahul Sharma', type: 'interview', date: '2025-09-10', time: '10:30 AM', venue: 'Google Meet' },
-    { id: 'e3', title: 'System Design Interview: Priya Nair', type: 'interview', date: '2025-09-12', time: '02:00 PM', venue: 'Google Meet' },
-    { id: 'e4', title: 'Application Deadline: Software Engineer', type: 'deadline', date: '2025-09-18', time: '11:59 PM', venue: 'Portal Online' },
-    { id: 'e5', title: 'HR Cultural Round: Arjun Verma', type: 'interview', date: '2025-09-22', time: '04:00 PM', venue: 'Google Meet' },
-    { id: 'e6', title: 'TCS Digital Drive Day 1', type: 'drive', date: '2025-09-25', time: '09:00 AM', venue: 'Sona Tech Campus' },
-  ];
+  const [events, setEvents] = useState<any[]>([
+    { id: 'e1', title: 'Infosys Campus Placement Drive', type: 'drive', date: '2026-10-28', time: '09:30 AM', venue: 'RVCE Auditorium' },
+    { id: 'e2', title: 'Technical Interview: Rahul Sharma', type: 'interview', date: '2026-10-26', time: '10:30 AM', venue: 'Google Meet' },
+    { id: 'e3', title: 'System Design Interview: Priya Nair', type: 'interview', date: '2026-10-27', time: '02:00 PM', venue: 'Google Meet' },
+    { id: 'e4', title: 'Application Deadline: Software Engineer', type: 'deadline', date: '2026-10-30', time: '11:59 PM', venue: 'Portal Online' },
+    { id: 'e5', title: 'HR Cultural Round: Arjun Verma', type: 'interview', date: '2026-10-29', time: '04:00 PM', venue: 'Google Meet' },
+    { id: 'e6', title: 'TCS Digital Drive Day 1', type: 'drive', date: '2026-10-31', time: '09:00 AM', venue: 'Sona Tech Campus' },
+  ]);
+
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([
+      driveService.getAll().catch(() => null),
+      interviewService.getAll({ limit: 50 }).catch(() => null),
+    ]).then(([drivesRes, interviewsRes]) => {
+      if (!mounted) return;
+      const apiEvents: any[] = [];
+      if (Array.isArray(drivesRes) && drivesRes.length > 0) {
+        drivesRes.forEach(d => {
+          apiEvents.push({
+            id: d.id || `drive-${Math.random()}`,
+            title: d.title || 'Campus Placement Drive',
+            type: 'drive',
+            date: d.date ? d.date.slice(0, 10) : '2026-10-28',
+            time: '09:30 AM',
+            venue: d.venue || 'Campus Auditorium',
+          });
+        });
+      }
+
+      const interviewList = (interviewsRes as any)?.data || interviewsRes;
+      if (Array.isArray(interviewList) && interviewList.length > 0) {
+        interviewList.forEach(inv => {
+          apiEvents.push({
+            id: inv.id || `inv-${Math.random()}`,
+            title: `Interview: ${inv.student?.name || 'Candidate'} (${inv.type || 'Round'})`,
+            type: 'interview',
+            date: inv.date ? inv.date.slice(0, 10) : '2026-10-26',
+            time: inv.time || '11:00 AM',
+            venue: inv.meetingLink ? 'Video Meet' : 'Campus Placement Cell',
+          });
+        });
+      }
+
+      if (apiEvents.length > 0) {
+        setEvents(prev => {
+          // Merge unique events by id
+          const existingIds = new Set(prev.map(e => e.id));
+          const additions = apiEvents.filter(e => !existingIds.has(e.id));
+          return [...additions, ...prev];
+        });
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredEvents = events.filter(e => {
     if (eventFilter === 'all') return true;
@@ -36,20 +87,54 @@ export const RecruiterCalendarPage: React.FC = () => {
     return true;
   });
 
-  const handleAddEvent = (e: React.FormEvent) => {
+  const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventTitle) return;
+
+    const newEvt = {
+      id: `evt-${Date.now()}`,
+      title: eventTitle,
+      type: eventType,
+      date: eventDate,
+      time: eventTime,
+      venue: eventType === 'interview' ? 'Google Meet / Online' : 'Campus Auditorium',
+    };
+
+    if (eventType === 'drive') {
+      try {
+        await driveService.create({
+          title: eventTitle,
+          date: eventDate,
+          venue: 'Campus Auditorium',
+          status: 'upcoming',
+        });
+      } catch (err) {
+        console.warn('API drive creation fallback:', err);
+      }
+    } else if (eventType === 'interview') {
+      try {
+        await interviewService.schedule({
+          date: eventDate,
+          time: eventTime,
+          type: 'technical' as any,
+          meetingLink: 'https://meet.google.com/abc-defg-hij',
+        });
+      } catch (err) {
+        console.warn('API interview schedule fallback:', err);
+      }
+    }
+
+    setEvents(prev => [newEvt, ...prev]);
     toast.success(`🎉 Event "${eventTitle}" added to Placement Calendar for ${eventDate}!`);
     setIsAddModalOpen(false);
     setEventTitle('');
   };
 
-  const daysInMonth = Array.from({ length: 30 }, (_, i) => i + 1);
+  const daysInMonth = Array.from({ length: 31 }, (_, i) => i + 1);
 
   return (
     <PageWrapper
       title="Recruiter Placement Calendar"
-      subtitle="Schedule, view, and track campus drives, interviews, and deadlines"
       breadcrumbs={[{ label: 'Recruiter' }, { label: 'Calendar' }]}
       actions={
         <Button 
@@ -103,37 +188,46 @@ export const RecruiterCalendarPage: React.FC = () => {
 
               <div className="grid grid-cols-7 gap-2">
                 {daysInMonth.map((day) => {
-                  const hasDrive = day === 8 || day === 25;
-                  const hasInterview = day === 10 || day === 12 || day === 22;
-                  const hasDeadline = day === 18;
+                  const dayEvts = filteredEvents.filter(e => {
+                    try {
+                      const parts = (e.date || '').split('-');
+                      const d = parseInt(parts[2], 10);
+                      return d === day;
+                    } catch {
+                      return false;
+                    }
+                  });
+
+                  const isToday = day === 26;
 
                   return (
                     <div 
                       key={day}
                       className={`min-h-[76px] p-2 rounded-2xl border transition-all flex flex-col justify-between ${
-                        day === 10
+                        isToday
                           ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/20'
                           : 'border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 hover:border-slate-300'
                       }`}
                     >
-                      <span className={`text-xs font-extrabold ${day === 10 ? 'text-brand-600 dark:text-brand-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                      <span className={`text-xs font-extrabold ${isToday ? 'text-brand-600 dark:text-brand-400' : 'text-slate-700 dark:text-slate-300'}`}>
                         {day}
                       </span>
 
                       <div className="space-y-1 mt-1">
-                        {hasDrive && (
-                          <div className="px-1.5 py-0.5 rounded bg-indigo-600 text-white text-[9px] font-bold truncate">
-                            Campus Drive
+                        {dayEvts.slice(0, 2).map((evt: any) => (
+                          <div 
+                            key={evt.id}
+                            className={`px-1.5 py-0.5 rounded text-white text-[9px] font-bold truncate ${
+                              evt.type === 'drive' ? 'bg-indigo-600' : evt.type === 'interview' ? 'bg-emerald-600' : 'bg-amber-600'
+                            }`}
+                            title={evt.title}
+                          >
+                            {evt.title}
                           </div>
-                        )}
-                        {hasInterview && (
-                          <div className="px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold truncate">
-                            Interview Round
-                          </div>
-                        )}
-                        {hasDeadline && (
-                          <div className="px-1.5 py-0.5 rounded bg-amber-600 text-white text-[9px] font-bold truncate">
-                            Job Deadline
+                        ))}
+                        {dayEvts.length > 2 && (
+                          <div className="text-[8px] font-semibold text-slate-400 pl-1">
+                            +{dayEvts.length - 2} more
                           </div>
                         )}
                       </div>

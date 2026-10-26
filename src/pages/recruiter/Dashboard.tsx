@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Users, Briefcase, UserCheck, TrendingUp, Star, Building2, Bot, ChevronRight } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
-import { StatCard, Card, Button, Badge, AIBadge, Avatar, Progress, ProgressRing } from '../../components/ui';
+import { StatCard, Card, Button, Badge, Avatar, Progress } from '../../components/ui';
 import { analyticsService, jobService, recruiterService } from '../../services';
-import { getMatchScoreRingColor } from '../../utils';
 
 const COLORS = ['#4f46e5', '#8b5cf6', '#10b981', '#f59e0b'];
 
@@ -26,7 +25,6 @@ export const RecruiterDashboard: React.FC = () => {
       });
   }, []);
 
-  const topCandidates = dashboardData?.topCandidates || [];
   const activeJobPostings = dashboardData?.activeJobPostings || [];
   const funnel = dashboardData?.funnel || [];
   const kpiData = dashboardData?.kpis || {
@@ -34,12 +32,11 @@ export const RecruiterDashboard: React.FC = () => {
   };
 
   const kpis = [
-    { title: 'Active Jobs', value: kpiData.activeJobs, change: 'Live postings', changeType: 'neutral' as const, color: 'brand' as const },
-    { title: 'Total Applicants', value: kpiData.totalApplicants, change: 'Total received', changeType: 'neutral' as const, color: 'purple' as const },
-    { title: 'Eligible Candidates', value: kpiData.eligibleCandidates, change: 'AI filtered', changeType: 'neutral' as const, color: 'amber' as const },
-    { title: 'Shortlisted', value: kpiData.shortlisted, change: 'Moved forward', changeType: 'increase' as const, color: 'green' as const },
-    { title: 'Interviews', value: kpiData.interviews, change: 'Scheduled', changeType: 'increase' as const, color: 'brand' as const },
-    { title: 'Offers', value: kpiData.offers, change: 'Selected', changeType: 'increase' as const, color: 'green' as const },
+    { title: 'Active Jobs', value: kpiData.activeJobs, color: 'brand' as const },
+    { title: 'Total Applicants', value: kpiData.totalApplicants, color: 'purple' as const },
+    { title: 'Shortlisted', value: kpiData.shortlisted, color: 'green' as const },
+    { title: 'Interviews', value: kpiData.interviews, color: 'brand' as const },
+    { title: 'Offers', value: kpiData.offers, color: 'green' as const },
   ];
 
   const qualityData = [
@@ -63,7 +60,7 @@ export const RecruiterDashboard: React.FC = () => {
       actions={<Button size="sm" leftIcon={<Briefcase className="w-4 h-4" />} onClick={() => navigate('/recruiter/jobs/create')}>Post New Job</Button>}
     >
       {/* KPI Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         {kpis.map(kpi => (
           <StatCard key={kpi.title} {...kpi} icon={<Users className="w-4 h-4" />} />
         ))}
@@ -107,43 +104,6 @@ export const RecruiterDashboard: React.FC = () => {
           </ResponsiveContainer>
         </Card>
       </div>
-
-      {/* AI Ranked Candidates */}
-      <Card className="p-6 mb-6">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">AI-Ranked Top Candidates</h3>
-            <AIBadge />
-          </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/recruiter/candidates')}>View all candidates</Button>
-        </div>
-        <div className="space-y-3">
-          {topCandidates.length > 0 ? topCandidates.map((candidate: any, i: number) => (
-            <div key={candidate.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              onClick={() => navigate(`/recruiter/candidates/${candidate.id}`)}>
-              <span className="text-lg font-black text-slate-200 dark:text-slate-700 w-6 text-center">#{i + 1}</span>
-              <Avatar name={candidate.name} size="sm" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{candidate.name}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{candidate.department} · CGPA: {candidate.cgpa}</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {(candidate.skills || []).slice(0, 3).map((s: string) => <Badge key={s} variant="slate" className="text-[10px]">{s}</Badge>)}
-                </div>
-              </div>
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <ProgressRing value={candidate.matchScore} size={48} strokeWidth={4}
-                  color={getMatchScoreRingColor(candidate.matchScore)}
-                  label={`${candidate.matchScore}%`} />
-                <div className="flex flex-col gap-1">
-                  <Button size="sm" variant="primary" onClick={e => { e.stopPropagation(); }}>Shortlist</Button>
-                </div>
-              </div>
-            </div>
-          )) : (
-            <div className="text-sm text-slate-500 text-center py-4">No candidates have applied to your active jobs yet.</div>
-          )}
-        </div>
-      </Card>
 
       {/* Active Jobs */}
       <Card className="p-6">

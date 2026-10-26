@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { PageWrapper } from '../../layouts';
 import { Card, Badge, Skeleton, Button, Modal, Input, Select, Textarea } from '../../components/ui';
 import { driveService, interviewService, communityService, jobService } from '../../services';
+import { useAuthStore } from '../../store';
 import { formatTime, toDateKey } from '../../utils';
 import type { PlacementDrive, Interview } from '../../types';
 
@@ -31,6 +32,7 @@ interface DeadlineItem {
 const toDateInput = (date: Date) => toDateKey(date);
 
 export const CollegeCalendarPage: React.FC = () => {
+  const { user } = useAuthStore();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [drives, setDrives] = useState<PlacementDrive[]>([]);
@@ -57,11 +59,12 @@ export const CollegeCalendarPage: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        const collegeId = user?.tenantId;
         const [dList, iList, posted, jobs] = await Promise.all([
-          driveService.getAll(),
-          interviewService.getAll({ page: 1, limit: 100 }),
+          driveService.getAll(collegeId ? ({ collegeId } as any) : undefined),
+          interviewService.getAll({ page: 1, limit: 100, ...(collegeId ? { collegeId } : {}) }),
           communityService.getEvents().catch(() => []),
-          jobService.getAll({ limit: 100, status: 'active' }).catch(() => ({ data: [] })),
+          jobService.getAll({ limit: 100, status: 'active', ...(collegeId ? { collegeId } : {}) }).catch(() => ({ data: [] })),
         ]);
         setDrives(dList);
         setInterviews(iList.data);
@@ -83,7 +86,7 @@ export const CollegeCalendarPage: React.FC = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [user?.tenantId]);
 
   // Calendar Helpers
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();

@@ -52,14 +52,6 @@ export const CollegeDashboard: React.FC = () => {
     { label: 'Interviews', value: analytics?.totalInterviews || 0, icon: <UserCheck className="w-4 h-4" />, color: 'green' as const },
   ];
 
-  const pendingActions = [
-    { label: 'Review 74 pending applications', priority: 'high', action: '/college/applications' },
-    { label: 'Schedule interviews for Infosys shortlist', priority: 'high', action: '/college/interviews' },
-    { label: '5 students with incomplete profiles need reminders', priority: 'medium', action: '/college/students' },
-    { label: 'Razorpay drive registration closes in 2 days', priority: 'medium', action: '/college/drives' },
-    { label: 'Export monthly placement report', priority: 'low', action: '/college/reports' },
-  ];
-
   return (
     <PageWrapper
       title={`${greeting}, ${firstName} 👋`}
@@ -142,59 +134,6 @@ export const CollegeDashboard: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Recruiters */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Top Recruiters</h3>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/college/companies')}>View all</Button>
-          </div>
-          {analytics && (
-            <div className="space-y-3">
-              {analytics.topRecruiters.slice(0, 6).map((rec, i) => (
-                <div key={rec.company} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-ai-500 rounded-xl flex items-center justify-center text-white text-xs font-bold">
-                      {rec.company[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{rec.company}</p>
-                      <p className="text-xs text-slate-400">{rec.hired} hired · ₹{rec.avgPackage}L avg</p>
-                    </div>
-                  </div>
-                  <Badge variant={i === 0 ? 'green' : 'slate'}>{i === 0 ? '🏆 Top' : `#${i + 1}`}</Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Pending Actions */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Pending Actions</h3>
-            <Badge variant="red">{pendingActions.length} items</Badge>
-          </div>
-          <div className="space-y-2.5">
-            {pendingActions.map((action, i) => (
-              <button
-                key={i}
-                onClick={() => navigate(action.action)}
-                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                    action.priority === 'high' ? 'bg-red-500' :
-                    action.priority === 'medium' ? 'bg-amber-500' : 'bg-slate-300'
-                  }`} />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">{action.label}</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors flex-shrink-0" />
-              </button>
-            ))}
-          </div>
-        </Card>
-      </div>
     </PageWrapper>
   );
 };

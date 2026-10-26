@@ -73,7 +73,8 @@ export const CollegeCompaniesPage: React.FC = () => {
         status: 'all',
         page,
         limit: 10,
-      });
+        ...(user?.tenantId ? { collegeId: user.tenantId } : {}),
+      } as any);
 
       setCompanies(res.data as Company[]);
       setTotalPages(Math.max(1, res.totalPages));
@@ -179,6 +180,7 @@ export const CollegeCompaniesPage: React.FC = () => {
         avgPackage: formAvgPackage,
         highestPackage: formHighestPackage,
         isTied: true,
+        ...(user?.tenantId ? { collegeId: user.tenantId } : {}),
         recruiters: [newRecruiter],
       });
 

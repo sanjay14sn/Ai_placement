@@ -138,6 +138,7 @@ const getSidebarNav = (role: Role): NavSection[] => {
           title: 'Placements',
           items: [
             { label: 'Campus Drives', icon: <Target className="w-4 h-4" />, to: '/student/drives' },
+            { label: 'CampusOS Drives', icon: <Sparkles className="w-4 h-4 text-primary-500" />, to: '/student/campusos-drives', badge: 'AI Partner' },
             { label: 'Applications', icon: <ClipboardList className="w-4 h-4" />, to: '/student/applications' },
             { label: 'Interviews', icon: <UserCheck className="w-4 h-4" />, to: '/student/interviews' },
             { label: 'Calendar', icon: <Calendar className="w-4 h-4" />, to: '/student/calendar' },
@@ -178,7 +179,6 @@ const getSidebarNav = (role: Role): NavSection[] => {
           items: [
             { label: 'Candidates', icon: <Users className="w-4 h-4" />, to: '/recruiter/candidates' },
             { label: 'Shortlists', icon: <ListChecks className="w-4 h-4" />, to: '/recruiter/shortlists' },
-            { label: 'Drives', icon: <Target className="w-4 h-4" />, to: '/recruiter/drives' },
             { label: 'Interviews', icon: <UserCheck className="w-4 h-4" />, to: '/recruiter/interviews' },
             { label: 'Calendar', icon: <Calendar className="w-4 h-4" />, to: '/recruiter/calendar' },
           ]
@@ -188,7 +188,6 @@ const getSidebarNav = (role: Role): NavSection[] => {
           items: [
             { label: 'Video Programs', icon: <Video className="w-4 h-4" />, to: '/recruiter/programs' },
             { label: 'Analytics', icon: <BarChart3 className="w-4 h-4" />, to: '/recruiter/analytics' },
-            { label: 'AI Recruiter', icon: <Bot className="w-4 h-4" />, to: '/recruiter/ai-assistant' },
           ]
         },
         {
@@ -231,7 +230,7 @@ export const Sidebar: React.FC = () => {
     if (!user || (user.role !== 'STUDENT' && user.role !== 'TPO' && user.role !== 'COLLEGE_ADMIN')) return;
     let cancelled = false;
     const loadNotices = () => {
-      import('../../services').then(({ getNoticeFeed }) => getNoticeFeed(user.role))
+      import('../../services').then(({ getNoticeFeed }) => getNoticeFeed(user.role, user.tenantId))
         .then((items) => {
           if (!cancelled) useNotificationStore.getState().setUnreadCount(items.filter((item) => !item.isRead).length);
         })
@@ -243,7 +242,7 @@ export const Sidebar: React.FC = () => {
       cancelled = true;
       window.removeEventListener('notifications-updated', loadNotices);
     };
-  }, [user?.role, location.pathname]);
+  }, [user?.role, user?.tenantId, location.pathname]);
 
   useEffect(() => {
     if (user?.role !== 'STUDENT') return;

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Building2, Search, Plus, Filter, Globe, MapPin, Users, Briefcase,
   DollarSign, CheckCircle, ShieldCheck, Eye, Edit3, Trash2, LayoutGrid,
-  List, ExternalLink, AlertTriangle, RefreshCw, XCircle
+  List, ExternalLink, AlertTriangle, RefreshCw, XCircle, User, Mail, Phone, KeyRound
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
 import { StatCard, Card, Badge, Button, Input, Select, Modal, Skeleton, EmptyState, ConfirmDialog, Tabs } from '../../components/ui';
@@ -49,6 +49,12 @@ export const SuperAdminCompaniesPage: React.FC = () => {
   const [formHighestPackage, setFormHighestPackage] = useState(28.0);
   const [formDescription, setFormDescription] = useState('');
   const [formIsTied, setFormIsTied] = useState(true);
+
+  // Recruiter credentials for login
+  const [formRecruiterName, setFormRecruiterName] = useState('');
+  const [formRecruiterEmail, setFormRecruiterEmail] = useState('');
+  const [formRecruiterPassword, setFormRecruiterPassword] = useState('');
+  const [formRecruiterPhone, setFormRecruiterPhone] = useState('');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -101,6 +107,10 @@ export const SuperAdminCompaniesPage: React.FC = () => {
     setFormHighestPackage(28.0);
     setFormDescription('Leading tech company empowering digital transformation.');
     setFormIsTied(true);
+    setFormRecruiterName('');
+    setFormRecruiterEmail('');
+    setFormRecruiterPassword('');
+    setFormRecruiterPhone('');
     setIsAddModalOpen(true);
   };
 
@@ -121,14 +131,27 @@ export const SuperAdminCompaniesPage: React.FC = () => {
   };
 
   const handleSaveAdd = async () => {
-    if (!formName) {
+    if (!formName.trim()) {
       showToast('Please enter a company name');
       return;
     }
+    if (formRecruiterEmail && !formRecruiterPassword) {
+      showToast('Please provide a password for recruiter login');
+      return;
+    }
+    if (formRecruiterPassword && !formRecruiterEmail) {
+      showToast('Please provide a work email for recruiter login');
+      return;
+    }
+    if (formRecruiterPassword && formRecruiterPassword.length < 6) {
+      showToast('Recruiter password must be at least 6 characters');
+      return;
+    }
+
     setActionLoading(true);
     try {
       await companyService.create({
-        name: formName,
+        name: formName.trim(),
         industry: formIndustry || 'Technology',
         type: formType || 'product',
         size: formSize || 'medium',
@@ -139,8 +162,17 @@ export const SuperAdminCompaniesPage: React.FC = () => {
         highestPackage: formHighestPackage,
         description: formDescription,
         isTied: formIsTied,
-      });
-      showToast(`Company "${formName}" onboarded successfully!`);
+        recruiterName: formRecruiterName.trim(),
+        recruiterEmail: formRecruiterEmail.trim(),
+        recruiterPassword: formRecruiterPassword,
+        recruiterPhone: formRecruiterPhone.trim(),
+      } as any);
+
+      showToast(
+        formRecruiterEmail
+          ? `Company "${formName}" onboarded with recruiter login (${formRecruiterEmail})!`
+          : `Company "${formName}" onboarded successfully!`
+      );
       setIsAddModalOpen(false);
       loadData();
     } catch (e) {
@@ -241,10 +273,10 @@ export const SuperAdminCompaniesPage: React.FC = () => {
 
       {/* KPI Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Partner Companies" value={statsData.totalPartnerCompanies || totalCount} change="Active on platform" changeType="increase" icon={<Building2 className="w-5 h-5" />} color="brand" />
-        <StatCard title="Tied-Up Partners" value={statsData.tiedCount} change="Exclusive drive contracts" changeType="increase" icon={<ShieldCheck className="w-5 h-5" />} color="purple" />
-        <StatCard title="Total Students Hired" value={statsData.totalStudentsHired} change="Across all placement drives" changeType="increase" icon={<Users className="w-5 h-5" />} color="green" />
-        <StatCard title="Avg Package Offered" value={statsData.avgPackage} change="Platform-wide average" changeType="neutral" icon={<DollarSign className="w-5 h-5" />} color="amber" />
+        <StatCard title="Total Partner Companies" value={statsData.totalPartnerCompanies || totalCount} icon={<Building2 className="w-5 h-5" />} color="brand" />
+        <StatCard title="Tied-Up Partners" value={statsData.tiedCount} icon={<ShieldCheck className="w-5 h-5" />} color="purple" />
+        <StatCard title="Total Students Hired" value={statsData.totalStudentsHired} icon={<Users className="w-5 h-5" />} color="green" />
+        <StatCard title="Avg Package Offered" value={statsData.avgPackage} icon={<DollarSign className="w-5 h-5" />} color="amber" />
       </div>
 
       {/* Search & Filter Header Bar */}
@@ -508,6 +540,67 @@ export const SuperAdminCompaniesPage: React.FC = () => {
               onChange={(e) => setFormDescription(e.target.value)}
             />
           </div>
+
+          {isAddModalOpen && (
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4">
+              <div className="flex items-center gap-2.5 pb-1">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-primary-600 text-white flex items-center justify-center shadow-sm">
+                  <User className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    Recruiter Login Credentials
+                    <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                      Login Access
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Create the corporate recruiter user account to manage drives & candidates
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Recruiter / HR Contact Person"
+                  placeholder="e.g. Priya Sharma"
+                  value={formRecruiterName}
+                  onChange={(e) => setFormRecruiterName(e.target.value)}
+                  leftIcon={<User className="w-4 h-4" />}
+                />
+
+                <Input
+                  label="Recruiter Work Email (Login ID)"
+                  type="email"
+                  placeholder="recruiter@company.com"
+                  value={formRecruiterEmail}
+                  onChange={(e) => setFormRecruiterEmail(e.target.value)}
+                  leftIcon={<Mail className="w-4 h-4" />}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Login Password"
+                  type="password"
+                  placeholder="Create secure password (min 6 chars)"
+                  value={formRecruiterPassword}
+                  onChange={(e) => setFormRecruiterPassword(e.target.value)}
+                  leftIcon={<KeyRound className="w-4 h-4" />}
+                  required
+                />
+
+                <Input
+                  label="Contact Phone / Mobile"
+                  placeholder="+91 98765 43210"
+                  value={formRecruiterPhone}
+                  onChange={(e) => setFormRecruiterPhone(e.target.value)}
+                  leftIcon={<Phone className="w-4 h-4" />}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
 

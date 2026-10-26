@@ -61,6 +61,7 @@ import { StudentNotificationsPage } from '../pages/student/Notifications';
 import { StudentProgramsPage } from '../pages/student/Programs';
 import { StudentNewsroomPage } from '../pages/student/Newsroom';
 import { StudentCampusDrivesPage } from '../pages/student/CampusDrives';
+import { StudentCampusOSDrivesPage } from '../pages/student/CampusOSDrives';
 import { CommunityFeedPage } from '../pages/student/CommunityFeed';
 import { ExploreStudentsPage } from '../pages/student/ExploreStudents';
 import { StudentDetailViewPage } from '../pages/student/StudentDetailView';
@@ -78,7 +79,6 @@ import { RecruiterCompanyPage } from '../pages/recruiter/Company';
 import { RecruiterJobsPage } from '../pages/recruiter/Jobs';
 import { RecruiterCandidatesPage } from '../pages/recruiter/Candidates';
 import { RecruiterShortlistsPage } from '../pages/recruiter/Shortlists';
-import { RecruiterDrivesPage } from '../pages/recruiter/Drives';
 import { RecruiterInterviewsPage } from '../pages/recruiter/Interviews';
 import { RecruiterCalendarPage } from '../pages/recruiter/Calendar';
 import { RecruiterAnalyticsPage } from '../pages/recruiter/Analytics';
@@ -158,6 +158,7 @@ export const AppRouter: React.FC = () => {
             <Route path="/student/resume" element={<StudentResumePage />} />
             <Route path="/student/ats-checker" element={<StudentATSCheckerPage />} />
             <Route path="/student/drives" element={<StudentCampusDrivesPage />} />
+            <Route path="/student/campusos-drives" element={<StudentCampusOSDrivesPage />} />
             <Route path="/student/applications" element={<StudentApplicationsPage />} />
             <Route path="/student/interviews" element={<StudentInterviewsPage />} />
             <Route path="/student/calendar" element={<StudentCalendarPage />} />
@@ -190,11 +191,11 @@ export const AppRouter: React.FC = () => {
             <Route path="/recruiter/jobs" element={<RecruiterJobsPage />} />
             <Route path="/recruiter/candidates" element={<RecruiterCandidatesPage />} />
             <Route path="/recruiter/shortlists" element={<RecruiterShortlistsPage />} />
-            <Route path="/recruiter/drives" element={<RecruiterDrivesPage />} />
+            <Route path="/recruiter/drives" element={<Navigate to="/recruiter/dashboard" replace />} />
             <Route path="/recruiter/interviews" element={<RecruiterInterviewsPage />} />
             <Route path="/recruiter/calendar" element={<RecruiterCalendarPage />} />
             <Route path="/recruiter/analytics" element={<RecruiterAnalyticsPage />} />
-            <Route path="/recruiter/ai-assistant" element={<AIAssistantPage mode="recruiter" />} />
+            <Route path="/recruiter/ai-assistant" element={<Navigate to="/recruiter/dashboard" replace />} />
             <Route path="/recruiter/settings" element={<RecruiterSettingsPage />} />
           </Route>
 
