@@ -23,7 +23,6 @@ import { SuperAdminSubscriptionsPage } from '../pages/super-admin/Subscriptions'
 import { SuperAdminPlansPage } from '../pages/super-admin/Plans';
 import { SuperAdminUsagePage } from '../pages/super-admin/Usage';
 import { SuperAdminAnalyticsPage } from '../pages/super-admin/Analytics';
-import { SuperAdminAuditLogsPage } from '../pages/super-admin/AuditLogs';
 import { SuperAdminSettingsPage } from '../pages/super-admin/Settings';
 import { SuperAdminProgramsPage } from '../pages/super-admin/Programs';
 import { SuperAdminNewsroomPage } from '../pages/super-admin/Newsroom';
@@ -124,7 +123,6 @@ export const AppRouter: React.FC = () => {
             <Route path="/super-admin/plans" element={<SuperAdminPlansPage />} />
             <Route path="/super-admin/usage" element={<SuperAdminUsagePage />} />
             <Route path="/super-admin/analytics" element={<SuperAdminAnalyticsPage />} />
-            <Route path="/super-admin/audit-logs" element={<SuperAdminAuditLogsPage />} />
             <Route path="/super-admin/settings" element={<SuperAdminSettingsPage />} />
           </Route>
 

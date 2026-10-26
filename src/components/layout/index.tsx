@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Briefcase, GraduationCap, BookOpen,
   BarChart3, Settings, Bell, Bot, Calendar, FileText, FileCheck, Search, Sun, Moon,
-  ChevronLeft, ChevronRight, LogOut, User, Command, Shield, CreditCard, Menu, X,
+  ChevronLeft, ChevronRight, LogOut, User, Command, CreditCard, Menu, X,
   Activity, Layers, AlertCircle, UserCheck, TrendingUp, Zap, Target,
   ClipboardList, MessageSquare, Award, BookMarked, Lightbulb,
   Building, ListChecks, Network, Video, Newspaper, Sparkles
@@ -62,7 +62,6 @@ const getSidebarNav = (role: Role): NavSection[] => {
           title: 'Insights',
           items: [
             { label: 'Analytics', icon: <BarChart3 className="w-4 h-4" />, to: '/super-admin/analytics' },
-            { label: 'Audit Logs', icon: <Shield className="w-4 h-4" />, to: '/super-admin/audit-logs' },
             { label: 'Settings', icon: <Settings className="w-4 h-4" />, to: '/super-admin/settings' },
           ]
         },
