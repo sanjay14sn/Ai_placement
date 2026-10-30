@@ -12,6 +12,7 @@ import { InstitutionsPage } from '../pages/public/InstitutionsPage';
 import { RecruitersPage } from '../pages/public/RecruitersPage';
 import { CandidatesPage } from '../pages/public/CandidatesPage';
 import { SolutionsPage } from '../pages/public/SolutionsPage';
+import { PaymentCheckoutPage } from '../pages/shared/PaymentCheckoutPage';
 
 // Super Admin
 import { SuperAdminOverview } from '../pages/super-admin/Overview';
@@ -106,6 +107,8 @@ export const AppRouter: React.FC = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/payment" element={<PaymentCheckoutPage />} />
+            <Route path="/checkout" element={<PaymentCheckoutPage />} />
           </Route>
 
           {/* Super Admin Routes */}

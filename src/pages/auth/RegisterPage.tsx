@@ -9,8 +9,9 @@ import {
 import { Button, Input, Badge, Select } from '../../components/ui';
 import { toast } from 'sonner';
 import { DEPARTMENTS } from '../../mock/data';
-import { authService, collegeService, studentService, uploadService } from '../../services';
+import { authService, collegeService, paymentService, studentService, uploadService } from '../../services';
 import { useAuthStore, useTenantStore } from '../../store';
+import { RazorpayCheckoutModal } from '../../components/payment';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,6 +20,16 @@ export const RegisterPage: React.FC = () => {
   
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [loading, setLoading] = useState(false);
+
+  // Razorpay Payment Gateway & AutoPay State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [verifiedPayment, setVerifiedPayment] = useState<{
+    order_id: string;
+    payment_id: string;
+    amount: number;
+    paidAt: string;
+    isAutoPay?: boolean;
+  } | null>(null);
 
   // Student Form State
   const [studentCollegeName, setStudentCollegeName] = useState('');
@@ -490,8 +501,88 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
+    // If payment already completed/verified, proceed directly to register & dispatch OTP
+    if (verifiedPayment) {
+      await executeRegistrationAndSendOtp(verifiedPayment);
+      return;
+    }
+
+    // ─── INTEGRATE AUTOPAY: Launch Razorpay Checkout for ₹30 ───
+    setLoading(true);
+    const toastId = toast.loading('Connecting to Razorpay for ₹30 AutoPay Setup...');
+    try {
+      const collegeName = studentCollegeName.trim() || resolvedCollege?.name || 'Independent Student';
+      const studentRoll = studentIdNum.trim();
+
+      await paymentService.openCheckout({
+        amount: 3000, // ₹30.00 (3000 paise)
+        currency: 'INR',
+        name: 'AI Campus OS',
+        description: 'Pay ₹30 & Set Up AutoPay (Monthly ₹30)',
+        isAutoPay: true,
+        prefill: {
+          name: studentName.trim(),
+          email: studentEmail.trim().toLowerCase(),
+          contact: '9999999999',
+        },
+        notes: {
+          studentId: studentRoll,
+          college: collegeName,
+          autopay: 'true',
+          mandate_amount: '30',
+          frequency: 'monthly',
+          purpose: 'Student Placement Onboarding & AutoPay',
+        },
+        onSuccess: async (res) => {
+          toast.dismiss(toastId);
+          const paymentInfo = {
+            order_id: res.order_id,
+            payment_id: res.payment_id,
+            amount: 30,
+            paidAt: new Date().toLocaleString('en-IN'),
+            isAutoPay: true,
+          };
+          setVerifiedPayment(paymentInfo);
+          toast.success('🎉 ₹30 Payment & AutoPay Verified!', {
+            description: `Payment ID: ${res.payment_id} · AutoPay active`,
+          });
+          await executeRegistrationAndSendOtp(paymentInfo);
+        },
+        onError: (err) => {
+          setLoading(false);
+          toast.dismiss(toastId);
+          toast.error('AutoPay Setup Incomplete', {
+            description: err.message || 'Payment or AutoPay authorization failed.',
+          });
+        },
+        onDismiss: () => {
+          setLoading(false);
+          toast.dismiss(toastId);
+          toast.info('Checkout closed. Click "Pay ₹30 & Set Up AutoPay" whenever you are ready.');
+        },
+      });
+    } catch (err: any) {
+      setLoading(false);
+      toast.dismiss(toastId);
+      toast.error('Failed to open Razorpay AutoPay checkout', {
+        description: err.message || 'Please check your connection and try again.',
+      });
+    }
+  };
+
+  // Helper to execute backend student registration & dispatch OTP
+  const executeRegistrationAndSendOtp = async (paymentRecord?: {
+    order_id: string;
+    payment_id: string;
+    amount: number;
+    paidAt: string;
+    isAutoPay?: boolean;
+  } | null) => {
     setLoading(true);
     try {
+      const cleanBatch = studentBatch.trim();
+      const cgpaNum = parseFloat(studentCgpa.trim());
+      const rawAadhar = aadharNumber.replace(/\s+/g, '');
       const deptIdx = DEPARTMENTS.indexOf(studentDept.trim());
       const matchedDepartment = resolvedCollege?.departments.find((department) => department.name === studentDept.trim());
       const collegeId = resolvedCollege?.id || 'individual';
@@ -514,11 +605,19 @@ export const RegisterPage: React.FC = () => {
         isIndividual: isIndividualStudent,
         aadharNumber: rawAadhar,
         aadharCard: {
-          fileName: aadharFile.name,
-          fileUrl: aadharFile.url,
-          fileSize: aadharFile.size,
+          fileName: aadharFile?.name || '',
+          fileUrl: aadharFile?.url || '',
+          fileSize: aadharFile?.size || 0,
           uploadedAt: new Date().toISOString(),
         },
+        payment: paymentRecord ? {
+          orderId: paymentRecord.order_id,
+          paymentId: paymentRecord.payment_id,
+          amount: paymentRecord.amount,
+          paidAt: paymentRecord.paidAt,
+          isAutoPay: paymentRecord.isAutoPay ?? true,
+          status: 'paid',
+        } : undefined,
       });
 
       setOtp(['', '', '', '', '', '']);
@@ -1183,16 +1282,40 @@ export const RegisterPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Submit Button */}
-                  <Button
+                  {/* ─── Submit / Pay ₹30 & Set Up AutoPay Button ─── */}
+                  <button
                     type="submit"
-                    loading={loading}
-                    className="w-full h-12 text-sm sm:text-base font-extrabold mt-3 bg-[#0066FF] hover:bg-[#0052cc] text-white shadow-md shadow-blue-500/20 rounded-xl transition-all duration-200 active:scale-[0.99] cursor-pointer"
-                    size="lg"
-                    rightIcon={<ArrowRight className="w-5 h-5" />}
+                    disabled={loading}
+                    className={`w-full min-h-[62px] py-3.5 px-6 rounded-2xl transition-all duration-200 active:scale-[0.99] cursor-pointer flex flex-col items-center justify-center gap-1 shadow-xl disabled:opacity-60 disabled:cursor-not-allowed ${
+                      verifiedPayment
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/25 border border-emerald-400/40'
+                        : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-blue-500/25 border border-blue-400/30'
+                    }`}
                   >
-                    Complete Student Setup & Launch Dashboard
-                  </Button>
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="w-5 h-5 animate-spin text-white" />
+                        <span className="font-extrabold text-base">Processing Secure AutoPay...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-5 h-5 text-blue-200" />
+                          <span className="tracking-tight text-white font-black text-base sm:text-lg">
+                            {verifiedPayment
+                              ? 'Payment Verified (₹30 AutoPay Linked)'
+                              : 'Pay ₹30 & Set Up AutoPay'}
+                          </span>
+                          <ArrowRight className="w-5 h-5 ml-1 text-blue-200" />
+                        </div>
+                        <span className="text-[11px] font-medium text-blue-100 opacity-90">
+                          {verifiedPayment
+                            ? 'AutoPay Mandate Active • Complete Student Setup & Launch Dashboard'
+                            : 'Complete Student Setup & Launch Dashboard'}
+                        </span>
+                      </>
+                    )}
+                  </button>
 
                   <p className="text-center text-xs text-slate-600 pt-2 border-t border-slate-200">
                     Already have an account?{' '}
@@ -1306,6 +1429,23 @@ export const RegisterPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Razorpay Standard Web Checkout Modal */}
+      <RazorpayCheckoutModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        defaultAmountInRupees={499}
+        title="Student Placement Pass & Fee"
+        subtitle="Razorpay Standard Web Checkout Modal"
+        studentName={studentName}
+        studentEmail={studentEmail}
+        studentRoll={studentIdNum}
+        collegeName={studentCollegeName}
+        onPaymentSuccess={(data) => {
+          setVerifiedPayment(data);
+          setShowPaymentModal(false);
+        }}
+      />
     </div>
   );
 };

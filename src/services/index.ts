@@ -1971,3 +1971,5 @@ export const emailApi = {
   },
 };
 
+export * from './payment.service';
+

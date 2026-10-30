@@ -89,9 +89,16 @@ export const SuperAdminSubscriptionsPage: React.FC = () => {
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button
                 variant="primary"
+                onClick={() => navigate('/payment')}
+                leftIcon={<CreditCard className="w-4 h-4" />}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
+              >
+                Launch Razorpay Checkout
+              </Button>
+              <Button
+                variant="outline"
                 onClick={handleNotifyMe}
                 leftIcon={<BellRing className="w-4 h-4" />}
-                className="bg-brand-600 hover:bg-brand-700 text-white shadow-sm"
               >
                 Notify Me When Ready
               </Button>
