@@ -40,6 +40,14 @@ export interface VerifyPaymentResponse {
   error?: string;
 }
 
+export interface CreateSubscriptionResponse {
+  success: boolean;
+  subscription_id: string;
+  key_id?: string;
+  customer_id?: string;
+  start_at: number;
+}
+
 export interface CheckoutOptions {
   amount: number; // amount in paise
   currency?: string;
@@ -89,6 +97,70 @@ export const loadRazorpayScript = (): Promise<boolean> => {
  * Payment Service for Razorpay Integration
  */
 export const paymentService = {
+  async createStudentSubscription(params: { name: string; email: string; contact: string; studentId: string; college: string }): Promise<CreateSubscriptionResponse> {
+    const res = await fetch(`${API_BASE}/create-student-subscription`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.message || data.error || 'Failed to create AutoPay subscription');
+    return data;
+  },
+
+  async verifySubscription(params: { razorpay_subscription_id: string; razorpay_payment_id: string; razorpay_signature: string }): Promise<VerifyPaymentResponse> {
+    const res = await fetch(`${API_BASE}/verify-subscription`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.message || data.error || 'Subscription authorization verification failed');
+    return data;
+  },
+
+  async openStudentSubscription(options: Omit<CheckoutOptions, 'amount' | 'isAutoPay' | 'onSuccess'> & {
+    studentId: string;
+    college: string;
+    onSuccess: (response: { subscription_id: string; payment_id: string }) => void;
+  }): Promise<void> {
+    const isLoaded = await loadRazorpayScript();
+    if (!isLoaded || !window.Razorpay) throw new Error('Failed to load Razorpay payment SDK. Please check your internet connection.');
+    const subscription = await this.createStudentSubscription({
+      name: options.prefill?.name || '',
+      email: options.prefill?.email || '',
+      contact: options.prefill?.contact || '',
+      studentId: options.studentId,
+      college: options.college,
+    });
+    const rzp = new window.Razorpay({
+      key: subscription.key_id || import.meta.env.VITE_RAZORPAY_KEY_ID || '',
+      subscription_id: subscription.subscription_id,
+      name: options.name || 'AI Campus OS',
+      description: options.description || '₹30/month after a 14-day free trial',
+      image: '/aicampusos.png',
+      customer_id: subscription.customer_id,
+      prefill: options.prefill,
+      notes: options.notes,
+      theme: { color: '#0066FF' },
+      modal: { ondismiss: options.onDismiss },
+      handler: async (response: RazorpaySuccessResponse) => {
+        try {
+          const result = await this.verifySubscription({
+            razorpay_subscription_id: response.razorpay_subscription_id || subscription.subscription_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          });
+          if (!result.success) throw new Error(result.message || 'Subscription verification failed');
+          options.onSuccess({ subscription_id: subscription.subscription_id, payment_id: response.razorpay_payment_id });
+        } catch (error: any) {
+          options.onError({ message: error.message || 'Subscription verification failed' });
+        }
+      },
+    });
+    rzp.on('payment.failed', (failure: any) => options.onError({ message: failure?.error?.description || 'Subscription authorization failed' }));
+    rzp.open();
+  },
   /**
    * STEP 1: Calls backend POST /api/create-order
    */

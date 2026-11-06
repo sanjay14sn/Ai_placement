@@ -509,17 +509,16 @@ export const RegisterPage: React.FC = () => {
 
     // ─── INTEGRATE AUTOPAY: Launch Razorpay Checkout for ₹30 ───
     setLoading(true);
-    const toastId = toast.loading('Connecting to Razorpay for ₹30 AutoPay Setup...');
+    const toastId = toast.loading('Setting up your 14-day free trial and AutoPay mandate...');
     try {
       const collegeName = studentCollegeName.trim() || resolvedCollege?.name || 'Independent Student';
       const studentRoll = studentIdNum.trim();
 
-      await paymentService.openCheckout({
-        amount: 3000, // ₹30.00 (3000 paise)
-        currency: 'INR',
+      await paymentService.openStudentSubscription({
         name: 'AI Campus OS',
-        description: 'Pay ₹30 & Set Up AutoPay (Monthly ₹30)',
-        isAutoPay: true,
+        description: '14-day free trial, then ₹30/month via AutoPay',
+        studentId: studentRoll,
+        college: collegeName,
         prefill: {
           name: studentName.trim(),
           email: studentEmail.trim().toLowerCase(),
@@ -529,22 +528,23 @@ export const RegisterPage: React.FC = () => {
           studentId: studentRoll,
           college: collegeName,
           autopay: 'true',
-          mandate_amount: '30',
+          trial_days: '14',
+          recurring_amount: '30',
           frequency: 'monthly',
           purpose: 'Student Placement Onboarding & AutoPay',
         },
         onSuccess: async (res) => {
           toast.dismiss(toastId);
           const paymentInfo = {
-            order_id: res.order_id,
+            order_id: res.subscription_id,
             payment_id: res.payment_id,
-            amount: 30,
+            amount: 0,
             paidAt: new Date().toLocaleString('en-IN'),
             isAutoPay: true,
           };
           setVerifiedPayment(paymentInfo);
-          toast.success('🎉 ₹30 Payment & AutoPay Verified!', {
-            description: `Payment ID: ${res.payment_id} · AutoPay active`,
+          toast.success('🎉 14-day trial and AutoPay mandate authorized!', {
+            description: '₹0 charged now · ₹30/month starts after 14 days',
           });
           await executeRegistrationAndSendOtp(paymentInfo);
         },
@@ -558,7 +558,7 @@ export const RegisterPage: React.FC = () => {
         onDismiss: () => {
           setLoading(false);
           toast.dismiss(toastId);
-          toast.info('Checkout closed. Click "Pay ₹30 & Set Up AutoPay" whenever you are ready.');
+          toast.info('Checkout closed. Authorize the free trial whenever you are ready.');
         },
       });
     } catch (err: any) {
@@ -1282,7 +1282,7 @@ export const RegisterPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* ─── Submit / Pay ₹30 & Set Up AutoPay Button ─── */}
+                  {/* ─── Submit / Start trial and authorize AutoPay ─── */}
                   <button
                     type="submit"
                     disabled={loading}
@@ -1303,15 +1303,15 @@ export const RegisterPage: React.FC = () => {
                           <CreditCard className="w-5 h-5 text-blue-200" />
                           <span className="tracking-tight text-white font-black text-base sm:text-lg">
                             {verifiedPayment
-                              ? 'Payment Verified (₹30 AutoPay Linked)'
-                              : 'Pay ₹30 & Set Up AutoPay'}
+                              ? '14-Day Trial & AutoPay Linked'
+                              : 'Start 14-Day Free Trial & Set Up AutoPay'}
                           </span>
                           <ArrowRight className="w-5 h-5 ml-1 text-blue-200" />
                         </div>
                         <span className="text-[11px] font-medium text-blue-100 opacity-90">
                           {verifiedPayment
                             ? 'AutoPay Mandate Active • Complete Student Setup & Launch Dashboard'
-                            : 'Complete Student Setup & Launch Dashboard'}
+                          : '₹0 today • ₹30/month begins after 14 days'}
                         </span>
                       </>
                     )}
