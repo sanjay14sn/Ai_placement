@@ -565,7 +565,9 @@ export const RegisterPage: React.FC = () => {
       setLoading(false);
       toast.dismiss(toastId);
       toast.error('Failed to open Razorpay AutoPay checkout', {
-        description: err.message || 'Please check your connection and try again.',
+        description: err.message === 'Route not found'
+          ? 'The live backend is missing the subscription endpoint. Deploy the updated aiplacementosbackend, then try again.'
+          : err.message || 'Please check your connection and try again.',
       });
     }
   };
