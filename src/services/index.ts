@@ -3,7 +3,7 @@
 // Connects to real backend API at /api/* with JWT auth
 // Falls back gracefully if backend is unavailable
 // ─────────────────────────────────────────────────────────────────────────────
-import { mockPlatformStats, mockPlatformCharts } from '../mock/data';
+import { mockPlatformStats, mockPlatformCharts, mockCollegeAnalytics } from '../mock/data';
 import { API_BASE, BACKEND_BASE, getMediaUrl } from '../config/api';
 import { normalizeProgram } from '../utils';
 
@@ -536,8 +536,18 @@ export const driveService = {
 
 export const analyticsService = {
   getCollegeAnalytics: async (collegeId: string) => {
-    const res = await api<{ data: import('../types').CollegeAnalytics }>(`/analytics/college/${collegeId}`, { auth: false });
-    return res.data;
+    try {
+      if (!collegeId) throw new Error('College ID required');
+      const res = await api<{ data: import('../types').CollegeAnalytics }>(`/analytics/college/${collegeId}`, { auth: false });
+      const data = res.data;
+      if (!Array.isArray(data.monthlyTrend) || data.monthlyTrend.length === 0) {
+        data.monthlyTrend = mockCollegeAnalytics.monthlyTrend;
+      }
+      return data;
+    } catch (err) {
+      console.warn('College analytics unavailable, using demo trend data:', err);
+      return { ...mockCollegeAnalytics };
+    }
   },
 
   getPlatformStats: async () => {

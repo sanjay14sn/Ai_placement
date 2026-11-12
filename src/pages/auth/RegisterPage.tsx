@@ -1,17 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Zap, ArrowRight, User, Mail, Lock, Hash, 
+  Zap, ArrowRight, User, Mail, Lock,
   ShieldCheck, RefreshCw, ArrowLeft, Sparkles, Check,
-  CreditCard, UploadCloud, FileCheck, CheckCircle2, Eye, Trash2, FileText, Building2, GraduationCap,
+  CreditCard, CheckCircle2, FileText, Building2, GraduationCap,
   UserCheck
 } from 'lucide-react';
 import { Button, Input, Badge, Select } from '../../components/ui';
 import { toast } from 'sonner';
 import { DEPARTMENTS } from '../../mock/data';
-import { authService, collegeService, paymentService, studentService, uploadService } from '../../services';
+import { authService, collegeService, paymentService, studentService } from '../../services';
 import { useAuthStore, useTenantStore } from '../../store';
 import { RazorpayCheckoutModal } from '../../components/payment';
+
+const checkoutUnavailableHelp = (message: string) => {
+  if (/cannot reach the payment api/i.test(message)) {
+    return 'Start the API server: open the aiplacementosbackend folder and run npm run dev (PORT 5030 in .env), then try again.';
+  }
+  if (/razorpay credentials are not configured/i.test(message)) {
+    return 'Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET on the API server, then retry.';
+  }
+  if (/route not found/i.test(message)) {
+    return 'Deploy or run the latest aiplacementosbackend so /api/create-student-subscription exists.';
+  }
+  return message;
+};
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -35,24 +48,11 @@ export const RegisterPage: React.FC = () => {
   const [studentCollegeName, setStudentCollegeName] = useState('');
   const [studentDept, setStudentDept] = useState('');
   const [studentName, setStudentName] = useState('');
-  const [studentIdNum, setStudentIdNum] = useState('');
   const [studentEmail, setStudentEmail] = useState('');
   const [studentPassword, setStudentPassword] = useState('');
   const [studentDegree, setStudentDegree] = useState('');
   const [studentBatch, setStudentBatch] = useState('');
   const [studentCgpa, setStudentCgpa] = useState('');
-  
-  // Aadhar Card Verification & Upload State
-  const [aadharNumber, setAadharNumber] = useState('');
-  const [aadharFile, setAadharFile] = useState<{
-    file?: File;
-    name: string;
-    url: string;
-    size: number;
-    previewUrl?: string;
-  } | null>(null);
-  const [isUploadingAadhar, setIsUploadingAadhar] = useState(false);
-  const aadharFileInputRef = useRef<HTMLInputElement>(null);
 
   // OTP Verification State
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
@@ -94,61 +94,9 @@ export const RegisterPage: React.FC = () => {
   const collegeInputContainerRef = useRef<HTMLDivElement>(null);
   const [collegeLookup, setCollegeLookup] = useState<'idle' | 'loading' | 'miss'>('idle');
 
-  // Format 12-digit Aadhar number into 4-digit chunks (XXXX XXXX XXXX)
-  const handleAadharNumberChange = (val: string) => {
-    const digits = val.replace(/\D/g, '').slice(0, 12);
-    const formatted = digits.match(/.{1,4}/g)?.join(' ') || digits;
-    setAadharNumber(formatted);
-  };
-
-  // Upload Aadhar Card Document (PDF / Images)
-  const handleAadharFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be under 10MB');
-      return;
-    }
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'application/pdf'];
-    if (!validTypes.includes(file.type) && !file.name.match(/\.(jpe?g|png|webp|pdf)$/i)) {
-      toast.error('Please upload a valid document (PDF, PNG, JPG, or WEBP)');
-      return;
-    }
-
-    setIsUploadingAadhar(true);
-    try {
-      let uploadedUrl = '';
-      try {
-        const uploadRes = await uploadService.uploadFile(file);
-        uploadedUrl = uploadRes.url;
-      } catch (uploadErr) {
-        console.warn('Backend upload skipped/fallback to client URL:', uploadErr);
-        uploadedUrl = URL.createObjectURL(file);
-      }
-
-      const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
-      setAadharFile({
-        file,
-        name: file.name,
-        url: uploadedUrl,
-        size: file.size,
-        previewUrl,
-      });
-      toast.success('Aadhar card attached successfully!');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to upload Aadhar card');
-    } finally {
-      setIsUploadingAadhar(false);
-      if (aadharFileInputRef.current) aadharFileInputRef.current.value = '';
-    }
-  };
-
-  const handleRemoveAadhar = () => {
-    setAadharFile(null);
-    if (aadharFileInputRef.current) aadharFileInputRef.current.value = '';
-    toast.info('Aadhar card removed');
+  const registrationRef = () => {
+    const local = studentEmail.trim().toLowerCase().split('@')[0]?.replace(/[^a-z0-9._-]/g, '') || '';
+    return local || `STU${Date.now().toString(36).slice(-8).toUpperCase()}`;
   };
 
   // Close suggestions on click outside
@@ -457,14 +405,9 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
-    // 5. Full Name & Roll Number Checks
+    // 5. Full Name
     if (!studentName.trim() || studentName.trim().length < 2) {
       toast.error('Please enter your full name (minimum 2 characters)');
-      return;
-    }
-
-    if (!studentIdNum.trim()) {
-      toast.error('Please enter your Roll No / USN (University Serial Number)');
       return;
     }
 
@@ -480,43 +423,28 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
-    // 7. MANDATORY AADHAR CARD VERIFICATION & KYC
-    const rawAadhar = aadharNumber.replace(/\s+/g, '');
-    if (!rawAadhar) {
-      toast.error('Aadhar Card Number is mandatory for KYC identity verification');
-      return;
-    }
-    if (rawAadhar.length !== 12 || !/^\d{12}$/.test(rawAadhar)) {
-      toast.error('Aadhar Card Number must be exactly 12 digits (e.g. 3454 2345 6545)');
-      return;
-    }
-
-    if (isUploadingAadhar) {
-      toast.error('Please wait for your Aadhar Card document upload to complete');
-      return;
-    }
-
-    if (!aadharFile || !aadharFile.url) {
-      toast.error('Aadhar Card document upload is mandatory. Please upload your Aadhar Card (PDF, JPG or PNG)');
-      return;
-    }
-
     // If payment already completed/verified, proceed directly to register & dispatch OTP
     if (verifiedPayment) {
       await executeRegistrationAndSendOtp(verifiedPayment);
       return;
     }
 
-    // ─── INTEGRATE AUTOPAY: Launch Razorpay Checkout for ₹30 ───
+    const skipCheckout = import.meta.env.VITE_SKIP_STUDENT_CHECKOUT === 'true';
+    if (skipCheckout) {
+      await executeRegistrationAndSendOtp(null);
+      return;
+    }
+
+    // ─── Launch Razorpay subscription checkout for 14-day trial ───
     setLoading(true);
-    const toastId = toast.loading('Setting up your 14-day free trial and AutoPay mandate...');
+    const toastId = toast.loading('Setting up your 14-day free trial...');
     try {
       const collegeName = studentCollegeName.trim() || resolvedCollege?.name || 'Independent Student';
-      const studentRoll = studentIdNum.trim();
+      const studentRoll = registrationRef();
 
       await paymentService.openStudentSubscription({
         name: 'AI Campus OS',
-        description: '14-day free trial, then ₹30/month via AutoPay',
+        description: '14-day free trial, then ₹30/month',
         studentId: studentRoll,
         college: collegeName,
         prefill: {
@@ -531,7 +459,7 @@ export const RegisterPage: React.FC = () => {
           trial_days: '14',
           recurring_amount: '30',
           frequency: 'monthly',
-          purpose: 'Student Placement Onboarding & AutoPay',
+          purpose: 'Student Placement Onboarding',
         },
         onSuccess: async (res) => {
           toast.dismiss(toastId);
@@ -543,7 +471,7 @@ export const RegisterPage: React.FC = () => {
             isAutoPay: true,
           };
           setVerifiedPayment(paymentInfo);
-          toast.success('🎉 14-day trial and AutoPay mandate authorized!', {
+          toast.success('🎉 Your 14-day free trial is active!', {
             description: '₹0 charged now · ₹30/month starts after 14 days',
           });
           await executeRegistrationAndSendOtp(paymentInfo);
@@ -551,8 +479,8 @@ export const RegisterPage: React.FC = () => {
         onError: (err) => {
           setLoading(false);
           toast.dismiss(toastId);
-          toast.error('AutoPay Setup Incomplete', {
-            description: err.message || 'Payment or AutoPay authorization failed.',
+          toast.error('Trial setup incomplete', {
+            description: err.message || 'Payment authorization failed. Please try again.',
           });
         },
         onDismiss: () => {
@@ -561,14 +489,21 @@ export const RegisterPage: React.FC = () => {
           toast.info('Checkout closed. Authorize the free trial whenever you are ready.');
         },
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setLoading(false);
       toast.dismiss(toastId);
-      toast.error('Failed to open Razorpay AutoPay checkout', {
-        description: err.message === 'Route not found'
-          ? 'The live backend is missing the subscription endpoint. Deploy the updated aiplacementosbackend, then try again.'
-          : err.message || 'Please check your connection and try again.',
-      });
+      const message = err instanceof Error ? err.message : 'Please check your connection and try again.';
+      const help = checkoutUnavailableHelp(message);
+
+      if (import.meta.env.DEV && /cannot reach the payment api/i.test(message)) {
+        toast.warning('Payment API is offline — continuing with email verification', {
+          description: 'Start aiplacementosbackend on port 5030 when you want Razorpay checkout.',
+        });
+        await executeRegistrationAndSendOtp(null);
+        return;
+      }
+
+      toast.error('Could not open secure checkout', { description: help });
     }
   };
 
@@ -584,19 +519,16 @@ export const RegisterPage: React.FC = () => {
     try {
       const cleanBatch = studentBatch.trim();
       const cgpaNum = parseFloat(studentCgpa.trim());
-      const rawAadhar = aadharNumber.replace(/\s+/g, '');
       const deptIdx = DEPARTMENTS.indexOf(studentDept.trim());
       const matchedDepartment = resolvedCollege?.departments.find((department) => department.name === studentDept.trim());
       const collegeId = resolvedCollege?.id || 'individual';
       const collegeName = studentCollegeName.trim() || resolvedCollege?.name || 'Independent Student';
-      const studentRoll = studentIdNum.trim();
-
       // Call real backend API to register student profile and dispatch cryptographic OTP via email
       await authService.registerStudent({
         name: studentName.trim(),
         email: studentEmail.trim().toLowerCase(),
         password: studentPassword,
-        studentId: studentRoll,
+        studentId: registrationRef(),
         collegeId,
         collegeName,
         department: studentDept.trim(),
@@ -605,13 +537,6 @@ export const RegisterPage: React.FC = () => {
         batch: cleanBatch,
         cgpa: cgpaNum,
         isIndividual: isIndividualStudent,
-        aadharNumber: rawAadhar,
-        aadharCard: {
-          fileName: aadharFile?.name || '',
-          fileUrl: aadharFile?.url || '',
-          fileSize: aadharFile?.size || 0,
-          uploadedAt: new Date().toISOString(),
-        },
         payment: paymentRecord ? {
           orderId: paymentRecord.order_id,
           paymentId: paymentRecord.payment_id,
@@ -1076,39 +1001,25 @@ export const RegisterPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* ─── RIGHT COLUMN: Personal Details, Credentials & KYC ──────── */}
+                {/* ─── RIGHT COLUMN: Personal Details & Credentials ──────── */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-1 border-b border-slate-200">
                     <User className="w-4 h-4 text-[#0066FF]" />
                     <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
-                      Student Credentials & Identity KYC
+                      Student credentials
                     </h3>
                   </div>
 
-                  {/* Full Name & Roll No */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input
-                      label="Full Name *"
-                      labelClassName="text-slate-900 font-bold text-xs"
-                      className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
-                      placeholder="Rahul Sharma"
-                      value={studentName}
-                      onChange={(e) => setStudentName(e.target.value)}
-                      leftIcon={<User className="w-4 h-4 text-[#0066FF]" />}
-                      required
-                    />
-
-                    <Input
-                      label="Roll No / USN *"
-                      labelClassName="text-slate-900 font-bold text-xs"
-                      className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
-                      placeholder="e.g. SONA2021CS045"
-                      value={studentIdNum}
-                      onChange={(e) => setStudentIdNum(e.target.value)}
-                      leftIcon={<Hash className="w-4 h-4 text-[#0066FF]" />}
-                      required
-                    />
-                  </div>
+                  <Input
+                    label="Full Name *"
+                    labelClassName="text-slate-900 font-bold text-xs"
+                    className="bg-slate-50 text-slate-900 border border-slate-300 focus:bg-white focus:border-[#0066FF] font-medium text-xs sm:text-sm"
+                    placeholder="Rahul Sharma"
+                    value={studentName}
+                    onChange={(e) => setStudentName(e.target.value)}
+                    leftIcon={<User className="w-4 h-4 text-[#0066FF]" />}
+                    required
+                  />
 
                   {/* Student Email Address & Password */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1141,149 +1052,6 @@ export const RegisterPage: React.FC = () => {
                     />
                   </div>
 
-                  {/* Aadhar Card Verification */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-blue-100 text-[#0066FF] flex items-center justify-center">
-                          <CreditCard className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <span className="text-xs font-bold text-slate-900 block leading-tight">
-                            Aadhar Card Verification <span className="text-rose-500">*</span>
-                          </span>
-                          <span className="text-[10px] text-slate-500 block">
-                            Government Identity Proof for Placement Drives & KYC
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1 shadow-xs">
-                        <ShieldCheck className="w-3 h-3 text-rose-600" /> Mandatory KYC Proof
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <Input
-                          label="Aadhar Card Number *"
-                          labelClassName="text-slate-900 font-bold text-xs"
-                          className={`bg-white text-slate-900 border ${
-                            aadharNumber.replace(/\D/g, '').length === 12
-                              ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-100'
-                              : 'border-slate-300 focus:border-[#0066FF]'
-                          } focus:bg-white font-mono text-xs sm:text-sm tracking-wider`}
-                          placeholder="3454 2345 6545"
-                          value={aadharNumber}
-                          onChange={(e) => handleAadharNumberChange(e.target.value)}
-                          maxLength={14}
-                          leftIcon={<CreditCard className="w-4 h-4 text-[#0066FF]" />}
-                          required
-                        />
-                        <div className="flex items-center justify-between mt-1 px-0.5">
-                          <span className="text-[10px] text-slate-500">
-                            12-digit UIDAI identity number
-                          </span>
-                          <span className={`text-[10px] font-mono font-bold ${
-                            aadharNumber.replace(/\D/g, '').length === 12
-                              ? 'text-emerald-600 flex items-center gap-0.5'
-                              : 'text-slate-400'
-                          }`}>
-                            {aadharNumber.replace(/\D/g, '').length === 12 ? (
-                              <>
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" /> 12 / 12 Digits
-                              </>
-                            ) : (
-                              `${aadharNumber.replace(/\D/g, '').length} / 12 Digits`
-                            )}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-900 mb-1.5">
-                          Upload Aadhar Card (PDF / Image) <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          type="file"
-                          ref={aadharFileInputRef}
-                          className="hidden"
-                          accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/*"
-                          onChange={handleAadharFileSelect}
-                        />
-
-                        {!aadharFile ? (
-                          <button
-                            type="button"
-                            onClick={() => aadharFileInputRef.current?.click()}
-                            disabled={isUploadingAadhar}
-                            className="w-full h-11 px-3 border-2 border-dashed border-rose-300/80 hover:border-[#0066FF] bg-rose-50/20 hover:bg-blue-50/40 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-slate-700 hover:text-[#0066FF] transition-all cursor-pointer shadow-xs disabled:opacity-50"
-                          >
-                            {isUploadingAadhar ? (
-                              <>
-                                <RefreshCw className="w-4 h-4 animate-spin text-[#0066FF]" />
-                                <span>Uploading Document...</span>
-                              </>
-                            ) : (
-                              <>
-                                <UploadCloud className="w-4 h-4 text-rose-500 transition-colors" />
-                                <span>Upload Aadhar <strong className="text-rose-600">(Mandatory)</strong></span>
-                              </>
-                            )}
-                          </button>
-                        ) : (
-                          <div className="flex items-center justify-between p-2 bg-white border border-emerald-300 rounded-xl shadow-xs">
-                            <div className="flex items-center gap-2 min-w-0">
-                              {aadharFile.previewUrl ? (
-                                <img
-                                  src={aadharFile.previewUrl}
-                                  alt="Aadhar Preview"
-                                  className="w-7 h-7 rounded-lg object-cover border border-slate-200 flex-shrink-0"
-                                />
-                              ) : (
-                                <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 border border-emerald-200">
-                                  <FileCheck className="w-3.5 h-3.5" />
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-900 truncate">
-                                  {aadharFile.name}
-                                </p>
-                                <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  {(aadharFile.size / 1024).toFixed(0)} KB · Verified & Ready
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-1">
-                              {aadharFile.url && (
-                                <button
-                                  type="button"
-                                  onClick={() => window.open(aadharFile.url, '_blank')}
-                                  title="View document"
-                                  className="p-1 text-slate-400 hover:text-[#0066FF] rounded-lg hover:bg-slate-100 transition-colors"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={handleRemoveAadhar}
-                                title="Remove file"
-                                className="p-1 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        <p className="mt-1 text-[10px] text-slate-500">
-                          Supports PDF, JPG or PNG (Max 10MB)
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* ─── Submit / Start trial and authorize AutoPay ─── */}
                   <button
                     type="submit"
@@ -1297,7 +1065,7 @@ export const RegisterPage: React.FC = () => {
                     {loading ? (
                       <div className="flex items-center gap-2">
                         <RefreshCw className="w-5 h-5 animate-spin text-white" />
-                        <span className="font-extrabold text-base">Processing Secure AutoPay...</span>
+                        <span className="font-extrabold text-base">Processing secure checkout...</span>
                       </div>
                     ) : (
                       <>
@@ -1305,14 +1073,14 @@ export const RegisterPage: React.FC = () => {
                           <CreditCard className="w-5 h-5 text-blue-200" />
                           <span className="tracking-tight text-white font-black text-base sm:text-lg">
                             {verifiedPayment
-                              ? '14-Day Trial & AutoPay Linked'
-                              : 'Start 14-Day Free Trial & Set Up AutoPay'}
+                              ? '14-Day Free Trial Active'
+                              : 'Start 14-Day Free Trial'}
                           </span>
                           <ArrowRight className="w-5 h-5 ml-1 text-blue-200" />
                         </div>
                         <span className="text-[11px] font-medium text-blue-100 opacity-90">
                           {verifiedPayment
-                            ? 'AutoPay Mandate Active • Complete Student Setup & Launch Dashboard'
+                            ? 'Complete student setup and continue to your dashboard'
                           : '₹0 today • ₹30/month begins after 14 days'}
                         </span>
                       </>
@@ -1441,7 +1209,7 @@ export const RegisterPage: React.FC = () => {
         subtitle="Razorpay Standard Web Checkout Modal"
         studentName={studentName}
         studentEmail={studentEmail}
-        studentRoll={studentIdNum}
+        studentRoll={registrationRef()}
         collegeName={studentCollegeName}
         onPaymentSuccess={(data) => {
           setVerifiedPayment(data);

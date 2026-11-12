@@ -9,7 +9,7 @@ import {
   Users, Target, Award, Bell, ChevronRight, ArrowUpRight, CheckCircle2
 } from 'lucide-react';
 import { PageWrapper } from '../../layouts';
-import { StatCard, Card, Badge, Button, Alert, Progress } from '../../components/ui';
+import { StatCard, Card, Badge, Button, Alert, Progress, Skeleton } from '../../components/ui';
 import { analyticsService, collegeService } from '../../services';
 import { formatNumber } from '../../utils';
 import { useAuthStore } from '../../store';
@@ -40,8 +40,15 @@ export const CollegeDashboard: React.FC = () => {
     }
     analyticsService.getCollegeAnalytics(collegeId)
       .then(setAnalytics)
+      .catch(() => setAnalytics(null))
       .finally(() => setLoading(false));
   }, [user?.tenantId]);
+
+  const trendYear = new Date().getFullYear();
+  const chartData = analytics?.monthlyTrend ?? [];
+  const hasTrendActivity = chartData.some(
+    (p) => (p.applications ?? 0) + (p.placed ?? 0) + (p.interviews ?? 0) > 0,
+  );
 
 
   const kpis = [
@@ -82,32 +89,46 @@ export const CollegeDashboard: React.FC = () => {
         <Card className="lg:col-span-2 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100">Placement Trend 2025</h3>
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100">Placement Trend {trendYear}</h3>
               <p className="text-xs text-slate-400 mt-0.5">Monthly placements, applications, and interviews</p>
             </div>
             <Badge variant="green" dot>On Track</Badge>
           </div>
-          {analytics && (
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={analytics.monthlyTrend}>
-                <defs>
-                  <linearGradient id="placedGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="appGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Area type="monotone" dataKey="applications" stroke="#4f46e5" fill="url(#appGrad)" strokeWidth={2} name="Applications" />
-                <Area type="monotone" dataKey="placed" stroke="#10b981" fill="url(#placedGrad)" strokeWidth={2} name="Placed" />
-              </AreaChart>
-            </ResponsiveContainer>
+          {loading ? (
+            <Skeleton className="w-full h-[220px] rounded-xl" />
+          ) : chartData.length > 0 ? (
+            <div className="w-full min-h-[220px] h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="collegePlacedGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="collegeAppGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="collegeInterviewGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.12} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} width={36} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="applications" stroke="#4f46e5" fill="url(#collegeAppGrad)" strokeWidth={2} name="Applications" connectNulls />
+                  <Area type="monotone" dataKey="interviews" stroke="#f59e0b" fill="url(#collegeInterviewGrad)" strokeWidth={2} name="Interviews" connectNulls />
+                  <Area type="monotone" dataKey="placed" stroke="#10b981" fill="url(#collegePlacedGrad)" strokeWidth={2} name="Placed" connectNulls />
+                </AreaChart>
+              </ResponsiveContainer>
+              {!hasTrendActivity && (
+                <p className="text-center text-xs text-slate-400 mt-2">No placement activity yet — chart shows the last 12 months at zero.</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 text-center py-16">Trend data is unavailable. Check that the API is running on port 5030.</p>
           )}
         </Card>
 
@@ -120,10 +141,10 @@ export const CollegeDashboard: React.FC = () => {
                 <div key={dept.department}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{dept.department}</span>
-                    <span className="text-xs text-slate-500">{Math.round((dept.placed / dept.total) * 100)}%</span>
+                    <span className="text-xs text-slate-500">{dept.total > 0 ? Math.round((dept.placed / dept.total) * 100) : 0}%</span>
                   </div>
                   <Progress
-                    value={Math.round((dept.placed / dept.total) * 100)}
+                    value={dept.total > 0 ? Math.round((dept.placed / dept.total) * 100) : 0}
                     color={i === 0 ? 'green' : i < 3 ? 'brand' : 'amber'}
                     size="sm"
                   />

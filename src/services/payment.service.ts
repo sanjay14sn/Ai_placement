@@ -96,15 +96,39 @@ export const loadRazorpayScript = (): Promise<boolean> => {
 /**
  * Payment Service for Razorpay Integration
  */
+const readJson = async (res: Response) => {
+  const text = await res.text();
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(res.ok ? 'Payment server returned an invalid response' : `Payment server error (${res.status})`);
+  }
+};
+
+const isNetworkError = (err: unknown) => {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /failed to fetch|networkerror|load failed|network request failed|fetch failed/i.test(msg);
+};
+
 export const paymentService = {
   async createStudentSubscription(params: { name: string; email: string; contact: string; studentId: string; college: string }): Promise<CreateSubscriptionResponse> {
-    const res = await fetch(`${API_BASE}/create-student-subscription`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.success) throw new Error(data.message || data.error || 'Failed to create AutoPay subscription');
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE}/create-student-subscription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+    } catch (err) {
+      if (isNetworkError(err)) {
+        throw new Error(`Cannot reach the payment API at ${API_BASE}. Start the backend (port 5030) or set VITE_API_URL to a live API.`);
+      }
+      throw err;
+    }
+    const data = await readJson(res);
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || data.error || (res.status === 404 ? 'Payment route not found on the API server' : 'Failed to start your free trial subscription'));
+    }
     return data;
   },
 
